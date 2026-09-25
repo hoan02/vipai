@@ -1,0 +1,29 @@
+import { TELEGRAM_URL } from "@/lib/site";
+
+export function TelegramCta() {
+  return (
+    <section className="section" id="telegram" aria-label="Contact on Telegram">
+      <div className="tg-cta motion-preset-slide-up motion-duration-500">
+        <div className="stack motion-preset-slide-left motion-duration-500">
+          <span className="tg-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M21.9 4.3 19 19.1c-.2 1-.8 1.2-1.6.8l-4.4-3.3-2.1 2c-.2.2-.4.4-.9.4l.3-4.5 8.2-7.4c.4-.3-.1-.5-.6-.2L6.8 13.1l-4.3-1.4c-.9-.3-.9-.9.2-1.3L20.6 3c.8-.3 1.5.2 1.3 1.3z" />
+            </svg>
+            Support &amp; free test tokens
+          </span>
+          <h3>Talk to a human on Telegram</h3>
+          <p>
+            Want to try a model before you pay? Ask for free test tokens — plus setup help, rate-limit answers and
+            volume pricing. The team replies on Telegram, usually within minutes.
+          </p>
+        </div>
+        <div className="stack motion-preset-slide-up motion-duration-500">
+          <a className="btn-solid ai-lift" href={TELEGRAM_URL} target="_blank" rel="noreferrer noopener">
+            Get test tokens on Telegram
+          </a>
+          <span className="form-note">Free test tokens · no card required</span>
+        </div>
+      </div>
+    </section>
+  );
+}

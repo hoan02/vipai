@@ -1,0 +1,74 @@
+// AiGiare backend schema — Postgres.
+//   npm run db:generate   (prisma generate)
+//   npm run db:push       (prisma db push — sync schema to DATABASE_URL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// A signed-in Clerk user, mirrored locally so usage can be attributed.
+model User {
+  id        String   @id // Clerk user id (user_...)
+  email     String?
+  name      String?
+  createdAt DateTime @default(now())
+
+  apiKeys  ApiKey[]
+  usage    UsageEvent[]
+  requests TokenRequest[]
+}
+
+/// An AiGiare API key. Only the hash is persisted; the plaintext key is shown
+/// once, at creation time.
+model ApiKey {
+  id        String    @id @default(cuid())
+  userId    String
+  name      String
+  prefix    String // e.g. sk-aigiare
+  last4     String
+  hashedKey String    @unique
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usage UsageEvent[]
+
+  @@index([userId])
+}
+
+/// One billed request, used for the usage and cost dashboards.
+model UsageEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  apiKeyId  String?
+  model     String
+  tokensIn  Int      @default(0)
+  tokensOut Int      @default(0)
+  costUsd   Decimal  @default(0) @db.Decimal(12, 6)
+  createdAt DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKey ApiKey? @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+}
+
+/// A free test-token request submitted from the redesigned landing page.
+model TokenRequest {
+  id        String   @id @default(cuid())
+  email     String
+  telegram  String?
+  useCase   String?
+  status    String   @default("pending") // pending | sent | rejected
+  createdAt DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+}

@@ -1,0 +1,190 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { Bell, LayoutGrid, LayoutList } from "lucide-react";
+import { PageHead, Stat } from "@/components/dashboard/kit";
+import { balance, billingRows, monthSpend, purchases, savedThisMonth, type BillingRow } from "@/lib/dashboard-data";
+
+function BalanceCard() {
+  return (
+    <div className="bal">
+      <div className="bal-row">
+        <span className="bal-amt">{balance}</span>
+        <button className="btn btn-primary btn-sm" type="button" data-topup>
+          Top up
+        </button>
+      </div>
+      <p className="bal-note">
+        Credits are added at face value in USD. Model discounts are applied automatically when credits are used. See
+        per-request charges in Billing details.
+      </p>
+      <button className="bal-alert" type="button">
+        <Bell size={15} /> Set balance alert
+      </button>
+    </div>
+  );
+}
+
+function PurchaseHistory() {
+  return (
+    <div className="panel">
+      <div className="panel-hd">
+        <h3>Purchase history</h3>
+      </div>
+      <div className="twrap" style={{ marginTop: 8 }}>
+        <table className="dtable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Source</th>
+              <th>Status</th>
+              <th className="r">Amount</th>
+              <th>Invoice</th>
+            </tr>
+          </thead>
+          <tbody>
+            {purchases.length === 0 ? (
+              <tr className="empty-row">
+                <td colSpan={5}>No purchases yet</td>
+              </tr>
+            ) : (
+              purchases.map((p) => (
+                <tr key={p.invoice}>
+                  <td>{p.date}</td>
+                  <td>{p.source}</td>
+                  <td>
+                    <span className="pill pill-ok">{p.status}</span>
+                  </td>
+                  <td className="r num">{p.amount}</td>
+                  <td>
+                    <span className="link" style={{ borderBottom: 0 }}>
+                      {p.invoice}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function BillingDetail({ rows }: { rows: BillingRow[] }) {
+  return (
+    <div className="panel">
+      <div className="panel-hd">
+        <h3>Billing detail</h3>
+        <p>
+          Per-request usage charges by model · All times in your local timezone (UTC+7) ·{" "}
+          <a className="link" href="#support">
+            Questions about your bill?
+          </a>
+          <br />
+          Each request is billed at its real-time discount. If you need a discount cap, set it in{" "}
+          <Link className="link" href="/dashboard/routing">
+            Routing
+          </Link>
+          .
+        </p>
+      </div>
+      <div className="twrap" style={{ marginTop: 10 }}>
+        <table className="dtable">
+          <thead>
+            <tr>
+              <th>Request time</th>
+              <th>Model</th>
+              <th>Source</th>
+              <th className="r">Input tokens</th>
+              <th className="r">Output tokens</th>
+              <th className="r">Cache read</th>
+              <th className="r">Cache write</th>
+              <th className="r">Amount due</th>
+              <th className="r">Balance change</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr className="empty-row">
+                <td colSpan={9}>No usage yet</td>
+              </tr>
+            ) : (
+              rows.map((r) => (
+                <tr key={r.time}>
+                  <td>{r.time}</td>
+                  <td>{r.model}</td>
+                  <td>{r.source}</td>
+                  <td className="r num">{r.input}</td>
+                  <td className="r num">{r.output}</td>
+                  <td className="r num">{r.cacheRead}</td>
+                  <td className="r num">{r.cacheWrite}</td>
+                  <td className="r num">{r.amount}</td>
+                  <td className="r num">{r.balance}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+export function BillingView({ billing }: { billing?: { monthSpend: string; rows: BillingRow[] } }) {
+  const [view, setView] = useState<"grid" | "list">("grid");
+  const rows = billing?.rows ?? billingRows;
+  const spend = billing?.monthSpend ?? monthSpend;
+
+  return (
+    <>
+      <PageHead
+        title="Balance & billing"
+        side={
+          <div className="seg" role="group" aria-label="Layout">
+            <button
+              type="button"
+              className={view === "list" ? "is-on" : undefined}
+              aria-pressed={view === "list"}
+              aria-label="List layout"
+              onClick={() => setView("list")}
+            >
+              <LayoutList size={16} />
+            </button>
+            <button
+              type="button"
+              className={view === "grid" ? "is-on" : undefined}
+              aria-pressed={view === "grid"}
+              aria-label="Grid layout"
+              onClick={() => setView("grid")}
+            >
+              <LayoutGrid size={16} />
+            </button>
+          </div>
+        }
+      />
+
+      {view === "grid" ? (
+        <div className="stack-16" style={{ marginTop: 20 }}>
+          <div className="grid-2">
+            <BalanceCard />
+            <PurchaseHistory />
+          </div>
+          <div className="stats">
+            <Stat label="Balance" value={balance} />
+            <Stat label="This month" value={spend} />
+            <Stat label="Saved" value={savedThisMonth} />
+          </div>
+          <BillingDetail rows={rows} />
+        </div>
+      ) : (
+        <div className="stack-16" style={{ marginTop: 20 }}>
+          <BalanceCard />
+          <PurchaseHistory />
+          <BillingDetail rows={rows} />
+        </div>
+      )}
+    </>
+  );
+}

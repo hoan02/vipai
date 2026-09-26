@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession } from "@/lib/auth-client";
+import { openAuthModal } from "@/lib/auth-modal";
 import { UserButton } from "@/components/UserButton";
 import { Icon } from "@/lib/icons";
 import { languages } from "@/lib/data";
@@ -120,9 +121,13 @@ export function Nav() {
             </div>
           </div>
           {!isPending && !session?.user && (
-            <Link className="login-btn" href="/sign-in">
+            <button
+              className="login-btn cursor-pointer"
+              type="button"
+              onClick={() => openAuthModal("signin")}
+            >
               Get API key
-            </Link>
+            </button>
           )}
           {!isPending && session?.user && (
             <>

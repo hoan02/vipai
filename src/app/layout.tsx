@@ -4,6 +4,7 @@ import { Geist, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "./site-pages.css";
 import { I18n } from "@/components/I18n";
+import { AuthModal } from "@/components/AuthModal";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <I18n />
         {children}
+        <AuthModal />
       </body>
     </html>
   );

@@ -34,7 +34,7 @@ export function BuyHook() {
     <section className="buy buy-hook" id="buyhook" aria-label="Pay less">
       <div className="buy-inner motion-preset-slide-up motion-duration-500">
         <h2 className="buy-title">
-          Pay Less for <span className="grad">Every Token</span>
+          <span>Pay Less for</span> <span className="grad">Every Token</span>
         </h2>
         <p className="buy-sub">
           Pay only for what you use. Model rates start at just 10% of the official price — discounts applied

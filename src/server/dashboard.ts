@@ -1,5 +1,4 @@
 import "server-only";
-import { hasDatabase } from "./db";
 import {
   getUsageSummary,
   listApiKeys,
@@ -33,10 +32,10 @@ export function toViewKey(record: ApiKeyRecord): ApiKey {
   };
 }
 
-/** API keys for the signed-in account; demo rows when no database is attached. */
+/** API keys for the signed-in account; demo rows when backend has none or is offline. */
 export async function getDashboardKeys(userId: string): Promise<ApiKey[]> {
-  if (!hasDatabase) return demoKeys;
   const records = await listApiKeys(userId);
+  if (!records || records.length === 0) return demoKeys;
   return records.map(toViewKey);
 }
 
@@ -47,10 +46,8 @@ export type DashboardUsage = {
 
 /** Usage cards + 14-day series. Cache counters stay demo: the schema has no field for them. */
 export async function getDashboardUsage(userId: string): Promise<DashboardUsage> {
-  if (!hasDatabase) return { summary: demoSummary, series: demoSeries };
-
   const usage = await getUsageSummary(userId);
-  if (usage.series.length === 0) return { summary: demoSummary, series: demoSeries };
+  if (!usage || usage.series.length === 0) return { summary: demoSummary, series: demoSeries };
 
   return {
     summary: {
@@ -84,10 +81,8 @@ function toViewBillingRow(row: UsageRow): BillingRow {
 
 /** Billing rows + month spend from real usage events; demo rows when empty. */
 export async function getDashboardBilling(userId: string): Promise<DashboardBilling> {
-  if (!hasDatabase) return { monthSpend: demoMonthSpend, rows: demoBillingRows };
-
   const [usage, recent] = await Promise.all([getUsageSummary(userId), listRecentUsage(userId)]);
-  if (recent.length === 0) return { monthSpend: demoMonthSpend, rows: demoBillingRows };
+  if (!recent || recent.length === 0) return { monthSpend: demoMonthSpend, rows: demoBillingRows };
 
   return { monthSpend: usd(usage.costUsd), rows: recent.map(toViewBillingRow) };
 }

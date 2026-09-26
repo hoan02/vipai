@@ -1,6 +1,5 @@
 import "server-only";
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { getDb, hasDatabase } from "./db";
+import { cookies, headers } from "next/headers";
 
 export type Account = {
   id: string;
@@ -8,34 +7,61 @@ export type Account = {
   name: string | null;
 };
 
+const BACKEND_URL =
+  process.env.BACKEND_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:4000";
+
 /**
- * Returns the signed-in Clerk account, mirroring it into the local `User`
- * table so usage rows have a foreign key. Returns null when signed out.
+ * Returns the signed-in Limen account verified via the Go backend.
+ * Returns null when signed out.
  */
 export async function getAccount(): Promise<Account | null> {
-  const { userId } = await auth();
-  if (!userId) return null;
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get("limen_session")?.value;
+    const headerStore = await headers();
+    const authHeader = headerStore.get("authorization");
 
-  const user = await currentUser();
-  const email = user?.emailAddresses[0]?.emailAddress ?? null;
-  const name = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || null;
-
-  if (hasDatabase) {
-    const db = await getDb();
-    if (db) {
-      try {
-        await db.user.upsert({
-          where: { id: userId },
-          create: { id: userId, email, name },
-          update: { email, name },
-        });
-      } catch (error) {
-        console.error("[aigiare] could not mirror user:", error);
-      }
+    if (!sessionCookie && !authHeader) {
+      return null;
     }
-  }
 
-  return { id: userId, email, name };
+    const reqHeaders: Record<string, string> = {};
+    if (sessionCookie) {
+      reqHeaders["cookie"] = `limen_session=${sessionCookie}`;
+    }
+    if (authHeader) {
+      reqHeaders["authorization"] = authHeader;
+    }
+
+    const res = await fetch(`${BACKEND_URL}/auth/me`, {
+      headers: reqHeaders,
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      return null;
+    }
+
+    const data = await res.json();
+    const user = data?.user;
+    if (!user || !user.id) {
+      return null;
+    }
+
+    const userId = String(user.id);
+    const email = (user.email as string) || null;
+    const name =
+      [user.firstName, user.lastName].filter(Boolean).join(" ") ||
+      (user.name as string) ||
+      null;
+
+    return { id: userId, email, name };
+  } catch (error) {
+    console.error("[aigiare] auth verification failed:", error);
+    return null;
+  }
 }
 
 /** Throws when there is no signed-in account; use in protected route handlers. */

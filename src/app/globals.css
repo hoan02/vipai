@@ -278,9 +278,7 @@ html.reveal-on .is-in{ opacity:1 !important; transform:none !important; filter:b
     linear-gradient(120deg, #f3a25c 0%, #fb7d3a 46%, #8d7ce0 100%);
 }
 .buy.buy-hook::before{
-  background:
-    radial-gradient(60% 90% at 22% 30%, color-mix(in srgb, #fff 32%, transparent), transparent 66%),
-    radial-gradient(50% 80% at 78% 70%, color-mix(in srgb, #ffd9c4 40%, transparent), transparent 70%);
+  background:url("/assets/buy-hook-bg.jpg") center/cover no-repeat;
   mix-blend-mode:soft-light;
   opacity:.9;
 }
@@ -551,7 +549,6 @@ html.reveal-on .is-in{ opacity:1 !important; transform:none !important; filter:b
 .buy{ position:relative; z-index:1; display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden; background:var(--stage-bg); aspect-ratio:1440/613; min-height:460px; padding:clamp(40px,6vh,80px) var(--edge) clamp(48px,6.2vw,90px); }
 .buy.buy-hook{ aspect-ratio:auto; min-height:380px; padding:clamp(36px,5.5vh,60px) var(--edge); }
 .buy::before{ content:""; position:absolute; inset:0; z-index:0; pointer-events:none; background:url("/assets/buy-art-bg.webp") center/cover no-repeat; }
-.buy.buy-hook::before{ background-image:url("/assets/buy-hook-bg.jpg"); }
 .buy::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:44%; z-index:0; background:linear-gradient(180deg,transparent,color-mix(in srgb, #ffe7d8 72%, transparent) 68%,#ffe7d8); }
 .buy-inner{ position:relative; z-index:1; max-width:760px; margin:0 auto; }
 .buy-title{ font-weight:var(--fw-bold); font-size:clamp(2rem,4.4vw,3.2rem); line-height:1.14; letter-spacing:-.02em; }
@@ -1133,7 +1130,7 @@ html.launch-banner-off .launch-banner{ display:none; }
 .pf-empty{ margin:28px 0 8px; text-align:center; font-size:14px; color:color-mix(in srgb,var(--ink) 46%,transparent); }
 .table-rel{ position:relative; width:100%; min-width:840px; }
 .tr-band{
-  position:absolute; top:-12px; right:28%; bottom:4px; width:28%; z-index:0; pointer-events:none;
+  position:absolute; top:-12px; left:var(--tr-band-left, 56%); width:var(--tr-band-width, 24%); bottom:4px; z-index:0; pointer-events:none;
   border-radius:var(--corner); overflow:hidden;
   background:linear-gradient(180deg, color-mix(in srgb,#f97316 12%,transparent), color-mix(in srgb,#f97316 4%,transparent));
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);

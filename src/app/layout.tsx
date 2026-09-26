@@ -1,4 +1,3 @@
-import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Geist, JetBrains_Mono } from "next/font/google";
@@ -32,12 +31,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} ${mono.variable}`}>
+    <html lang="vi" className={`${geist.variable} ${mono.variable}`}>
       <body>
-        <ClerkProvider>
-          <I18n />
-          {children}
-        </ClerkProvider>
+        <I18n />
+        {children}
       </body>
     </html>
   );

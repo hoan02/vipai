@@ -40,12 +40,25 @@ const messages: BannerMessage[] = [
 
 const ROTATE_MS = 4500;
 const BANNER_KEY = "aigiare.notice.launch-banner.v1";
-const WEEK_MS = 604800000;
+
+/** Same local calendar day. A dismissal only covers the day it was made, so the
+ *  banner is back after midnight instead of staying gone for a week. */
+function isSameLocalDay(a: number, b: number): boolean {
+  const da = new Date(a);
+  const db = new Date(b);
+  return (
+    da.getFullYear() === db.getFullYear() &&
+    da.getMonth() === db.getMonth() &&
+    da.getDate() === db.getDate()
+  );
+}
 
 function wasDismissed(): boolean {
   try {
     const seen = localStorage.getItem(BANNER_KEY);
-    return Boolean(seen) && Date.now() - Number(seen) < WEEK_MS;
+    if (!seen) return false;
+    const at = Number(seen);
+    return Number.isFinite(at) && isSameLocalDay(at, Date.now());
   } catch {
     return false;
   }
@@ -55,7 +68,7 @@ export function LaunchBanner() {
   const [hidden, setHidden] = useState(false);
   const [active, setActive] = useState(0);
 
-  // Honour a dismissal from a previous visit (7-day window), mirroring the
+  // Honour a dismissal from earlier the same day, mirroring the
   // static build's `launch-banner-off` root class.
   useEffect(() => {
     if (wasDismissed()) {

@@ -51,10 +51,29 @@ export function Pricing() {
     return q ? base.filter((m) => `${m.name} ${m.vendor}`.toLowerCase().includes(q)) : base;
   }, [vendor, query]);
 
+  const tableRelRef = useRef<HTMLDivElement | null>(null);
+
   const syncFiltersVar = useCallback(() => {
     const section = sectionRef.current;
     const filtersEl = section?.querySelector<HTMLElement>(".price-filters");
     if (section && filtersEl) section.style.setProperty("--price-filters-h", `${Math.ceil(filtersEl.getBoundingClientRect().height)}px`);
+  }, []);
+
+  const syncBandVar = useCallback(() => {
+    const tableRel = tableRelRef.current;
+    if (!tableRel) return;
+    const ths = tableRel.querySelectorAll<HTMLTableCellElement>("thead th");
+    const thIn = ths[4]; // Input (AiGiare)
+    const thOut = ths[5]; // Output (AiGiare)
+    if (thIn && thOut) {
+      const relRect = tableRel.getBoundingClientRect();
+      const inRect = thIn.getBoundingClientRect();
+      const outRect = thOut.getBoundingClientRect();
+      if (inRect.width > 0 && outRect.width > 0) {
+        tableRel.style.setProperty("--tr-band-left", `${Math.round(inRect.left - relRect.left)}px`);
+        tableRel.style.setProperty("--tr-band-width", `${Math.round(outRect.right - inRect.left)}px`);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -64,10 +83,31 @@ export function Pricing() {
       section.classList.add("show-all");
       setExpanded(true);
     }
-    const onResize = () => syncFiltersVar();
+    const onResize = () => {
+      syncFiltersVar();
+      syncBandVar();
+    };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, [syncFiltersVar]);
+  }, [syncBandVar, syncFiltersVar]);
+
+  useEffect(() => {
+    const tableRel = tableRelRef.current;
+    if (!tableRel || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      syncBandVar();
+    });
+    ro.observe(tableRel);
+    return () => ro.disconnect();
+  }, [syncBandVar]);
+
+  useEffect(() => {
+    if (expanded) {
+      syncBandVar();
+      const id = requestAnimationFrame(syncBandVar);
+      return () => cancelAnimationFrame(id);
+    }
+  }, [expanded, rows, syncBandVar]);
 
   // Live badge: the source only flips the top discount badge, once it is 60% in view.
   useEffect(() => {
@@ -101,7 +141,8 @@ export function Pricing() {
     animating.current = false;
     section?.classList.remove("is-expanding");
     syncFiltersVar();
-  }, [syncFiltersVar]);
+    syncBandVar();
+  }, [syncBandVar, syncFiltersVar]);
 
   const collapseNow = useCallback(() => {
     const section = sectionRef.current;
@@ -332,19 +373,19 @@ export function Pricing() {
           </label>
         </div>
 
-        <div className="table-rel">
+        <div className="table-rel" ref={tableRelRef}>
           <div className="tr-band" aria-hidden="true">
             <span className="tr-sheen" />
           </div>
           <table className="price-table" data-expanded={expanded ? "true" : "false"}>
             <caption className="sr">Live model pricing comparison</caption>
             <colgroup>
-              <col style={{ width: "19%" }} />
+              <col style={{ width: "24%" }} />
               <col style={{ width: "8%" }} />
-              <col style={{ width: "11%" }} />
-              <col style={{ width: "11%" }} />
-              <col style={{ width: "11%" }} />
-              <col style={{ width: "11%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "12%" }} />
               <col style={{ width: "10%" }} />
               <col style={{ width: "10%" }} />
             </colgroup>

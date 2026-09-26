@@ -8,6 +8,10 @@ const STORAGE_KEY = "aigiare.locale";
 export const LOCALE_EVENT = "aigiare:locale";
 export type Locale = "en" | "vi";
 
+const en: Record<string, string> = Object.fromEntries(
+  Object.entries(vi).map(([k, v]) => [v, k])
+);
+
 // Inline chrome: leaf text nodes (nav links, buttons, pills, chips).
 const INLINE_SELECTOR = "a,button,span,label,small,strong,b,em";
 // Block prose: matched by normalised textContent so inline <code>/<strong>
@@ -25,8 +29,8 @@ function directTextNodes(el: Element): Text[] {
 }
 
 export function getLocale(): Locale {
-  if (typeof window === "undefined") return "en";
-  return localStorage.getItem(STORAGE_KEY) === "vi" ? "vi" : "en";
+  if (typeof window === "undefined") return "vi";
+  return localStorage.getItem(STORAGE_KEY) === "en" ? "en" : "vi";
 }
 
 export function setLocale(locale: Locale) {
@@ -55,8 +59,10 @@ export function I18n() {
         if (!entry) {
           const nodes = directTextNodes(el);
           if (!nodes.length) return;
-          const key = nodes.map((n) => n.nodeValue || "").join("").trim();
-          if (!vi[key]) return;
+          const currentText = nodes.map((n) => n.nodeValue || "").join("").trim();
+          const key = el.getAttribute("data-i18n") || (vi[currentText] ? currentText : en[currentText] || "");
+          if (!key || !vi[key]) return;
+          el.setAttribute("data-i18n", key);
           entry = { el, key, nodes };
           inlineCache.set(el, entry);
         }
@@ -76,9 +82,12 @@ export function I18n() {
         if (handled.has(el)) return;
         let entry = blockCache.get(el);
         if (!entry) {
-          const key = norm(el.textContent || "");
-          if (!vi[key]) return;
-          entry = { el, key, html: el.innerHTML };
+          const currentText = norm(el.textContent || "");
+          const key = el.getAttribute("data-i18n") || (vi[currentText] ? currentText : en[currentText] || "");
+          if (!key || !vi[key]) return;
+          el.setAttribute("data-i18n", key);
+          const initialHtml = el.innerHTML;
+          entry = { el, key, html: en[currentText] ? (en[currentText] || initialHtml) : initialHtml };
           blockCache.set(el, entry);
         }
         el.innerHTML = locale === "vi" ? vi[entry.key] : entry.html;

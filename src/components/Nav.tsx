@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Show, SignUpButton, UserButton } from "@clerk/nextjs";
+import { useSession } from "@/lib/auth-client";
+import { UserButton } from "@/components/UserButton";
 import { Icon } from "@/lib/icons";
 import { languages } from "@/lib/data";
 import { TELEGRAM_URL } from "@/lib/site";
@@ -17,13 +18,14 @@ const links = [
 ];
 
 export function Nav() {
+  const { data: session, isPending } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-  const [lang, setLang] = useState("en");
+  const [lang, setLang] = useState("vi");
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const stored = (localStorage.getItem("aigiare.locale") as "en" | "vi") || "en";
+    const stored = (localStorage.getItem("aigiare.locale") as "en" | "vi") || "vi";
     setLang(stored);
     document.documentElement.lang = stored;
   }, []);
@@ -53,8 +55,10 @@ export function Nav() {
             <span className="nav-user">
               <span className="nav-user-av" />
               <span className="nav-user-tx">
-                <span className="nav-user-id">&nbsp;</span>
-                <span className="nav-user-sub">Not signed in</span>
+                <span className="nav-user-id">{session?.user?.email || "AiGiare"}</span>
+                <span className="nav-user-sub">
+                  {session?.user ? "Signed in" : "Not signed in"}
+                </span>
               </span>
             </span>
           </div>
@@ -115,19 +119,19 @@ export function Nav() {
               ))}
             </div>
           </div>
-          <Show when="signed-out">
-            <SignUpButton mode="modal">
-              <button className="login-btn" type="button">
-                Get API key
-              </button>
-            </SignUpButton>
-          </Show>
-          <Show when="signed-in">
-            <Link className="login-btn" href="/dashboard">
-              Dashboard
+          {!isPending && !session?.user && (
+            <Link className="login-btn" href="/sign-in">
+              Get API key
             </Link>
-            <UserButton />
-          </Show>
+          )}
+          {!isPending && session?.user && (
+            <>
+              <Link className="login-btn" href="/dashboard">
+                Dashboard
+              </Link>
+              <UserButton />
+            </>
+          )}
           <button
             className="nav-burger"
             type="button"

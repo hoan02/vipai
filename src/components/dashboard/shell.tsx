@@ -3,7 +3,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton, useUser } from "@clerk/nextjs";
+import { useSession } from "@/lib/auth-client";
+import { UserButton } from "@/components/UserButton";
 import {
   Activity,
   BarChart3,
@@ -39,7 +40,7 @@ const topTabs = [
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const path = usePathname() ?? "/dashboard";
-  const [lang, setLang] = useState<Locale>("en");
+  const [lang, setLang] = useState<Locale>("vi");
   useEffect(() => setLang(getLocale()), []);
   const chooseLang = (l: Locale) => {
     setLang(l);
@@ -48,9 +49,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const isOn = (href: string) =>
     href === "/dashboard" ? path === "/dashboard" : path === href || path.startsWith(`${href}/`);
 
-  const { user } = useUser();
-  const email = user?.primaryEmailAddress?.emailAddress ?? account.email;
-  const display = user?.fullName || user?.username || email;
+  const { data: session } = useSession();
+  const user = session?.user as Record<string, unknown> | undefined;
+  const email = (user?.email as string | undefined) ?? account.email;
+  const display =
+    [user?.firstname || user?.firstName, user?.lastname || user?.lastName]
+      .filter(Boolean)
+      .join(" ") || email;
   const initial = (display.trim()[0] ?? "A").toUpperCase();
 
   return (

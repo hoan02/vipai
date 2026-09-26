@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getAccount } from "@/server/auth";
 import { createTokenRequest } from "@/server/repositories";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -30,8 +30,8 @@ export async function POST(request: Request) {
 
   let userId: string | null = null;
   try {
-    const session = await auth();
-    userId = session.userId ?? null;
+    const account = await getAccount();
+    userId = account?.id ?? null;
   } catch {
     userId = null;
   }

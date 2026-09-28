@@ -606,3 +606,116 @@ export async function listAdminLogs(
   );
   return { items: data.items ?? [], total: data.total ?? 0 };
 }
+
+/* --- redemption codes (mã nạp) ------------------------------------------ */
+
+export type GatewayRedemption = {
+  id: number;
+  key: string;
+  name: string;
+  /** 1 unused, 2 disabled, 3 used. */
+  status: number;
+  /** Credit value, in quota units (500000 = $1). */
+  quota: number;
+  created_time: number;
+  redeemed_time: number;
+  expired_time: number;
+};
+
+export async function listRedemptions(
+  accessToken: string,
+  pageSize = 100,
+): Promise<{ items: GatewayRedemption[]; total: number }> {
+  const data = await call<{ items: GatewayRedemption[]; total: number }>(
+    `/api/redemption/?p=0&page_size=${pageSize}`,
+    { token: accessToken },
+  );
+  return { items: data.items ?? [], total: data.total ?? 0 };
+}
+
+/** Creates `count` codes of `quota` units each. Returns their plaintext keys. */
+export async function createRedemptions(
+  accessToken: string,
+  input: { name: string; quota: number; count: number; expiredTime: number },
+): Promise<string[]> {
+  const data = await call<string[]>("/api/redemption/", {
+    method: "POST",
+    token: accessToken,
+    body: JSON.stringify({
+      name: input.name,
+      quota: input.quota,
+      count: input.count,
+      expired_time: input.expiredTime,
+    }),
+  });
+  return Array.isArray(data) ? data : [];
+}
+
+export async function deleteRedemption(accessToken: string, id: number): Promise<void> {
+  await call(`/api/redemption/${encodeURIComponent(String(id))}`, {
+    method: "DELETE",
+    token: accessToken,
+  });
+}
+
+/* --- accounts ------------------------------------------------------------ */
+
+export type GatewayAdminUser = {
+  id: number;
+  username: string;
+  displayName: string;
+  email: string | null;
+  role: number;
+  status: number;
+  quota: number;
+  usedQuota: number;
+  requestCount: number;
+  group: string;
+};
+
+export async function listAdminUsers(
+  accessToken: string,
+  keyword = "",
+  pageSize = 100,
+): Promise<{ items: GatewayAdminUser[]; total: number }> {
+  const path = keyword
+    ? `/api/user/search?keyword=${encodeURIComponent(keyword)}&p=0&page_size=${pageSize}`
+    : `/api/user/?p=0&page_size=${pageSize}`;
+  const data = await call<{ items: Array<Record<string, unknown>>; total: number }>(path, {
+    token: accessToken,
+  });
+  return {
+    total: data.total ?? 0,
+    items: (data.items ?? []).map((raw) => ({
+      id: Number(raw.id),
+      username: String(raw.username ?? ""),
+      displayName: String(raw.display_name ?? raw.username ?? ""),
+      email: (raw.email as string) || null,
+      role: Number(raw.role ?? 0),
+      status: Number(raw.status ?? 0),
+      quota: Number(raw.quota ?? 0),
+      usedQuota: Number(raw.used_quota ?? 0),
+      requestCount: Number(raw.request_count ?? 0),
+      group: String(raw.group ?? "default"),
+    })),
+  };
+}
+
+/**
+ * Runs one management action on an account.
+ *
+ * `action` is new-api's own vocabulary: enable, disable, delete, promote,
+ * demote. `value` is the quota delta (in quota units) for `add_quota`.
+ */
+export async function manageUser(
+  accessToken: string,
+  id: number,
+  action: "enable" | "disable" | "promote" | "demote" | "delete" | "add_quota",
+  value = 0,
+): Promise<void> {
+  await call("/api/user/manage", {
+    method: "POST",
+    token: accessToken,
+    body: JSON.stringify({ id, action, value }),
+  });
+}

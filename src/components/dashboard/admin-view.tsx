@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHead, Pill, SectionTitle, Stat } from "@/components/dashboard/kit";
 import type { GatewayChannel } from "@/server/gateway";
@@ -18,6 +18,26 @@ const usd = (value: number) => `$${value.toFixed(value >= 1 ? 2 : 4)}`;
 
 type PriceRow = { id: string; input: string; output: string; cache: string; perCall: string };
 type CostRow = { id: string; costIn: string; costOut: string; margin: string };
+type RedemptionRow = {
+  id: number;
+  name: string;
+  key: string;
+  status: number;
+  usd: number;
+  expiredTime: number;
+};
+type UserRow = {
+  id: number;
+  username: string;
+  displayName: string;
+  email: string | null;
+  role: number;
+  status: number;
+  balanceUsd: number;
+  usedUsd: number;
+  requestCount: number;
+  group: string;
+};
 
 function toRows(prices: ModelPrice[]): PriceRow[] {
   return prices.map((price) => ({
@@ -100,6 +120,93 @@ export function AdminView({
     }
     setNotice(apply ? "Saved costs and repriced retail." : "Saved costs and margins.");
     if (apply) router.refresh();
+  };
+
+  /* --- redemption codes and accounts (loaded on demand) ------------------ */
+
+  const [redemptions, setRedemptions] = useState<RedemptionRow[]>([]);
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [newKeys, setNewKeys] = useState<string[]>([]);
+  const [codeName, setCodeName] = useState("");
+  const [codeUsd, setCodeUsd] = useState("10");
+  const [codeCount, setCodeCount] = useState("1");
+  const [userQuery, setUserQuery] = useState("");
+  const [busyLists, setBusyLists] = useState(false);
+
+  const loadLists = async (keyword = "") => {
+    setBusyLists(true);
+    const [r, u] = await Promise.all([
+      fetch("/api/admin/redemptions", { cache: "no-store" }).then((res) =>
+        res.ok ? res.json() : { items: [] },
+      ),
+      fetch(`/api/admin/users${keyword ? `?keyword=${encodeURIComponent(keyword)}` : ""}`, {
+        cache: "no-store",
+      }).then((res) => (res.ok ? res.json() : { items: [] })),
+    ]);
+    setRedemptions((r as { items?: RedemptionRow[] }).items ?? []);
+    setUsers((u as { items?: UserRow[] }).items ?? []);
+    setBusyLists(false);
+  };
+
+  useEffect(() => {
+    void loadLists();
+    // Load once; the search box reloads with a keyword.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const createCodes = async () => {
+    setError(null);
+    setNotice(null);
+    setNewKeys([]);
+    const result = await send("/api/admin/redemptions", "POST", {
+      name: codeName,
+      usd: Number(codeUsd),
+      count: Number(codeCount),
+    });
+    if (result.message) {
+      setError(result.message);
+      return;
+    }
+    setNewKeys((result as { keys?: string[] }).keys ?? []);
+    setNotice("Codes created.");
+    void loadLists(userQuery);
+  };
+
+  const deleteCode = async (id: number) => {
+    if (!window.confirm("Delete this code? This cannot be undone.")) return;
+    setError(null);
+    const result = await send(`/api/admin/redemptions/${id}`, "DELETE", {});
+    if (result.message) {
+      setError(result.message);
+      return;
+    }
+    setRedemptions((current) => current.filter((row) => row.id !== id));
+  };
+
+  const runUserAction = async (
+    id: number,
+    action: "enable" | "disable" | "promote" | "demote" | "delete" | "add_quota",
+  ) => {
+    setError(null);
+    setNotice(null);
+    let usd: number | undefined;
+    if (action === "add_quota") {
+      const input = window.prompt("Add credit (USD). Use a negative value to deduct.", "10");
+      if (input === null) return;
+      usd = Number(input);
+      if (!Number.isFinite(usd) || usd === 0) {
+        setError("Enter a non-zero USD amount.");
+        return;
+      }
+    }
+    if (action === "delete" && !window.confirm("Delete this account permanently?")) return;
+    const result = await send(`/api/admin/users/${id}`, "POST", { action, usd });
+    if (result.message) {
+      setError(result.message);
+      return;
+    }
+    setNotice(`Done: ${action}.`);
+    void loadLists(userQuery);
   };
 
   const setCell = (id: string, field: "input" | "output" | "cache" | "perCall", value: string) => {
@@ -564,6 +671,198 @@ export function AdminView({
           Aggregated over {stats.sampled.toLocaleString()} of {stats.total.toLocaleString()} recent
           requests.
         </p>
+      </div>
+
+      <SectionTitle hint={`${redemptions.length} code(s)`}>Redemption codes</SectionTitle>
+      <div className="panel" style={{ padding: 16 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+          <input
+            className="field"
+            placeholder="Label"
+            value={codeName}
+            onChange={(e) => setCodeName(e.target.value)}
+            style={{ width: 160 }}
+            aria-label="Code label"
+          />
+          <input
+            className="field"
+            type="number"
+            min="1"
+            step="1"
+            value={codeUsd}
+            onChange={(e) => setCodeUsd(e.target.value)}
+            style={{ width: 120 }}
+            aria-label="Credit USD"
+          />
+          <input
+            className="field"
+            type="number"
+            min="1"
+            max="100"
+            step="1"
+            value={codeCount}
+            onChange={(e) => setCodeCount(e.target.value)}
+            style={{ width: 90 }}
+            aria-label="Count"
+          />
+          <button className="btn btn-primary btn-sm" type="button" onClick={createCodes}>
+            Create codes
+          </button>
+          <button
+            className="btn btn-ghost btn-sm"
+            type="button"
+            onClick={() => loadLists(userQuery)}
+            disabled={busyLists}
+          >
+            Reload
+          </button>
+        </div>
+        <p className="note" style={{ marginTop: 0 }}>
+          Credit is in USD; a customer redeems the code at Top up. Creating codes needs payment
+          compliance confirmed on the gateway.
+        </p>
+        {newKeys.length > 0 ? (
+          <div className="panel" style={{ padding: 12, marginBottom: 12 }}>
+            <b>New codes — copy now</b>
+            <pre style={{ whiteSpace: "pre-wrap", margin: "8px 0 0" }}>{newKeys.join("\n")}</pre>
+          </div>
+        ) : null}
+        <div className="twrap">
+          <table className="dtable">
+            <thead>
+              <tr>
+                <th>Label</th>
+                <th>Code</th>
+                <th className="r">USD</th>
+                <th>Status</th>
+                <th className="r">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {redemptions.length === 0 ? (
+                <tr className="empty-row">
+                  <td colSpan={5}>No codes</td>
+                </tr>
+              ) : (
+                redemptions.map((row) => (
+                  <tr key={row.id}>
+                    <td>{row.name}</td>
+                    <td>
+                      <code>{row.key}</code>
+                    </td>
+                    <td className="r num">${row.usd.toFixed(2)}</td>
+                    <td>
+                      <span className={`pill ${row.status === 1 ? "pill-ok" : "pill-off"}`}>
+                        {row.status === 1 ? "Unused" : row.status === 3 ? "Used" : "Disabled"}
+                      </span>
+                    </td>
+                    <td className="r">
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        type="button"
+                        onClick={() => deleteCode(row.id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <SectionTitle hint={`${users.length} shown`}>Accounts</SectionTitle>
+      <div className="panel" style={{ padding: 16 }}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+          <input
+            className="field"
+            placeholder="Search username / email"
+            value={userQuery}
+            onChange={(e) => setUserQuery(e.target.value)}
+            style={{ width: 260 }}
+            aria-label="Search users"
+          />
+          <button
+            className="btn btn-ghost btn-sm"
+            type="button"
+            onClick={() => loadLists(userQuery)}
+            disabled={busyLists}
+          >
+            Search
+          </button>
+        </div>
+        <div className="twrap">
+          <table className="dtable">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th className="r">Balance</th>
+                <th className="r">Used</th>
+                <th className="r">Requests</th>
+                <th className="r">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.length === 0 ? (
+                <tr className="empty-row">
+                  <td colSpan={7}>No accounts</td>
+                </tr>
+              ) : (
+                users.map((user) => (
+                  <tr key={user.id}>
+                    <td>
+                      <span className="cell-main">
+                        <span>{user.username}</span>
+                        <small>{user.email || "—"}</small>
+                      </span>
+                    </td>
+                    <td>{user.role >= 100 ? "Root" : user.role >= 10 ? "Admin" : "User"}</td>
+                    <td>
+                      <span className={`pill ${user.status === 1 ? "pill-ok" : "pill-off"}`}>
+                        {user.status === 1 ? "Enabled" : "Disabled"}
+                      </span>
+                    </td>
+                    <td className="r num">${user.balanceUsd.toFixed(2)}</td>
+                    <td className="r num">${user.usedUsd.toFixed(2)}</td>
+                    <td className="r num">{user.requestCount.toLocaleString()}</td>
+                    <td className="r">
+                      <span style={{ display: "inline-flex", gap: 6 }}>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          type="button"
+                          onClick={() => runUserAction(user.id, "add_quota")}
+                        >
+                          +$
+                        </button>
+                        {user.status === 1 ? (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            type="button"
+                            onClick={() => runUserAction(user.id, "disable")}
+                          >
+                            Disable
+                          </button>
+                        ) : (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            type="button"
+                            onClick={() => runUserAction(user.id, "enable")}
+                          >
+                            Enable
+                          </button>
+                        )}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </>
   );

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { DataTable, type Column } from "@/components/admin/data-table";
+import { DataTable, useColumnHelper, type Column } from "@/components/admin/data-table";
 import { send } from "@/components/admin/lib";
 import { PageHead, Pill } from "@/components/dashboard/kit";
 import type { GatewayChannel } from "@/server/gateway";
@@ -12,6 +12,7 @@ export function ChannelsView({ initialChannels }: { initialChannels: GatewayChan
   const [channels, setChannels] = useState(initialChannels);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const helper = useColumnHelper<GatewayChannel>();
 
   const patch = (id: number, fields: Partial<GatewayChannel>) =>
     setChannels((current) => current.map((c) => (c.id === id ? { ...c, ...fields } : c)));
@@ -61,94 +62,91 @@ export function ChannelsView({ initialChannels }: { initialChannels: GatewayChan
   };
 
   const columns: Column<GatewayChannel>[] = [
-    {
-      key: "name",
+    helper.accessor("name", {
       header: "Channel",
-      sortValue: (c) => c.name,
-      cell: (c) => (
+      cell: (info) => (
         <span className="cell-main">
-          <span>{c.name}</span>
-          <small>type {c.type}</small>
+          <span>{info.getValue()}</span>
+          <small>type {info.row.original.type}</small>
         </span>
       ),
-    },
-    {
-      key: "status",
+    }),
+    helper.accessor("status", {
       header: "Status",
-      cell: (c) => (
-        <Pill tone={c.status === 1 ? "ok" : "off"}>{c.status === 1 ? "Enabled" : "Disabled"}</Pill>
+      cell: (info) => (
+        <Pill tone={info.getValue() === 1 ? "ok" : "off"}>
+          {info.getValue() === 1 ? "Enabled" : "Disabled"}
+        </Pill>
       ),
-    },
-    {
-      key: "group",
+    }),
+    helper.display({
+      id: "group",
       header: "Group",
-      cell: (c) => (
+      cell: ({ row }) => (
         <input
           className="field"
           style={{ width: 110 }}
-          value={c.group}
-          onChange={(e) => patch(c.id, { group: e.target.value })}
-          aria-label={`Group for ${c.name}`}
+          value={row.original.group}
+          onChange={(e) => patch(row.original.id, { group: e.target.value })}
+          aria-label={`Group for ${row.original.name}`}
         />
       ),
-    },
-    {
-      key: "priority",
+    }),
+    helper.accessor("priority", {
       header: "Priority",
-      align: "right",
-      sortValue: (c) => c.priority,
-      cell: (c) => (
+      meta: { align: "right" },
+      cell: ({ row }) => (
         <input
           className="field"
           type="number"
           style={{ width: 80, textAlign: "right" }}
-          value={c.priority}
-          onChange={(e) => patch(c.id, { priority: Number(e.target.value) })}
-          aria-label={`Priority for ${c.name}`}
+          value={row.original.priority}
+          onChange={(e) => patch(row.original.id, { priority: Number(e.target.value) })}
+          aria-label={`Priority for ${row.original.name}`}
         />
       ),
-    },
-    {
-      key: "weight",
+    }),
+    helper.accessor("weight", {
       header: "Weight",
-      align: "right",
-      sortValue: (c) => c.weight,
-      cell: (c) => (
+      meta: { align: "right" },
+      cell: ({ row }) => (
         <input
           className="field"
           type="number"
           style={{ width: 80, textAlign: "right" }}
-          value={c.weight}
-          onChange={(e) => patch(c.id, { weight: Number(e.target.value) })}
-          aria-label={`Weight for ${c.name}`}
+          value={row.original.weight}
+          onChange={(e) => patch(row.original.id, { weight: Number(e.target.value) })}
+          aria-label={`Weight for ${row.original.name}`}
         />
       ),
-    },
-    {
-      key: "models",
+    }),
+    helper.accessor((row) => row.models.length, {
+      id: "models",
       header: "Models",
-      align: "right",
-      sortValue: (c) => c.models.length,
-      cell: (c) => <span className="num">{c.models.length}</span>,
-    },
-    {
-      key: "actions",
+      meta: { align: "right" },
+      cell: (info) => <span className="num">{info.getValue()}</span>,
+    }),
+    helper.display({
+      id: "actions",
       header: "Actions",
-      align: "right",
-      cell: (c) => (
-        <span style={{ display: "inline-flex", gap: 6 }}>
-          <button className="btn btn-ghost btn-sm" type="button" onClick={() => test(c)}>
-            Test
-          </button>
-          <button className="btn btn-ghost btn-sm" type="button" onClick={() => save(c)}>
-            Save
-          </button>
-          <button className="btn btn-ghost btn-sm" type="button" onClick={() => toggle(c)}>
-            {c.status === 1 ? "Disable" : "Enable"}
-          </button>
-        </span>
-      ),
-    },
+      meta: { align: "right" },
+      cell: ({ row }) => {
+        const c = row.original;
+        return (
+          <span style={{ display: "inline-flex", gap: 6 }}>
+            <button className="btn btn-ghost btn-sm" type="button" onClick={() => test(c)}>
+              Test
+            </button>
+            <button className="btn btn-ghost btn-sm" type="button" onClick={() => save(c)}>
+              Save
+            </button>
+            <button className="btn btn-ghost btn-sm" type="button" onClick={() => toggle(c)}>
+              {c.status === 1 ? "Disable" : "Enable"}
+            </button>
+          </span>
+        );
+      },
+    }),
   ];
 
   return (
@@ -174,7 +172,6 @@ export function ChannelsView({ initialChannels }: { initialChannels: GatewayChan
           columns={columns}
           rows={channels}
           rowKey={(c) => String(c.id)}
-          searchText={(c) => `${c.name} ${c.group}`}
           searchPlaceholder="Search channel"
           empty="No channels"
         />

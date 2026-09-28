@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DataTable, type Column } from "@/components/admin/data-table";
+import { DataTable, useColumnHelper, type Column } from "@/components/admin/data-table";
 import { send } from "@/components/admin/lib";
 import { PageHead, Pill } from "@/components/dashboard/kit";
 import { usd } from "@/lib/money";
@@ -24,6 +24,7 @@ export function RedemptionsView() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const helper = useColumnHelper<RedemptionRow>();
 
   const load = async () => {
     setBusy(true);
@@ -68,39 +69,36 @@ export function RedemptionsView() {
   };
 
   const columns: Column<RedemptionRow>[] = [
-    { key: "name", header: "Label", sortValue: (r) => r.name, cell: (r) => r.name },
-    {
-      key: "key",
+    helper.accessor("name", { header: "Label" }),
+    helper.accessor("key", {
       header: "Code",
-      cell: (r) => <code style={{ fontFamily: "var(--font-mono)", fontSize: 12.5 }}>{r.key}</code>,
-    },
-    {
-      key: "usd",
+      cell: (info) => (
+        <code style={{ fontFamily: "var(--font-mono)", fontSize: 12.5 }}>{info.getValue()}</code>
+      ),
+    }),
+    helper.accessor("usd", {
       header: "USD",
-      align: "right",
-      sortValue: (r) => r.usd,
-      cell: (r) => <span className="num">{usd(r.usd)}</span>,
-    },
-    {
-      key: "status",
+      meta: { align: "right" },
+      cell: (info) => <span className="num">{usd(info.getValue())}</span>,
+    }),
+    helper.accessor("status", {
       header: "Status",
-      sortValue: (r) => r.status,
-      cell: (r) => (
-        <Pill tone={r.status === 1 ? "ok" : "off"}>
-          {r.status === 1 ? "Unused" : r.status === 3 ? "Used" : "Disabled"}
+      cell: (info) => (
+        <Pill tone={info.getValue() === 1 ? "ok" : "off"}>
+          {info.getValue() === 1 ? "Unused" : info.getValue() === 3 ? "Used" : "Disabled"}
         </Pill>
       ),
-    },
-    {
-      key: "actions",
+    }),
+    helper.display({
+      id: "actions",
       header: "Actions",
-      align: "right",
-      cell: (r) => (
-        <button className="btn btn-ghost btn-sm" type="button" onClick={() => remove(r)}>
+      meta: { align: "right" },
+      cell: ({ row }) => (
+        <button className="btn btn-ghost btn-sm" type="button" onClick={() => remove(row.original)}>
           Delete
         </button>
       ),
-    },
+    }),
   ];
 
   return (
@@ -180,7 +178,6 @@ export function RedemptionsView() {
             columns={columns}
             rows={rows}
             rowKey={(r) => String(r.id)}
-            searchText={(r) => `${r.name} ${r.key}`}
             searchPlaceholder="Search label or code"
             empty="No codes"
           />

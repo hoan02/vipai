@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { DataTable, type Column } from "@/components/admin/data-table";
+import { DataTable, useColumnHelper, type Column } from "@/components/admin/data-table";
 import { send } from "@/components/admin/lib";
 import { PageHead } from "@/components/dashboard/kit";
 import { usd } from "@/lib/money";
@@ -51,6 +51,7 @@ export function MarginView({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const helper = useColumnHelper<CostRow>();
 
   const setCell = (id: string, field: "costIn" | "costOut" | "margin", value: string) =>
     setCostRows((current) => current.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
@@ -78,52 +79,47 @@ export function MarginView({
   const priceById = new Map(initialPrices.map((price) => [price.id, price]));
 
   const columns: Column<CostRow>[] = [
-    { key: "id", header: "Model", sortValue: (r) => r.id, cell: (r) => r.id },
-    {
-      key: "costIn",
+    helper.accessor("id", { header: "Model" }),
+    helper.display({
+      id: "costIn",
       header: "Cost in",
-      align: "right",
-      cell: (r) => costCell(r.costIn, (v) => setCell(r.id, "costIn", v), `Cost in for ${r.id}`),
-    },
-    {
-      key: "costOut",
+      meta: { align: "right" },
+      cell: ({ row }) =>
+        costCell(row.original.costIn, (v) => setCell(row.original.id, "costIn", v), `Cost in for ${row.original.id}`),
+    }),
+    helper.display({
+      id: "costOut",
       header: "Cost out",
-      align: "right",
-      cell: (r) => costCell(r.costOut, (v) => setCell(r.id, "costOut", v), `Cost out for ${r.id}`),
-    },
-    {
-      key: "margin",
+      meta: { align: "right" },
+      cell: ({ row }) =>
+        costCell(row.original.costOut, (v) => setCell(row.original.id, "costOut", v), `Cost out for ${row.original.id}`),
+    }),
+    helper.display({
+      id: "margin",
       header: "Margin %",
-      align: "right",
-      cell: (r) => costCell(r.margin, (v) => setCell(r.id, "margin", v), `Margin for ${r.id}`, 90),
-    },
-    {
-      key: "retailIn",
+      meta: { align: "right" },
+      cell: ({ row }) =>
+        costCell(row.original.margin, (v) => setCell(row.original.id, "margin", v), `Margin for ${row.original.id}`, 90),
+    }),
+    helper.accessor((row) => priceById.get(row.id)?.input ?? 0, {
+      id: "retailIn",
       header: "Retail in",
-      align: "right",
-      sortValue: (r) => priceById.get(r.id)?.input ?? 0,
-      cell: (r) => {
-        const price = priceById.get(r.id);
-        return <span className="num">{price && price.input > 0 ? usd(price.input) : "—"}</span>;
-      },
-    },
-    {
-      key: "retailOut",
+      meta: { align: "right" },
+      cell: (info) => <span className="num">{info.getValue() > 0 ? usd(info.getValue()) : "—"}</span>,
+    }),
+    helper.accessor((row) => priceById.get(row.id)?.output ?? 0, {
+      id: "retailOut",
       header: "Retail out",
-      align: "right",
-      sortValue: (r) => priceById.get(r.id)?.output ?? 0,
-      cell: (r) => {
-        const price = priceById.get(r.id);
-        return <span className="num">{price && price.output > 0 ? usd(price.output) : "—"}</span>;
-      },
-    },
-    {
-      key: "actual",
+      meta: { align: "right" },
+      cell: (info) => <span className="num">{info.getValue() > 0 ? usd(info.getValue()) : "—"}</span>,
+    }),
+    helper.display({
+      id: "actual",
       header: "Actual %",
-      align: "right",
-      cell: (r) => {
-        const costIn = Number(r.costIn) || 0;
-        const retailIn = priceById.get(r.id)?.input ?? 0;
+      meta: { align: "right" },
+      cell: ({ row }) => {
+        const costIn = Number(row.original.costIn) || 0;
+        const retailIn = priceById.get(row.original.id)?.input ?? 0;
         const actual = costIn > 0 && retailIn > 0 ? (retailIn / costIn - 1) * 100 : null;
         return (
           <span
@@ -134,7 +130,7 @@ export function MarginView({
           </span>
         );
       },
-    },
+    }),
   ];
 
   return (
@@ -180,7 +176,6 @@ export function MarginView({
           columns={columns}
           rows={costRows}
           rowKey={(r) => r.id}
-          searchText={(r) => r.id}
           searchPlaceholder="Search model"
           pageSize={25}
           empty="No models on any channel"

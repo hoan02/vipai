@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DataTable, type Column } from "@/components/admin/data-table";
+import { DataTable, useColumnHelper, type Column } from "@/components/admin/data-table";
 import { send } from "@/components/admin/lib";
 import { PageHead, Pill } from "@/components/dashboard/kit";
 import { usd } from "@/lib/money";
@@ -25,6 +25,7 @@ export function UsersView() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const helper = useColumnHelper<UserRow>();
 
   const load = async (keyword = "") => {
     setBusy(true);
@@ -70,73 +71,75 @@ export function UsersView() {
   };
 
   const columns: Column<UserRow>[] = [
-    {
-      key: "user",
+    helper.accessor("username", {
       header: "User",
-      sortValue: (r) => r.username,
-      cell: (r) => (
+      cell: (info) => (
         <span className="cell-main">
-          <span>{r.username}</span>
-          <small>{r.email || "—"}</small>
+          <span>{info.getValue()}</span>
+          <small>{info.row.original.email || "—"}</small>
         </span>
       ),
-    },
-    {
-      key: "role",
+    }),
+    helper.accessor("role", {
       header: "Role",
-      sortValue: (r) => r.role,
-      cell: (r) => (r.role >= 100 ? "Root" : r.role >= 10 ? "Admin" : "User"),
-    },
-    {
-      key: "status",
+      cell: (info) => (info.getValue() >= 100 ? "Root" : info.getValue() >= 10 ? "Admin" : "User"),
+    }),
+    helper.accessor("status", {
       header: "Status",
-      sortValue: (r) => r.status,
-      cell: (r) => (
-        <Pill tone={r.status === 1 ? "ok" : "off"}>{r.status === 1 ? "Enabled" : "Disabled"}</Pill>
+      cell: (info) => (
+        <Pill tone={info.getValue() === 1 ? "ok" : "off"}>
+          {info.getValue() === 1 ? "Enabled" : "Disabled"}
+        </Pill>
       ),
-    },
-    {
-      key: "balance",
+    }),
+    helper.accessor("balanceUsd", {
       header: "Balance",
-      align: "right",
-      sortValue: (r) => r.balanceUsd,
-      cell: (r) => <span className="num">{usd(r.balanceUsd)}</span>,
-    },
-    {
-      key: "used",
+      meta: { align: "right" },
+      cell: (info) => <span className="num">{usd(info.getValue())}</span>,
+    }),
+    helper.accessor("usedUsd", {
       header: "Used",
-      align: "right",
-      sortValue: (r) => r.usedUsd,
-      cell: (r) => <span className="num">{usd(r.usedUsd)}</span>,
-    },
-    {
-      key: "requests",
+      meta: { align: "right" },
+      cell: (info) => <span className="num">{usd(info.getValue())}</span>,
+    }),
+    helper.accessor("requestCount", {
       header: "Requests",
-      align: "right",
-      sortValue: (r) => r.requestCount,
-      cell: (r) => <span className="num">{r.requestCount.toLocaleString()}</span>,
-    },
-    {
-      key: "actions",
+      meta: { align: "right" },
+      cell: (info) => <span className="num">{info.getValue().toLocaleString()}</span>,
+    }),
+    helper.display({
+      id: "actions",
       header: "Actions",
-      align: "right",
-      cell: (r) => (
+      meta: { align: "right" },
+      cell: ({ row }) => (
         <span style={{ display: "inline-flex", gap: 6 }}>
-          <button className="btn btn-ghost btn-sm" type="button" onClick={() => action(r, "add_quota")}>
+          <button
+            className="btn btn-ghost btn-sm"
+            type="button"
+            onClick={() => action(row.original, "add_quota")}
+          >
             +$
           </button>
-          {r.status === 1 ? (
-            <button className="btn btn-ghost btn-sm" type="button" onClick={() => action(r, "disable")}>
+          {row.original.status === 1 ? (
+            <button
+              className="btn btn-ghost btn-sm"
+              type="button"
+              onClick={() => action(row.original, "disable")}
+            >
               Disable
             </button>
           ) : (
-            <button className="btn btn-ghost btn-sm" type="button" onClick={() => action(r, "enable")}>
+            <button
+              className="btn btn-ghost btn-sm"
+              type="button"
+              onClick={() => action(row.original, "enable")}
+            >
               Enable
             </button>
           )}
         </span>
       ),
-    },
+    }),
   ];
 
   return (
@@ -180,7 +183,6 @@ export function UsersView() {
           columns={columns}
           rows={rows}
           rowKey={(r) => String(r.id)}
-          searchText={(r) => `${r.username} ${r.email ?? ""}`}
           searchPlaceholder="Filter loaded accounts"
           empty="No accounts"
         />

@@ -1,29 +1,63 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import {
+  createColumnHelper,
+  createFilteredRowModel,
+  createPaginatedRowModel,
+  createSortedRowModel,
+  columnFilteringFeature,
+  globalFilteringFeature,
+  rowPaginationFeature,
+  rowSortingFeature,
+  tableFeatures,
+  useTable,
+  type ColumnDef,
+  type RowData,
+  type SortingState,
+} from "@tanstack/react-table";
+
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TFeatures, TData, TValue> {
+    align?: "left" | "right";
+  }
+}
 
 /**
- * A small reusable table: search, click-to-sort and pagination over the
- * dashboard's own `.dtable` styling. Headless on purpose — the project ships
- * its own design system, so a UI kit would fight it. Columns supply their own
- * cell renderer, which lets editable rows (inputs) sit in the same table as
- * read-only ones.
+ * The admin table, on TanStack Table v9.
+ *
+ * v9 registers only the features a table uses, and row models are feature
+ * slots rather than options. Filtering, sorting and pagination are all
+ * client-side over the rows handed in, which is what the admin needs: every
+ * page already loads its rows from a route handler.
+ *
+ * The markup is the project's own `.dtable`, so the design system stays in
+ * charge. Search is a global filter with a single string value; sorting comes
+ * from each column definition's `sortFn`.
  */
-export type Column<T> = {
-  key: string;
-  header: ReactNode;
-  align?: "left" | "right";
-  /** Provide to make the header sortable. */
-  sortValue?: (row: T) => string | number;
-  cell: (row: T) => ReactNode;
-};
+const features = tableFeatures({
+  columnFilteringFeature,
+  globalFilteringFeature,
+  rowSortingFeature,
+  rowPaginationFeature,
+  filteredRowModel: createFilteredRowModel(),
+  sortedRowModel: createSortedRowModel(),
+  paginatedRowModel: createPaginatedRowModel(),
+});
 
-export function DataTable<T>({
+export type Column<T extends RowData> = ColumnDef<typeof features, T, any>;
+
+export function useColumnHelper<T extends RowData>() {
+  return useMemo(() => createColumnHelper<typeof features, T>(), []);
+}
+
+export function DataTable<T extends RowData>({
   columns,
   rows,
   rowKey,
-  searchText,
-  pageSize = 20,
+  searchable = true,
+  pageSize = 25,
   empty = "No rows",
   toolbar,
   searchPlaceholder = "Search",
@@ -31,57 +65,44 @@ export function DataTable<T>({
   columns: Column<T>[];
   rows: T[];
   rowKey: (row: T) => string;
-  searchText?: (row: T) => string;
+  searchable?: boolean;
   pageSize?: number;
   empty?: string;
   toolbar?: ReactNode;
   searchPlaceholder?: string;
 }) {
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<{ key: string; dir: 1 | -1 } | null>(null);
-  const [page, setPage] = useState(0);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize });
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    let out = q && searchText ? rows.filter((row) => searchText(row).toLowerCase().includes(q)) : rows;
-    if (sort) {
-      const column = columns.find((c) => c.key === sort.key);
-      if (column?.sortValue) {
-        const value = column.sortValue;
-        out = [...out].sort((a, b) => {
-          const av = value(a);
-          const bv = value(b);
-          return (av < bv ? -1 : av > bv ? 1 : 0) * sort.dir;
-        });
-      }
-    }
-    return out;
-  }, [rows, query, sort, columns, searchText]);
+  const table = useTable({
+    features,
+    columns,
+    data: rows,
+    state: { sorting, globalFilter, pagination },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
+    getRowId: rowKey,
+  });
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const current = Math.min(page, pageCount - 1);
-  const view = filtered.slice(current * pageSize, current * pageSize + pageSize);
-
-  const toggleSort = (key: string) => {
-    setPage(0);
-    setSort((prev) =>
-      prev?.key === key ? { key, dir: prev.dir === 1 ? -1 : 1 } : { key, dir: 1 },
-    );
-  };
+  const pageCount = table.getPageCount();
+  const { pageIndex } = table.state.pagination;
+  const filteredCount = table.getFilteredRowModel().rows.length;
 
   return (
     <>
-      {(searchText || toolbar) && (
+      {(searchable || toolbar) && (
         <div className="toolbar" style={{ marginBottom: 12 }}>
-          {searchText ? (
+          {searchable ? (
             <input
               className="field"
-              style={{ minWidth: 220 }}
+              style={{ minWidth: 200, height: 34 }}
               placeholder={searchPlaceholder}
-              value={query}
+              value={globalFilter}
               onChange={(e) => {
-                setQuery(e.target.value);
-                setPage(0);
+                setGlobalFilter(e.target.value);
+                setPagination((p) => ({ ...p, pageIndex: 0 }));
               }}
               aria-label={searchPlaceholder}
             />
@@ -91,41 +112,46 @@ export function DataTable<T>({
       )}
 
       <div className="twrap">
-        <table className="dtable">
+        <table className="dtable compact">
           <thead>
-            <tr>
-              {columns.map((column) => {
-                const active = sort?.key === column.key;
-                return (
-                  <th
-                    key={column.key}
-                    className={column.align === "right" ? "r" : undefined}
-                    style={column.sortValue ? { cursor: "pointer", userSelect: "none" } : undefined}
-                    onClick={column.sortValue ? () => toggleSort(column.key) : undefined}
-                    aria-sort={active ? (sort!.dir === 1 ? "ascending" : "descending") : undefined}
-                  >
-                    {column.header}
-                    {column.sortValue ? (
-                      <span style={{ opacity: active ? 0.9 : 0.35, marginLeft: 4 }}>
-                        {active && sort!.dir === -1 ? "▾" : "▴"}
-                      </span>
-                    ) : null}
-                  </th>
-                );
-              })}
-            </tr>
+            {table.getHeaderGroups().map((group) => (
+              <tr key={group.id}>
+                {group.headers.map((header) => {
+                  const canSort = header.column.getCanSort();
+                  const sorted = header.column.getIsSorted();
+                  return (
+                    <th
+                      key={header.id}
+                      className={header.column.columnDef.meta?.align === "right" ? "r" : undefined}
+                      style={canSort ? { cursor: "pointer", userSelect: "none" } : undefined}
+                      onClick={canSort ? (event) => header.column.getToggleSortingHandler?.()?.(event) : undefined}
+                    >
+                      {header.isPlaceholder ? null : <table.FlexRender header={header} />}
+                      {canSort ? (
+                        <span style={{ opacity: sorted ? 0.9 : 0.3, marginLeft: 4 }}>
+                          {sorted === "desc" ? "▾" : "▴"}
+                        </span>
+                      ) : null}
+                    </th>
+                  );
+                })}
+              </tr>
+            ))}
           </thead>
           <tbody>
-            {view.length === 0 ? (
+            {table.getRowModel().rows.length === 0 ? (
               <tr className="empty-row">
                 <td colSpan={columns.length}>{empty}</td>
               </tr>
             ) : (
-              view.map((row) => (
-                <tr key={rowKey(row)}>
-                  {columns.map((column) => (
-                    <td key={column.key} className={column.align === "right" ? "r" : undefined}>
-                      {column.cell(row)}
+              table.getRowModel().rows.map((row) => (
+                <tr key={row.id}>
+                  {row.getAllCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className={cell.column.columnDef.meta?.align === "right" ? "r" : undefined}
+                    >
+                      <table.FlexRender cell={cell} />
                     </td>
                   ))}
                 </tr>
@@ -135,29 +161,32 @@ export function DataTable<T>({
         </table>
       </div>
 
-      {filtered.length > pageSize ? (
+      {filteredCount > pageSize ? (
         <div
           className="toolbar"
-          style={{ justifyContent: "space-between", alignItems: "center", marginTop: 12 }}
+          style={{ justifyContent: "space-between", alignItems: "center", marginTop: 10 }}
         >
-          <span className="note">
-            {current * pageSize + 1}–{Math.min(filtered.length, (current + 1) * pageSize)} of{" "}
-            {filtered.length}
+          <span className="note" style={{ fontSize: 12.5 }}>
+            {pageIndex * pageSize + 1}–{Math.min(filteredCount, (pageIndex + 1) * pageSize)} of{" "}
+            {filteredCount}
           </span>
-          <span style={{ display: "inline-flex", gap: 8 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             <button
               className="btn btn-ghost btn-sm"
               type="button"
-              disabled={current === 0}
-              onClick={() => setPage(current - 1)}
+              disabled={!table.getCanPreviousPage()}
+              onClick={() => table.previousPage()}
             >
               Previous
             </button>
+            <span className="note" style={{ fontSize: 12.5 }}>
+              {pageIndex + 1} / {Math.max(1, pageCount)}
+            </span>
             <button
               className="btn btn-ghost btn-sm"
               type="button"
-              disabled={current >= pageCount - 1}
-              onClick={() => setPage(current + 1)}
+              disabled={!table.getCanNextPage()}
+              onClick={() => table.nextPage()}
             >
               Next
             </button>

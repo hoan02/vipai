@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { DataTable, type Column } from "@/components/admin/data-table";
+import { DataTable, useColumnHelper, type Column } from "@/components/admin/data-table";
 import { send } from "@/components/admin/lib";
 import { PageHead } from "@/components/dashboard/kit";
 import type { ModelPrice } from "@/server/admin";
@@ -50,6 +50,7 @@ export function PricingView({ initialPrices }: { initialPrices: ModelPrice[] }) 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const helper = useColumnHelper<PriceRow>();
 
   const setCell = (id: string, field: "input" | "output" | "cache" | "perCall", value: string) =>
     setRows((current) => current.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
@@ -93,41 +94,45 @@ export function PricingView({ initialPrices }: { initialPrices: ModelPrice[] }) 
   };
 
   const columns: Column<PriceRow>[] = [
-    {
-      key: "id",
+    helper.accessor("id", {
       header: "Model",
-      sortValue: (r) => r.id,
-      cell: (r) => (
+      cell: (info) => (
         <span className="cell-main">
-          <span>{r.id}</span>
-          {r.input === "" && r.perCall === "" ? <small>unpriced — not routable</small> : null}
+          <span>{info.getValue()}</span>
+          {info.row.original.input === "" && info.row.original.perCall === "" ? (
+            <small>unpriced — not routable</small>
+          ) : null}
         </span>
       ),
-    },
-    {
-      key: "input",
+    }),
+    helper.display({
+      id: "input",
       header: "Input",
-      align: "right",
-      cell: (r) => numberCell(r.input, (v) => setCell(r.id, "input", v), `Input price for ${r.id}`),
-    },
-    {
-      key: "output",
+      meta: { align: "right" },
+      cell: ({ row }) =>
+        numberCell(row.original.input, (v) => setCell(row.original.id, "input", v), `Input price for ${row.original.id}`),
+    }),
+    helper.display({
+      id: "output",
       header: "Output",
-      align: "right",
-      cell: (r) => numberCell(r.output, (v) => setCell(r.id, "output", v), `Output price for ${r.id}`),
-    },
-    {
-      key: "cache",
+      meta: { align: "right" },
+      cell: ({ row }) =>
+        numberCell(row.original.output, (v) => setCell(row.original.id, "output", v), `Output price for ${row.original.id}`),
+    }),
+    helper.display({
+      id: "cache",
       header: "Cache read",
-      align: "right",
-      cell: (r) => numberCell(r.cache, (v) => setCell(r.id, "cache", v), `Cache price for ${r.id}`),
-    },
-    {
-      key: "perCall",
+      meta: { align: "right" },
+      cell: ({ row }) =>
+        numberCell(row.original.cache, (v) => setCell(row.original.id, "cache", v), `Cache price for ${row.original.id}`),
+    }),
+    helper.display({
+      id: "perCall",
       header: "Per call",
-      align: "right",
-      cell: (r) => numberCell(r.perCall, (v) => setCell(r.id, "perCall", v), `Per-call price for ${r.id}`),
-    },
+      meta: { align: "right" },
+      cell: ({ row }) =>
+        numberCell(row.original.perCall, (v) => setCell(row.original.id, "perCall", v), `Per-call price for ${row.original.id}`),
+    }),
   ];
 
   return (
@@ -158,7 +163,6 @@ export function PricingView({ initialPrices }: { initialPrices: ModelPrice[] }) 
           columns={columns}
           rows={rows}
           rowKey={(r) => r.id}
-          searchText={(r) => r.id}
           searchPlaceholder="Search model"
           pageSize={25}
           empty="No models on any channel"

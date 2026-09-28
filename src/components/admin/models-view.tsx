@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DataTable, type Column } from "@/components/admin/data-table";
+import { DataTable, useColumnHelper, type Column } from "@/components/admin/data-table";
 import { send } from "@/components/admin/lib";
 import { PageHead } from "@/components/dashboard/kit";
 import type { GatewayModelMeta } from "@/server/gateway";
@@ -35,6 +35,7 @@ export function ModelsView() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const helper = useColumnHelper<ModelMetaRow>();
 
   const load = async () => {
     setBusy(true);
@@ -86,82 +87,82 @@ export function ModelsView() {
   };
 
   const columns: Column<ModelMetaRow>[] = [
-    {
-      key: "model",
+    helper.accessor("modelName", {
       header: "Model",
-      sortValue: (r) => r.modelName,
-      cell: (r) => (
+      cell: (info) => (
         <span className="cell-main">
-          <span>{r.modelName}</span>
-          <small>{r.id > 0 ? r.squareState || "metadata" : "no metadata"}</small>
+          <span>{info.getValue()}</span>
+          <small>
+            {info.row.original.id > 0 ? info.row.original.squareState || "metadata" : "no metadata"}
+          </small>
         </span>
       ),
-    },
-    {
-      key: "description",
+    }),
+    helper.display({
+      id: "description",
       header: "Description",
-      cell: (r) => (
+      cell: ({ row }) => (
         <input
           className="field"
           style={{ width: 220 }}
-          value={r.description}
-          onChange={(e) => patch(r.modelName, { description: e.target.value })}
-          aria-label={`Description for ${r.modelName}`}
+          value={row.original.description}
+          onChange={(e) => patch(row.original.modelName, { description: e.target.value })}
+          aria-label={`Description for ${row.original.modelName}`}
         />
       ),
-    },
-    {
-      key: "tags",
+    }),
+    helper.display({
+      id: "tags",
       header: "Tags",
-      cell: (r) => (
+      cell: ({ row }) => (
         <input
           className="field"
           style={{ width: 140 }}
-          value={r.tags}
-          onChange={(e) => patch(r.modelName, { tags: e.target.value })}
-          aria-label={`Tags for ${r.modelName}`}
+          value={row.original.tags}
+          onChange={(e) => patch(row.original.modelName, { tags: e.target.value })}
+          aria-label={`Tags for ${row.original.modelName}`}
         />
       ),
-    },
-    {
-      key: "vendor",
+    }),
+    helper.display({
+      id: "vendor",
       header: "Vendor",
-      align: "right",
-      cell: (r) => (
+      meta: { align: "right" },
+      cell: ({ row }) => (
         <input
           className="field"
           type="number"
           style={{ width: 80, textAlign: "right" }}
-          value={r.vendorId}
-          onChange={(e) => patch(r.modelName, { vendorId: e.target.value })}
-          aria-label={`Vendor for ${r.modelName}`}
+          value={row.original.vendorId}
+          onChange={(e) => patch(row.original.modelName, { vendorId: e.target.value })}
+          aria-label={`Vendor for ${row.original.modelName}`}
         />
       ),
-    },
-    {
-      key: "visible",
+    }),
+    helper.display({
+      id: "visible",
       header: "Visible",
-      cell: (r) => (
+      cell: ({ row }) => (
         <select
           className="field"
-          value={r.status}
-          onChange={(e) => patch(r.modelName, { status: Number(e.target.value) })}
-          aria-label={`Visibility for ${r.modelName}`}
+          value={row.original.status}
+          onChange={(e) => patch(row.original.modelName, { status: Number(e.target.value) })}
+          aria-label={`Visibility for ${row.original.modelName}`}
         >
           <option value={1}>Visible</option>
           <option value={0}>Hidden</option>
         </select>
       ),
-    },
-    {
-      key: "rule",
+    }),
+    helper.display({
+      id: "rule",
       header: "Match",
-      cell: (r) => (
+      cell: ({ row }) => (
         <select
           className="field"
-          value={r.nameRule}
-          onChange={(e) => patch(r.modelName, { nameRule: Number(e.target.value) })}
-          aria-label={`Match rule for ${r.modelName}`}
+          value={row.original.nameRule}
+          onChange={(e) => patch(row.original.modelName, { nameRule: Number(e.target.value) })}
+          aria-label={`Match rule for ${row.original.modelName}`}
         >
           <option value={0}>Exact</option>
           <option value={1}>Prefix</option>
@@ -169,24 +170,24 @@ export function ModelsView() {
           <option value={3}>Suffix</option>
         </select>
       ),
-    },
-    {
-      key: "actions",
+    }),
+    helper.display({
+      id: "actions",
       header: "Actions",
-      align: "right",
-      cell: (r) => (
+      meta: { align: "right" },
+      cell: ({ row }) => (
         <span style={{ display: "inline-flex", gap: 6 }}>
-          <button className="btn btn-ghost btn-sm" type="button" onClick={() => save(r)}>
+          <button className="btn btn-ghost btn-sm" type="button" onClick={() => save(row.original)}>
             Save
           </button>
-          {r.id > 0 ? (
-            <button className="btn btn-ghost btn-sm" type="button" onClick={() => remove(r)}>
+          {row.original.id > 0 ? (
+            <button className="btn btn-ghost btn-sm" type="button" onClick={() => remove(row.original)}>
               Delete
             </button>
           ) : null}
         </span>
       ),
-    },
+    }),
   ];
 
   return (
@@ -221,7 +222,6 @@ export function ModelsView() {
           columns={columns}
           rows={rows}
           rowKey={(r) => r.modelName}
-          searchText={(r) => `${r.modelName} ${r.tags}`}
           searchPlaceholder="Search model or tag"
           pageSize={25}
           empty="No models"

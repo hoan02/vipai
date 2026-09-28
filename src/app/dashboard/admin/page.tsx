@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getModelPrices, requireRoot, type ModelPrice } from "@/server/admin";
+import { getMarginConfigs, getModelPrices, requireRoot, type MarginConfig, type ModelPrice } from "@/server/admin";
 import { listChannels } from "@/server/gateway";
 import { AdminView } from "@/components/dashboard/admin-view";
 
@@ -21,15 +21,21 @@ export default async function DashboardAdminPage() {
   }
   if (!access) redirect("/dashboard");
 
-  const [channels, prices] = await Promise.all([
+  const [channels, prices, costs] = await Promise.all([
     listChannels(access.token),
     getModelPrices(access.token),
+    getMarginConfigs(access.token),
   ]);
 
   const models = [...new Set(channels.flatMap((channel) => channel.models))].sort();
   const rows: ModelPrice[] = models.map(
     (id) => prices.get(id) ?? { id, input: 0, output: 0, cache: null, perCall: null },
   );
+  const costRows: MarginConfig[] = models.map(
+    (id) => costs.get(id) ?? { id, in: 0, out: 0, margin: 0 },
+  );
 
-  return <AdminView initialChannels={channels} initialPrices={rows} />;
+  return (
+    <AdminView initialChannels={channels} initialPrices={rows} initialCosts={costRows} />
+  );
 }

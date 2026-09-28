@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHead, Pill, SectionTitle } from "@/components/dashboard/kit";
 import type { GatewayChannel } from "@/server/gateway";
-import type { ModelPrice } from "@/server/admin";
+import type { MarginConfig, ModelPrice } from "@/server/admin";
 
 /**
  * The admin surface.
@@ -15,6 +15,7 @@ import type { ModelPrice } from "@/server/admin";
  */
 
 type PriceRow = { id: string; input: string; output: string; cache: string; perCall: string };
+type CostRow = { id: string; costIn: string; costOut: string; margin: string };
 
 function toRows(prices: ModelPrice[]): PriceRow[] {
   return prices.map((price) => ({
@@ -23,6 +24,15 @@ function toRows(prices: ModelPrice[]): PriceRow[] {
     output: price.output > 0 ? String(price.output) : "",
     cache: price.cache !== null ? String(price.cache) : "",
     perCall: price.perCall !== null ? String(price.perCall) : "",
+  }));
+}
+
+function toCostRows(costs: MarginConfig[]): CostRow[] {
+  return costs.map((cost) => ({
+    id: cost.id,
+    costIn: cost.in > 0 ? String(cost.in) : "",
+    costOut: cost.out > 0 ? String(cost.out) : "",
+    margin: cost.margin > 0 ? String(Math.round(cost.margin * 10000) / 100) : "",
   }));
 }
 
@@ -47,16 +57,46 @@ async function send(path: string, method: string, body: unknown): Promise<{ mess
 export function AdminView({
   initialChannels,
   initialPrices,
+  initialCosts,
 }: {
   initialChannels: GatewayChannel[];
   initialPrices: ModelPrice[];
+  initialCosts: MarginConfig[];
 }) {
   const router = useRouter();
   const [channels, setChannels] = useState(initialChannels);
   const [rows, setRows] = useState<PriceRow[]>(() => toRows(initialPrices));
+  const [costRows, setCostRows] = useState<CostRow[]>(() => toCostRows(initialCosts));
   const [saving, setSaving] = useState(false);
+  const [savingCosts, setSavingCosts] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  const setCostCell = (id: string, field: "costIn" | "costOut" | "margin", value: string) => {
+    setCostRows((current) =>
+      current.map((row) => (row.id === id ? { ...row, [field]: value } : row)),
+    );
+  };
+
+  const saveCosts = async (apply: boolean) => {
+    const models = costRows.map((row) => ({
+      id: row.id,
+      in: Number(row.costIn) || 0,
+      out: Number(row.costOut) || 0,
+      margin: (Number(row.margin) || 0) / 100,
+    }));
+    setSavingCosts(true);
+    setError(null);
+    setNotice(null);
+    const result = await send("/api/admin/margin", "PUT", { models, apply });
+    setSavingCosts(false);
+    if (result.message) {
+      setError(result.message);
+      return;
+    }
+    setNotice(apply ? "Saved costs and repriced retail." : "Saved costs and margins.");
+    if (apply) router.refresh();
+  };
 
   const setCell = (id: string, field: "input" | "output" | "cache" | "perCall", value: string) => {
     setRows((current) =>
@@ -343,6 +383,111 @@ export function AdminView({
                     </td>
                   </tr>
                 ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <SectionTitle hint="Upstream cost USD per 1M · margin % over cost">
+        Margin
+      </SectionTitle>
+      <div className="panel" style={{ padding: 16 }}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+          <button
+            className="btn btn-ghost btn-sm"
+            type="button"
+            onClick={() => saveCosts(false)}
+            disabled={savingCosts}
+          >
+            Save costs
+          </button>
+          <button
+            className="btn btn-primary btn-sm"
+            type="button"
+            onClick={() => saveCosts(true)}
+            disabled={savingCosts}
+          >
+            {savingCosts ? "Saving…" : "Apply margin → prices"}
+          </button>
+        </div>
+        <div className="twrap">
+          <table className="dtable">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th className="r">Cost in</th>
+                <th className="r">Cost out</th>
+                <th className="r">Margin %</th>
+                <th className="r">Retail in</th>
+                <th className="r">Retail out</th>
+                <th className="r">Actual %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {costRows.length === 0 ? (
+                <tr className="empty-row">
+                  <td colSpan={7}>No models on any channel</td>
+                </tr>
+              ) : (
+                costRows.map((row) => {
+                  const retail = rows.find((r) => r.id === row.id);
+                  const costIn = Number(row.costIn) || 0;
+                  const retailIn = retail ? Number(retail.input) || 0 : 0;
+                  const actual =
+                    costIn > 0 && retailIn > 0 ? (retailIn / costIn - 1) * 100 : null;
+                  return (
+                    <tr key={row.id}>
+                      <td>{row.id}</td>
+                      <td className="r">
+                        <input
+                          className="field"
+                          type="number"
+                          step="0.0001"
+                          min="0"
+                          style={{ width: 110, textAlign: "right" }}
+                          value={row.costIn}
+                          onChange={(e) => setCostCell(row.id, "costIn", e.target.value)}
+                          aria-label={`Cost in for ${row.id}`}
+                        />
+                      </td>
+                      <td className="r">
+                        <input
+                          className="field"
+                          type="number"
+                          step="0.0001"
+                          min="0"
+                          style={{ width: 110, textAlign: "right" }}
+                          value={row.costOut}
+                          onChange={(e) => setCostCell(row.id, "costOut", e.target.value)}
+                          aria-label={`Cost out for ${row.id}`}
+                        />
+                      </td>
+                      <td className="r">
+                        <input
+                          className="field"
+                          type="number"
+                          step="1"
+                          min="0"
+                          style={{ width: 90, textAlign: "right" }}
+                          value={row.margin}
+                          onChange={(e) => setCostCell(row.id, "margin", e.target.value)}
+                          aria-label={`Margin for ${row.id}`}
+                        />
+                      </td>
+                      <td className="r num">{retailIn > 0 ? `$${retailIn}` : "—"}</td>
+                      <td className="r num">
+                        {retail && Number(retail.output) > 0 ? `$${retail.output}` : "—"}
+                      </td>
+                      <td
+                        className="r num"
+                        style={actual !== null && actual < 0 ? { color: "#b91c1c" } : undefined}
+                      >
+                        {actual === null ? "—" : `${actual.toFixed(1)}%`}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

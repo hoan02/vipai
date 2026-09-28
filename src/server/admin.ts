@@ -146,3 +146,86 @@ export async function setModelPrices(
   await setOption(accessToken, "CacheRatio", JSON.stringify(caches));
   await setOption(accessToken, "ModelPrice", JSON.stringify(perCall));
 }
+
+/**
+ * Cost and margin, per model.
+ *
+ * new-api knows what a customer pays, never what we pay, so the upstream cost
+ * lives in our own option (`aigiare.cost`). `margin` is a fraction: 0.2 means
+ * the retail price is 20% above cost. The gateway ignores this key; only the
+ * admin page reads and writes it.
+ */
+export type MarginConfig = {
+  id: string;
+  /** Upstream cost, USD per 1M input tokens. */
+  in: number;
+  /** Upstream cost, USD per 1M output tokens. */
+  out: number;
+  /** Markup over cost, as a fraction (0.2 = +20%). */
+  margin: number;
+};
+
+const COST_OPTION = "aigiare.cost";
+
+type CostMap = Record<string, { in: number; out: number; margin: number }>;
+
+function costMap(raw: string | undefined): CostMap {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw) as Record<string, { in?: unknown; out?: unknown; margin?: unknown }>;
+    const out: CostMap = {};
+    for (const [id, value] of Object.entries(parsed)) {
+      out[id] = {
+        in: Number(value?.in) || 0,
+        out: Number(value?.out) || 0,
+        margin: Number(value?.margin) || 0,
+      };
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+export async function getMarginConfigs(accessToken: string): Promise<Map<string, MarginConfig>> {
+  const options = await getOptions(accessToken);
+  const map = new Map<string, MarginConfig>();
+  for (const [id, value] of Object.entries(costMap(options.get(COST_OPTION)))) {
+    map.set(id, { id, ...value });
+  }
+  return map;
+}
+
+/**
+ * Saves cost and margin, and optionally reprices.
+ *
+ * With `apply`, retail is set to `cost × (1 + margin)` through the same ratio
+ * path as the pricing tab, so the public table and the bill both follow.
+ */
+export async function setMarginConfigs(
+  accessToken: string,
+  entries: MarginConfig[],
+  apply: boolean,
+): Promise<void> {
+  const options = await getOptions(accessToken);
+  const costs = costMap(options.get(COST_OPTION));
+
+  for (const entry of entries) {
+    costs[entry.id] = { in: entry.in, out: entry.out, margin: entry.margin };
+  }
+
+  await setOption(accessToken, COST_OPTION, JSON.stringify(costs));
+
+  if (apply) {
+    const prices: ModelPrice[] = entries
+      .filter((entry) => entry.in > 0 && entry.out > 0)
+      .map((entry) => ({
+        id: entry.id,
+        input: round(entry.in * (1 + entry.margin)),
+        output: round(entry.out * (1 + entry.margin)),
+        cache: null,
+        perCall: null,
+      }));
+    if (prices.length > 0) await setModelPrices(accessToken, prices);
+  }
+}

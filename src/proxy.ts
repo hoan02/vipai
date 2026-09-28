@@ -11,8 +11,10 @@ export default function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for Limen session cookie or Authorization header
-  const sessionCookie = request.cookies.get("limen_session")?.value;
+  // Coarse gate: the cookie is signed and verified where it is read, but a
+  // presence check here is enough to send a signed-out visitor to sign-in
+  // without doing crypto in middleware.
+  const sessionCookie = request.cookies.get("aigiare_session")?.value;
   const authHeader = request.headers.get("authorization");
 
   if (!sessionCookie && !authHeader) {

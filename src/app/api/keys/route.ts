@@ -3,11 +3,11 @@ import { requireAccount } from "@/server/auth";
 import { toViewKey } from "@/server/dashboard";
 import { createApiKey, listApiKeys } from "@/server/repositories";
 
-// Limen's api-key plugin accepts names of 3 to 100 characters. Validating the
-// same range here keeps the error message specific instead of surfacing the
-// plugin's generic validation response.
+// The gateway rejects a token name of 60 characters or more, and accepts even a
+// single character. Requiring three keeps a name usable in the table without
+// being stricter than the backend.
 const NAME_MIN = 3;
-const NAME_MAX = 100;
+const NAME_MAX = 50;
 
 export async function GET() {
   try {

@@ -194,36 +194,6 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKey[] }) {
     }
   };
 
-  const setEnabled = async (key: ApiKey, enabled: boolean) => {
-    setError(null);
-    const previous = key.status;
-    setKeys((k) =>
-      k.map((item) =>
-        item.id === key.id ? { ...item, status: enabled ? "Active" : "Revoked" } : item,
-      ),
-    );
-
-    try {
-      const response = await fetch(`/api/keys/${encodeURIComponent(key.id)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled }),
-      });
-      const data = (await response.json().catch(() => null)) as
-        | { key?: ApiKey; message?: string }
-        | null;
-      if (!response.ok || !data?.key) {
-        throw new Error(data?.message || "Could not update the key.");
-      }
-      setKeys((k) => k.map((item) => (item.id === key.id ? (data.key as ApiKey) : item)));
-    } catch (err) {
-      setKeys((k) =>
-        k.map((item) => (item.id === key.id ? { ...item, status: previous } : item)),
-      );
-      setError((err as Error).message);
-    }
-  };
-
   return (
     <>
       <Connector />
@@ -339,19 +309,17 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKey[] }) {
                     </td>
                     <td>
                       <span className={`pill ${k.status === "Active" ? "pill-ok" : "pill-off"}`}>
-                        {k.status === "Active" ? "Active" : "Disabled"}
+                        {k.status}
                       </span>
                     </td>
                     <td>{k.created}</td>
                     <td className="r">
                       <span style={{ display: "inline-flex", gap: 6 }}>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          type="button"
-                          onClick={() => setEnabled(k, k.status !== "Active")}
-                        >
-                          {k.status === "Active" ? "Disable" : "Enable"}
-                        </button>
+                        {/* No enable/disable action: the gateway's API cannot
+                            change a key's status. `status` is not writable
+                            through PUT /api/token/, and targeting a key with
+                            /api/token/batch deletes it rather than disabling
+                            it. Revoking is the one state change that works. */}
                         <button
                           className="btn btn-ghost btn-sm"
                           type="button"

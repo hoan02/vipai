@@ -1,46 +1,25 @@
 import { NextResponse } from "next/server";
-import { createTokenRequest } from "@/server/repositories";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export async function POST(request: Request) {
-  let body: Record<string, unknown>;
-  try {
-    body = (await request.json()) as Record<string, unknown>;
-  } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
-  }
-
-  // Honeypot: real users never fill this hidden field.
-  if (typeof body.website === "string" && body.website.trim() !== "") {
-    return NextResponse.json({ ok: true });
-  }
-
-  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-  const telegram = typeof body.telegram === "string" ? body.telegram.trim() : "";
-  const useCase = typeof body.useCase === "string" ? body.useCase.trim() : "";
-
-  if (!EMAIL_RE.test(email)) {
-    return NextResponse.json(
-      { error: "invalid_email", message: "Enter a valid email address." },
-      { status: 422 },
-    );
-  }
-
-  // The backend links the request to the signed-in account when the session
-  // cookie is forwarded, and stores it anonymously otherwise.
-  try {
-    await createTokenRequest({
-      email,
-      telegram: telegram || null,
-      useCase: useCase || null,
-    });
-  } catch (error) {
-    return NextResponse.json(
-      { error: "submit_failed", message: (error as Error).message },
-      { status: 502 },
-    );
-  }
-
-  return NextResponse.json({ ok: true });
+/**
+ * The landing page's test-token request form.
+ *
+ * This used to write to the retired Encore backend, which owned a
+ * `token_requests` table and a rate limiter. The gateway has no equivalent: it
+ * has no endpoint for "someone asked for a trial key", and its users are
+ * accounts with quota rather than a queue of queued requests.
+ *
+ * Rather than answer `ok` and silently drop the submission, this reports that
+ * the form is not wired up. The component that posted here is not rendered
+ * anywhere in the app, so no visitor reaches this today; wiring it to something
+ * real is a decision about where leads should go, not a mechanical port.
+ */
+export async function POST() {
+  return NextResponse.json(
+    {
+      error: "not_configured",
+      message:
+        "Trial requests are not being collected yet. Create an account to get a key.",
+    },
+    { status: 503 },
+  );
 }

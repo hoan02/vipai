@@ -30,10 +30,7 @@ export function UserButton() {
 
   const user = session.user as Record<string, string | undefined>;
   const email: string = user.email || "";
-  const name: string =
-    [user.firstname || user.firstName, user.lastname || user.lastName]
-      .filter(Boolean)
-      .join(" ") || email;
+  const name: string = user.name || user.username || email;
   const initial: string = (name[0] || "U").toUpperCase();
 
   const handleSignOut = async () => {

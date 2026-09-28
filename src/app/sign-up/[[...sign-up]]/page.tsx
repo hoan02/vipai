@@ -9,8 +9,7 @@ import { Lock, Mail, User, Loader2, ArrowRight } from "lucide-react";
 
 export default function SignUpPage() {
   const router = useRouter();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,10 +22,9 @@ export default function SignUpPage() {
 
     try {
       const res = (await signUp.credential({
-        email,
+        username: username.trim(),
+        email: email.trim() || undefined,
         password,
-        firstname: firstName.trim() || undefined,
-        lastname: lastName.trim() || undefined,
       })) as { error?: { message?: string } } | undefined;
 
       if (res?.error) {
@@ -62,48 +60,38 @@ export default function SignUpPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-white/70 mb-1.5" htmlFor="firstName">
-                First name
-              </label>
-              <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" size={16} />
-                <input
-                  id="firstName"
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="Alex"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-all"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-white/70 mb-1.5" htmlFor="lastName">
-                Last name
-              </label>
+          <div>
+            <label className="block text-xs font-medium text-white/70 mb-1.5" htmlFor="username">
+              Username
+            </label>
+            <div className="relative">
+              <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" size={16} />
               <input
-                id="lastName"
+                id="username"
                 type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Nguyen"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-all"
+                required
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="your-username"
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-all"
               />
             </div>
+            <p className="mt-1.5 text-[11px] text-white/40">
+              This is what you sign in with, and what your API keys belong to.
+            </p>
           </div>
 
           <div>
             <label className="block text-xs font-medium text-white/70 mb-1.5" htmlFor="email">
-              Email address
+              Email address <span className="text-white/35">(optional)</span>
             </label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" size={16} />
               <input
                 id="email"
                 type="email"
-                required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"

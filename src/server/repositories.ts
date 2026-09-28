@@ -1,153 +1,136 @@
 import "server-only";
-import { z } from "zod";
-import { authApiHeaders, getForwardedFor, BACKEND_URL } from "./http";
-import { backend } from "./backend";
-import { isAPIError } from "@/lib/backend-client";
 
-export const KEY_PREFIX = "sk-aigiare-";
+import {
+  GatewayError,
+  QUOTA_PER_USD,
+  createToken,
+  currentAccess,
+  deleteToken,
+  getUser,
+  listLogs,
+  listTokens,
+  persistSession,
+  setTokenEnabled,
+  type GatewayLog,
+  type GatewayToken,
+} from "./gateway";
 
 /**
- * Limen's api-key plugin payload.
+ * The gateway's key and usage records, shaped for the views.
  *
- * Validated rather than cast: a key silently dropped from the table is worse than
- * a loud failure, and this is the one response that is not covered by the
- * generated Encore client.
+ * Everything here is the account's own data, resolved with the session this app
+ * holds. There is no separate user store: new-api owns users, keys, quota and
+ * logs, and this module is only a translation layer between its field names and
+ * the ones the dashboard already renders.
  */
-const pluginApiKey = z.object({
-  id: z.string().min(1),
-  name: z.string(),
-  prefix: z.string().min(1).default(KEY_PREFIX),
-  last4: z.string().default(""),
-  enabled: z.boolean(),
-  is_expired: z.boolean(),
-  last_used_at: z.string().nullable().optional(),
-  created_at: z.string(),
-});
 
-const pluginApiKeyList = z.object({
-  items: z.array(pluginApiKey),
-});
+/** The prefix new-api shows on a key. Kept here so views do not spell it out. */
+export const KEY_PREFIX = "sk-";
+
+/** new-api's token status column. */
+const TOKEN_ENABLED = 1;
+const TOKEN_DISABLED = 2;
+const TOKEN_EXPIRED = 3;
+const TOKEN_EXHAUSTED = 4;
 
 /** An API key owned by the signed-in account. */
 export type ApiKeyRecord = {
   id: string;
   name: string;
-  prefix: string;
-  last4: string;
+  /** Ready to display: the gateway masks the middle already. */
+  masked: string;
   enabled: boolean;
   isExpired: boolean;
   createdAt: Date;
   lastUsedAt: Date | null;
+  usedUsd: number;
 };
 
-function authApi(path: string): string {
-  return `${BACKEND_URL}${path}`;
+/**
+ * Resolves a usable access token, persisting a renewed one when possible.
+ *
+ * A Server Component cannot set a cookie, so the write is attempted and
+ * discarded rather than allowed to fail the render. A route handler persists it,
+ * which is what keeps the token fresh across a browsing session.
+ */
+export async function requireAccessToken(): Promise<string> {
+  const access = await currentAccess();
+  if (!access) throw new GatewayError("Not signed in", 401);
+
+  if (access.renewed) {
+    try {
+      await persistSession(access.renewed);
+    } catch {
+      // Outside a route handler. The token is still valid for this render.
+    }
+  }
+
+  return access.token;
 }
 
-function toDate(value: string | null | undefined): Date | null {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
+function toRecord(token: GatewayToken, now = Date.now()): ApiKeyRecord {
+  const expired =
+    token.status === TOKEN_EXPIRED ||
+    token.status === TOKEN_EXHAUSTED ||
+    (token.expired_time > 0 && token.expired_time * 1000 <= now);
 
-function toRecord(key: z.infer<typeof pluginApiKey>): ApiKeyRecord {
   return {
-    id: key.id,
-    name: key.name,
-    prefix: key.prefix,
-    last4: key.last4,
-    enabled: key.enabled,
-    isExpired: key.is_expired,
-    createdAt: toDate(key.created_at) ?? new Date(0),
-    lastUsedAt: toDate(key.last_used_at),
+    id: String(token.id),
+    name: token.name,
+    masked: `${KEY_PREFIX}${token.key}`,
+    enabled: token.status === TOKEN_ENABLED,
+    isExpired: expired,
+    createdAt: new Date(token.created_time * 1000),
+    // The gateway writes 0 for a key that has never been used.
+    lastUsedAt: token.accessed_time > 0 ? new Date(token.accessed_time * 1000) : null,
+    usedUsd: (token.used_quota ?? 0) / QUOTA_PER_USD,
   };
-}
-
-async function authApiError(res: Response, fallback: string): Promise<Error> {
-  const body = (await res.json().catch(() => null)) as { message?: string } | null;
-  return new Error(body?.message || fallback);
 }
 
 /** Lists the API keys owned by the signed-in account. */
 export async function listApiKeys(): Promise<ApiKeyRecord[]> {
-  const res = await fetch(authApi("/auth/api-keys?per_page=100"), {
-    headers: await authApiHeaders(),
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw await authApiError(res, "Could not load API keys");
-  }
-
-  const parsed = pluginApiKeyList.parse(await res.json());
-  return parsed.items
-    .map(toRecord)
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  const token = await requireAccessToken();
+  return (await listTokens(token)).map((record) => toRecord(record));
 }
 
 /**
- * Creates an API key. The plaintext key is returned exactly once and is never
- * stored, so it cannot be shown again.
+ * Creates an API key.
+ *
+ * The plaintext value is returned once, at creation, and is never stored here.
+ * It is not recoverable from the list, which returns a mask; the gateway only
+ * parts with the real value through its own reveal route, which this calls
+ * immediately after creating.
  */
 export async function createApiKey(
   name: string,
 ): Promise<{ record: ApiKeyRecord; plaintextKey: string }> {
-  const res = await fetch(authApi("/auth/api-keys"), {
-    method: "POST",
-    headers: await authApiHeaders(),
-    body: JSON.stringify({ name }),
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw await authApiError(res, "Could not create the API key");
-  }
-
-  const body = (await res.json()) as Record<string, unknown>;
-  const key = pluginApiKey.parse(body);
-  if (typeof body.key !== "string" || body.key === "") {
-    throw new Error("The backend did not return the new key");
-  }
-
-  return { record: toRecord(key), plaintextKey: body.key };
+  const token = await requireAccessToken();
+  const { token: created, key } = await createToken(token, name);
+  return { record: toRecord(created), plaintextKey: `${KEY_PREFIX}${key}` };
 }
 
 /**
  * Revokes an API key.
  *
- * The plugin's Revoke deletes the row, so this is permanent: a revoked key
- * cannot be brought back and its name becomes available again. For a reversible
- * "disable", use `updateApiKey(id, { enabled: false })`.
+ * The gateway deletes the row, so this is permanent: a revoked key cannot be
+ * brought back and its name becomes available again. For a reversible "disable",
+ * use `updateApiKey(id, { enabled: false })`.
  */
 export async function revokeApiKey(id: string): Promise<void> {
-  const res = await fetch(authApi(`/auth/api-keys/${encodeURIComponent(id)}`), {
-    method: "DELETE",
-    headers: await authApiHeaders(),
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw await authApiError(res, "Could not revoke the API key");
-  }
+  const token = await requireAccessToken();
+  await deleteToken(token, id);
 }
 
-/** Updates an API key in place, e.g. to disable or re-enable it. */
+/** Not supported: see `setTokenEnabled`. The gateway can only revoke a key. */
 export async function updateApiKey(
   id: string,
-  patch: { name?: string; enabled?: boolean },
+  patch: { enabled?: boolean },
 ): Promise<ApiKeyRecord> {
-  const res = await fetch(authApi(`/auth/api-keys/${encodeURIComponent(id)}`), {
-    method: "PATCH",
-    headers: await authApiHeaders(),
-    body: JSON.stringify(patch),
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw await authApiError(res, "Could not update the API key");
+  const token = await requireAccessToken();
+  if (typeof patch.enabled !== "boolean") {
+    throw new GatewayError("Only the enabled flag can be changed.", 400);
   }
-
-  return toRecord(pluginApiKey.parse(await res.json()));
+  return toRecord(await setTokenEnabled(token, id, patch.enabled));
 }
 
 export type UsageSummary = {
@@ -155,6 +138,8 @@ export type UsageSummary = {
   tokensIn: number;
   tokensOut: number;
   costUsd: number;
+  /** Unspent balance, in US dollars. */
+  balanceUsd: number;
 };
 
 export type UsageRow = {
@@ -167,37 +152,42 @@ export type UsageRow = {
   costUsd: number;
 };
 
-export type TokenRequestInput = {
-  email: string;
-  telegram?: string | null;
-  useCase?: string | null;
-};
-
-/** Fetches usage totals for the signed-in account. */
-export async function getUsageSummary(): Promise<UsageSummary> {
-  try {
-    const data = await backend().dashboard.Summary();
-    return {
-      requests: data.totalRequests,
-      tokensIn: data.totalTokensIn,
-      tokensOut: data.totalTokensOut,
-      costUsd: data.totalCostUsd,
-    };
-  } catch (error) {
-    if (isAPIError(error) && error.status === 401) {
-      throw new Error("Not signed in");
-    }
-    throw error;
-  }
+/** The most recent usage rows, up to the gateway's page cap. */
+export async function listUsage(): Promise<{ user: Awaited<ReturnType<typeof getUser>>; logs: GatewayLog[] }> {
+  const token = await requireAccessToken();
+  const [user, logs] = await Promise.all([getUser(token), listLogs(token, 100)]);
+  return { user, logs };
 }
 
-/** Submits a public test-token request. */
-export async function createTokenRequest(input: TokenRequestInput): Promise<void> {
-  await backend().tokenrequests.Create({
-    email: input.email,
-    telegram: input.telegram ?? "",
-    useCase: input.useCase ?? "",
-    website: "",
-    ForwardedFor: await getForwardedFor(),
-  });
+export function toUsageRow(log: GatewayLog): UsageRow {
+  return {
+    id: String(log.id),
+    createdAt: new Date(log.created_at * 1000),
+    model: log.model_name || "unknown",
+    source: log.token_name || "default",
+    tokensIn: log.prompt_tokens ?? 0,
+    tokensOut: log.completion_tokens ?? 0,
+    costUsd: (log.quota ?? 0) / QUOTA_PER_USD,
+  };
+}
+
+/**
+ * Totals for the signed-in account.
+ *
+ * The request count and the spend come from the account record, which is
+ * authoritative. Token counts are not stored per account, so they are summed
+ * over the most recent page of usage rows; a very heavy account would need
+ * pagination to be exact, and the figure is presented as recent activity rather
+ * than a lifetime total.
+ */
+export async function getUsageSummary(): Promise<UsageSummary> {
+  const { user, logs } = await listUsage();
+
+  return {
+    requests: user.requestCount,
+    tokensIn: logs.reduce((total, log) => total + (log.prompt_tokens ?? 0), 0),
+    tokensOut: logs.reduce((total, log) => total + (log.completion_tokens ?? 0), 0),
+    costUsd: user.usedQuota / QUOTA_PER_USD,
+    balanceUsd: user.quota / QUOTA_PER_USD,
+  };
 }

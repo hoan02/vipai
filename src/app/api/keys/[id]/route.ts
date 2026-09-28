@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { GatewayError } from "@/server/gateway";
 import { requireAccount } from "@/server/auth";
 import { toViewKey } from "@/server/dashboard";
 import { revokeApiKey, updateApiKey } from "@/server/repositories";
@@ -31,7 +32,13 @@ export async function DELETE(_request: Request, { params }: Params) {
   }
 }
 
-/** Enables or disables a key without deleting it, so it can be restored. */
+/**
+ * Enabling or disabling a key.
+ *
+ * Kept as a route so a caller gets a specific answer instead of a 404, but the
+ * gateway has no such operation: see `setTokenEnabled` for what was tried and
+ * what the API actually does.
+ */
 export async function PATCH(request: Request, { params }: Params) {
   try {
     await requireAccount();
@@ -56,9 +63,10 @@ export async function PATCH(request: Request, { params }: Params) {
     const record = await updateApiKey(id, { enabled: body.enabled });
     return NextResponse.json({ key: toViewKey(record) });
   } catch (error) {
+    const status = error instanceof GatewayError ? error.status : 502;
     return NextResponse.json(
-      { error: "update_failed", message: (error as Error).message },
-      { status: 502 },
+      { error: "update_unsupported", message: (error as Error).message },
+      { status },
     );
   }
 }

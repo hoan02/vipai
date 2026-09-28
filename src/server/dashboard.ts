@@ -1,11 +1,8 @@
 import "server-only";
+
+import { listApiKeys, listUsage, toUsageRow, type ApiKeyRecord } from "./repositories";
+import { QUOTA_PER_USD } from "./gateway";
 import {
-  getUsageSummary,
-  listApiKeys,
-  type ApiKeyRecord,
-} from "./repositories";
-import {
-  balance,
   type ApiKey,
   type BillingRow,
   type UsagePoint,
@@ -27,16 +24,16 @@ const intFmt = new Intl.NumberFormat("en-US");
 const usd = (value: number) => `$${value.toFixed(2)}`;
 
 /**
- * Maps a backend key record to the view shape.
+ * Maps a gateway key record to the view shape.
  *
- * The plugin returns `prefix` with its trailing separator already attached, so
- * the mask must not add another one.
+ * The gateway masks the middle of the value itself, so the view renders it
+ * verbatim rather than composing a mask of its own.
  */
 export function toViewKey(record: ApiKeyRecord): ApiKey {
   return {
     id: record.id,
     name: record.name,
-    masked: `${record.prefix}••••••••${record.last4}`,
+    masked: record.masked,
     status: record.enabled && !record.isExpired ? "Active" : "Revoked",
     created: dateFmt.format(record.createdAt),
     requests: null,
@@ -45,8 +42,7 @@ export function toViewKey(record: ApiKeyRecord): ApiKey {
 
 /** API keys for the signed-in account. Empty when the account has none. */
 export async function getDashboardKeys(): Promise<ApiKey[]> {
-  const records = await listApiKeys();
-  return records.map(toViewKey);
+  return (await listApiKeys()).map(toViewKey);
 }
 
 export type DashboardUsage = {
@@ -54,20 +50,39 @@ export type DashboardUsage = {
   series: UsagePoint[];
 };
 
-/** Token totals for the signed-in account. */
+/** Token totals for the signed-in account, and a per-day series. */
 export async function getDashboardUsage(): Promise<DashboardUsage> {
-  const usage = await getUsageSummary();
+  const { logs } = await listUsage();
+  const rows = logs.map(toUsageRow);
+
+  const byDay = new Map<string, UsagePoint>();
+  for (const row of rows) {
+    const day = String(row.createdAt.getDate());
+    const point = byDay.get(day) ?? { day, input: 0, output: 0 };
+    // The chart plots thousands of tokens.
+    point.input += row.tokensIn / 1000;
+    point.output += row.tokensOut / 1000;
+    byDay.set(day, point);
+  }
+
+  const series = [...byDay.values()]
+    .map((point) => ({
+      day: point.day,
+      input: Math.round(point.input * 10) / 10,
+      output: Math.round(point.output * 10) / 10,
+    }))
+    .sort((a, b) => Number(a.day) - Number(b.day));
 
   return {
     summary: {
-      input: intFmt.format(usage.tokensIn),
-      output: intFmt.format(usage.tokensOut),
-      // Cache tokens are not recorded in usage_events yet.
+      input: intFmt.format(rows.reduce((total, row) => total + row.tokensIn, 0)),
+      output: intFmt.format(rows.reduce((total, row) => total + row.tokensOut, 0)),
+      // The gateway does not report cache tokens as a separate column in this
+      // release, so they are not shown rather than shown as zero.
       cacheRead: "0",
       cacheWrite: "0",
     },
-    // The backend reports account totals only; a daily series needs a new query.
-    series: [],
+    series,
   };
 }
 
@@ -77,13 +92,35 @@ export type DashboardBilling = {
   rows: BillingRow[];
 };
 
-/** Billing rows for the signed-in account. */
+/** Balance, spend and recent charges for the signed-in account. */
 export async function getDashboardBilling(): Promise<DashboardBilling> {
-  const usage = await getUsageSummary();
+  const { user, logs } = await listUsage();
+  const rows = logs.map(toUsageRow);
+
+  // The gateway reports only the current balance, so the balance shown against
+  // each row is reconstructed by adding back the charges that came after it.
+  // Rows are newest first, so the newest row shows the balance as it stands.
+  let spentAfter = 0;
+  const table: BillingRow[] = rows.map((row) => {
+    const balanceAtRow = user.quota / QUOTA_PER_USD + spentAfter;
+    spentAfter += row.costUsd;
+
+    return {
+      time: timeFmt.format(row.createdAt),
+      model: row.model,
+      source: row.source,
+      input: intFmt.format(row.tokensIn),
+      output: intFmt.format(row.tokensOut),
+      cacheRead: "0",
+      cacheWrite: "0",
+      amount: usd(row.costUsd),
+      balance: usd(balanceAtRow),
+    };
+  });
 
   return {
-    balance,
-    monthSpend: usd(usage.costUsd),
-    rows: [],
+    balance: usd(user.quota / QUOTA_PER_USD),
+    monthSpend: usd(user.usedQuota / QUOTA_PER_USD),
+    rows: table,
   };
 }

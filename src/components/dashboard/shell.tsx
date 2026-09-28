@@ -51,11 +51,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   const { data: session } = useSession();
   const user = session?.user as Record<string, unknown> | undefined;
-  // Limen serializes the user straight from its columns, so the name fields are
-  // snake_case.
   const email = (user?.email as string | undefined) ?? "";
   const display =
-    [user?.first_name, user?.last_name].filter(Boolean).join(" ") || email;
+    (user?.name as string | undefined) || (user?.username as string | undefined) || email;
   const initial = (display.trim()[0] ?? "A").toUpperCase();
 
   return (

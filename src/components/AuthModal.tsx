@@ -57,7 +57,6 @@ const COPY = {
 } as const;
 
 const STRENGTH = ["", "Yếu", "Trung bình", "Khá", "Mạnh"];
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const EXIT_MS = 240;
 const DONE_MS = 1150;
 const FOCUSABLE =
@@ -91,15 +90,6 @@ const stroke = {
   strokeLinecap: "round",
   strokeLinejoin: "round",
 } as const;
-
-function MailGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" {...stroke} aria-hidden="true">
-      <rect x="2.75" y="4.75" width="18.5" height="14.5" rx="2.5" />
-      <path d="m3.75 7.5 8.25 5.5 8.25-5.5" />
-    </svg>
-  );
-}
 
 function LockGlyph() {
   return (
@@ -213,8 +203,6 @@ export function AuthModal() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [reveal, setReveal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /* Panels rise from below when moving signin→signup and drop in from
@@ -254,8 +242,6 @@ export function AuthModal() {
     setError(null);
     setReveal(false);
     setPassword("");
-    setFirstName("");
-    setLastName("");
     setFormH(null);
     setDir(1);
     setPhase("open");
@@ -395,8 +381,8 @@ export function AuthModal() {
     e.preventDefault();
     if (status !== "idle") return;
 
-    if (!EMAIL_RE.test(email.trim())) {
-      setError(t("Vui lòng nhập email hợp lệ."));
+    if (!email.trim()) {
+      setError(t("Vui lòng nhập tên đăng nhập."));
       return;
     }
     if (mode === "signup" && password.length < 8) {
@@ -412,12 +398,8 @@ export function AuthModal() {
         await (mode === "signin"
           ? signIn.credential({ credential: email.trim(), password })
           : signUp.credential({
-              email: email.trim(),
+              username: email.trim(),
               password,
-              // The SDK sends these verbatim; the backend maps them onto the
-              // user's first_name/last_name columns.
-              firstname: firstName.trim() || undefined,
-              lastname: lastName.trim() || undefined,
             }))
       ) as { error?: { message?: string } } | undefined;
 
@@ -425,8 +407,8 @@ export function AuthModal() {
       if (res?.error) {
         setError(
           mode === "signin"
-            ? t("Email hoặc mật khẩu không đúng.")
-            : t("Không thể tạo tài khoản. Vui lòng thử lại.")
+            ? t("Tên đăng nhập hoặc mật khẩu không đúng.")
+            : res.error.message || t("Không thể tạo tài khoản. Vui lòng thử lại.")
         );
         setStatus("idle");
         return;
@@ -559,28 +541,13 @@ export function AuthModal() {
                 {t(copy.sub)}
               </p>
 
-              {mode === "signup" && (
-                <div className="am-pair am-row" style={row(3)}>
-                  {field("am-first", t("Tên"), firstName, setFirstName, {
-                    autoComplete: "given-name",
-                    icon: <UserGlyph />,
-                    className: "am-row",
-                  })}
-                  {field("am-last", t("Họ"), lastName, setLastName, {
-                    autoComplete: "family-name",
-                    icon: <UserGlyph />,
-                    className: "am-row",
-                  })}
-                </div>
-              )}
-
-              {field("am-email", t("Địa chỉ email"), email, setEmail, {
-                type: "email",
-                autoComplete: "email",
-                icon: <MailGlyph />,
+              {field("am-username", t("Tên đăng nhập"), email, setEmail, {
+                type: "text",
+                autoComplete: "username",
+                icon: <UserGlyph />,
                 inputRef: emailRef,
                 className: "am-row",
-                style: row(mode === "signup" ? 4 : 3),
+                style: row(3),
               })}
 
               {field("am-password", t("Mật khẩu"), password, setPassword, {

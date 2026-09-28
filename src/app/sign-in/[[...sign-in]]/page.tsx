@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "@/lib/auth-client";
 import { Icon } from "@/lib/icons";
-import { Lock, Mail, Loader2, ArrowRight } from "lucide-react";
+import { Lock, User, Loader2, ArrowRight } from "lucide-react";
 
 export default function SignInPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,12 +21,12 @@ export default function SignInPage() {
 
     try {
       const res = (await signIn.credential({
-        credential: email,
+        credential: username.trim(),
         password: password,
       })) as { error?: { message?: string } } | undefined;
 
       if (res?.error) {
-        setError(res.error.message || "Invalid email or password");
+        setError(res.error.message || "Incorrect username or password");
         setLoading(false);
         return;
       }
@@ -59,18 +59,19 @@ export default function SignInPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-white/70 mb-1.5" htmlFor="email">
-              Email address
+            <label className="block text-xs font-medium text-white/70 mb-1.5" htmlFor="username">
+              Username
             </label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" size={16} />
+              <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" size={16} />
               <input
-                id="email"
-                type="email"
+                id="username"
+                type="text"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="your-username"
                 className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-all"
               />
             </div>

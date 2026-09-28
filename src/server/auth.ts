@@ -1,5 +1,7 @@
 import "server-only";
-import { cookies, headers } from "next/headers";
+import { hasCredentials } from "./http";
+import { backend } from "./backend";
+import { isAPIError } from "@/lib/backend-client";
 
 export type Account = {
   id: string;
@@ -7,59 +9,30 @@ export type Account = {
   name: string | null;
 };
 
-const BACKEND_URL =
-  process.env.BACKEND_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000";
-
 /**
- * Returns the signed-in Limen account verified via the Go backend.
- * Returns null when signed out.
+ * Returns the signed-in account, or null when signed out.
+ *
+ * Identity comes from the backend's `/api/me`, which resolves the session through
+ * Encore's auth handler. Do not read session state from cookies here.
  */
 export async function getAccount(): Promise<Account | null> {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("limen_session")?.value;
-    const headerStore = await headers();
-    const authHeader = headerStore.get("authorization");
-
-    if (!sessionCookie && !authHeader) {
+    if (!(await hasCredentials())) {
       return null;
     }
 
-    const reqHeaders: Record<string, string> = {};
-    if (sessionCookie) {
-      reqHeaders["cookie"] = `limen_session=${sessionCookie}`;
-    }
-    if (authHeader) {
-      reqHeaders["authorization"] = authHeader;
-    }
+    const user = await backend().auth.Me();
 
-    const res = await fetch(`${BACKEND_URL}/auth/me`, {
-      headers: reqHeaders,
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      return null;
-    }
-
-    const data = await res.json();
-    const user = data?.user;
-    if (!user || !user.id) {
-      return null;
-    }
-
-    const userId = String(user.id);
-    const email = (user.email as string) || null;
-    const name =
-      [user.firstName, user.lastName].filter(Boolean).join(" ") ||
-      (user.name as string) ||
-      null;
-
-    return { id: userId, email, name };
+    return {
+      id: user.id,
+      email: user.email || null,
+      name: [user.firstName, user.lastName].filter(Boolean).join(" ") || null,
+    };
   } catch (error) {
-    console.error("[aigiare] auth verification failed:", error);
+    // 401 is the normal signed-out answer, so it is not worth logging.
+    if (!isAPIError(error) || error.status !== 401) {
+      console.error("[aigiare] session lookup failed:", error);
+    }
     return null;
   }
 }

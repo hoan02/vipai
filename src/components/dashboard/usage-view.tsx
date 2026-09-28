@@ -2,8 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { Calendar, KeyRound, Users } from "lucide-react";
-import { PageHead, Pill, SectionTitle, Stat } from "@/components/dashboard/kit";
-import { usageSeries, usageSummary } from "@/lib/dashboard-data";
+import { PageHead, SectionTitle, Stat } from "@/components/dashboard/kit";
+import type { DashboardUsage } from "@/server/dashboard";
+import type { UsagePoint } from "@/lib/dashboard-data";
+
+function daysAgo(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().slice(0, 10);
+}
 
 const helpDot = {
   width: 14,
@@ -17,7 +24,7 @@ const helpDot = {
   opacity: 0.55,
 } as const;
 
-function UsageChart({ series }: { series: typeof usageSeries }) {
+function UsageChart({ series }: { series: UsagePoint[] }) {
   const W = 940;
   const H = 250;
   const padX = 16;
@@ -26,6 +33,8 @@ function UsageChart({ series }: { series: typeof usageSeries }) {
 
   const points = useMemo(() => {
     const n = series.length;
+    if (n === 0) return null;
+
     const x = (i: number) => padX + (i * (W - 2 * padX)) / (n - 1);
     const y = (v: number) => H - padY - (v / max) * (H - 2 * padY);
     const line = (key: "input" | "output") =>
@@ -36,6 +45,14 @@ function UsageChart({ series }: { series: typeof usageSeries }) {
       ` L${x(n - 1).toFixed(1)},${(H - padY).toFixed(1)} L${x(0).toFixed(1)},${(H - padY).toFixed(1)} Z`;
     return { n, line: { input: line("input"), output: line("output") }, area, x, y };
   }, [series]);
+
+  if (!points) {
+    return (
+      <div className="empty-row" style={{ padding: "48px 16px", textAlign: "center" }}>
+        No usage recorded in this period yet.
+      </div>
+    );
+  }
 
   return (
     <div className="uchart">
@@ -88,28 +105,24 @@ function UsageChart({ series }: { series: typeof usageSeries }) {
           <i style={{ background: "#222222", opacity: 0.7 }} />
           Output tokens
         </span>
-        <span className="note">Sep 12 – Sep 25 · thousands of tokens</span>
+        <span className="note">Thousands of tokens</span>
       </div>
     </div>
   );
 }
 
-export function UsageView({
-  usage,
-}: {
-  usage?: { summary: typeof usageSummary; series: typeof usageSeries };
-}) {
-  const summary = usage?.summary ?? usageSummary;
-  const series = usage?.series ?? usageSeries;
-  const [from, setFrom] = useState("2026-09-12");
-  const [to, setTo] = useState("2026-09-25");
+export function UsageView({ usage }: { usage: DashboardUsage }) {
+  const { summary, series } = usage;
+  // The backend reports totals for the whole account; a per-day window is not
+  // available yet, so the range is informational only.
+  const [from, setFrom] = useState(() => daysAgo(14));
+  const [to, setTo] = useState(() => daysAgo(0));
 
   return (
     <>
       <PageHead
         title="Usage"
         sub="Track token usage trends and distribution across models, filtered by API key and date range."
-        side={<Pill tone="role">Sample data</Pill>}
       />
 
       <div className="toolbar" style={{ marginTop: 20 }}>
@@ -117,15 +130,12 @@ export function UsageView({
           <Users size={16} />
           <select className="field has-icon" defaultValue="everyone" aria-label="Member">
             <option value="everyone">Everyone</option>
-            <option value="me">hoanvipboi1@gmail.com</option>
           </select>
         </span>
         <span className="field-wrap">
           <KeyRound size={16} />
           <select className="field has-icon" defaultValue="all" aria-label="API key">
             <option value="all">All API keys</option>
-            <option value="prod">Production</option>
-            <option value="dev">Local dev</option>
           </select>
         </span>
         <span className="date-range">

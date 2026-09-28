@@ -2,87 +2,88 @@ import "server-only";
 import {
   getUsageSummary,
   listApiKeys,
-  listRecentUsage,
   type ApiKeyRecord,
-  type UsageRow,
 } from "./repositories";
 import {
-  apiKeys as demoKeys,
-  billingRows as demoBillingRows,
-  monthSpend as demoMonthSpend,
-  usageSeries as demoSeries,
-  usageSummary as demoSummary,
+  balance,
   type ApiKey,
   type BillingRow,
+  type UsagePoint,
+  type UsageSummary,
 } from "@/lib/dashboard-data";
 
-const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
-const timeFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+const dateFmt = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+const timeFmt = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 const intFmt = new Intl.NumberFormat("en-US");
 const usd = (value: number) => `$${value.toFixed(2)}`;
 
+/**
+ * Maps a backend key record to the view shape.
+ *
+ * The plugin returns `prefix` with its trailing separator already attached, so
+ * the mask must not add another one.
+ */
 export function toViewKey(record: ApiKeyRecord): ApiKey {
   return {
     id: record.id,
     name: record.name,
-    masked: `${record.prefix}-••••••••${record.last4}`,
-    status: record.revokedAt ? "Revoked" : "Active",
-    created: dateFmt.format(new Date(record.createdAt)),
-    requests: "—",
+    masked: `${record.prefix}••••••••${record.last4}`,
+    status: record.enabled && !record.isExpired ? "Active" : "Revoked",
+    created: dateFmt.format(record.createdAt),
+    requests: null,
   };
 }
 
-/** API keys for the signed-in account; demo rows when backend has none or is offline. */
-export async function getDashboardKeys(userId: string): Promise<ApiKey[]> {
-  const records = await listApiKeys(userId);
-  if (!records || records.length === 0) return demoKeys;
+/** API keys for the signed-in account. Empty when the account has none. */
+export async function getDashboardKeys(): Promise<ApiKey[]> {
+  const records = await listApiKeys();
   return records.map(toViewKey);
 }
 
 export type DashboardUsage = {
-  summary: typeof demoSummary;
-  series: typeof demoSeries;
+  summary: UsageSummary;
+  series: UsagePoint[];
 };
 
-/** Usage cards + 14-day series. Cache counters stay demo: the schema has no field for them. */
-export async function getDashboardUsage(userId: string): Promise<DashboardUsage> {
-  const usage = await getUsageSummary(userId);
-  if (!usage || usage.series.length === 0) return { summary: demoSummary, series: demoSeries };
+/** Token totals for the signed-in account. */
+export async function getDashboardUsage(): Promise<DashboardUsage> {
+  const usage = await getUsageSummary();
 
   return {
     summary: {
       input: intFmt.format(usage.tokensIn),
       output: intFmt.format(usage.tokensOut),
-      cacheRead: demoSummary.cacheRead,
-      cacheWrite: demoSummary.cacheWrite,
+      // Cache tokens are not recorded in usage_events yet.
+      cacheRead: "0",
+      cacheWrite: "0",
     },
-    series: usage.series.map((point) => ({ day: point.day, input: point.tokensIn, output: point.tokensOut })),
+    // The backend reports account totals only; a daily series needs a new query.
+    series: [],
   };
 }
 
 export type DashboardBilling = {
+  balance: string | null;
   monthSpend: string;
   rows: BillingRow[];
 };
 
-function toViewBillingRow(row: UsageRow): BillingRow {
+/** Billing rows for the signed-in account. */
+export async function getDashboardBilling(): Promise<DashboardBilling> {
+  const usage = await getUsageSummary();
+
   return {
-    time: timeFmt.format(new Date(row.createdAt)),
-    model: row.model,
-    source: row.source,
-    input: intFmt.format(row.tokensIn),
-    output: intFmt.format(row.tokensOut),
-    cacheRead: "—",
-    cacheWrite: "—",
-    amount: usd(row.costUsd),
-    balance: `−${usd(row.costUsd)}`,
+    balance,
+    monthSpend: usd(usage.costUsd),
+    rows: [],
   };
-}
-
-/** Billing rows + month spend from real usage events; demo rows when empty. */
-export async function getDashboardBilling(userId: string): Promise<DashboardBilling> {
-  const [usage, recent] = await Promise.all([getUsageSummary(userId), listRecentUsage(userId)]);
-  if (!recent || recent.length === 0) return { monthSpend: demoMonthSpend, rows: demoBillingRows };
-
-  return { monthSpend: usd(usage.costUsd), rows: recent.map(toViewBillingRow) };
 }

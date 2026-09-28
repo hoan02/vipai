@@ -1,32 +1,160 @@
 import "server-only";
-import { cookies, headers } from "next/headers";
+import { z } from "zod";
+import { authApiHeaders, getForwardedFor, BACKEND_URL } from "./http";
+import { backend } from "./backend";
+import { isAPIError } from "@/lib/backend-client";
 
-export const KEY_PREFIX = "sk-aigiare";
+export const KEY_PREFIX = "sk-aigiare-";
 
+/**
+ * Limen's api-key plugin payload.
+ *
+ * Validated rather than cast: a key silently dropped from the table is worse than
+ * a loud failure, and this is the one response that is not covered by the
+ * generated Encore client.
+ */
+const pluginApiKey = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  prefix: z.string().min(1).default(KEY_PREFIX),
+  last4: z.string().default(""),
+  enabled: z.boolean(),
+  is_expired: z.boolean(),
+  last_used_at: z.string().nullable().optional(),
+  created_at: z.string(),
+});
+
+const pluginApiKeyList = z.object({
+  items: z.array(pluginApiKey),
+});
+
+/** An API key owned by the signed-in account. */
 export type ApiKeyRecord = {
   id: string;
   name: string;
   prefix: string;
   last4: string;
+  enabled: boolean;
+  isExpired: boolean;
   createdAt: Date;
-  revokedAt: Date | null;
+  lastUsedAt: Date | null;
 };
 
-export type UsagePoint = { day: string; tokensIn: number; tokensOut: number };
+function authApi(path: string): string {
+  return `${BACKEND_URL}${path}`;
+}
+
+function toDate(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function toRecord(key: z.infer<typeof pluginApiKey>): ApiKeyRecord {
+  return {
+    id: key.id,
+    name: key.name,
+    prefix: key.prefix,
+    last4: key.last4,
+    enabled: key.enabled,
+    isExpired: key.is_expired,
+    createdAt: toDate(key.created_at) ?? new Date(0),
+    lastUsedAt: toDate(key.last_used_at),
+  };
+}
+
+async function authApiError(res: Response, fallback: string): Promise<Error> {
+  const body = (await res.json().catch(() => null)) as { message?: string } | null;
+  return new Error(body?.message || fallback);
+}
+
+/** Lists the API keys owned by the signed-in account. */
+export async function listApiKeys(): Promise<ApiKeyRecord[]> {
+  const res = await fetch(authApi("/auth/api-keys?per_page=100"), {
+    headers: await authApiHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw await authApiError(res, "Could not load API keys");
+  }
+
+  const parsed = pluginApiKeyList.parse(await res.json());
+  return parsed.items
+    .map(toRecord)
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
+/**
+ * Creates an API key. The plaintext key is returned exactly once and is never
+ * stored, so it cannot be shown again.
+ */
+export async function createApiKey(
+  name: string,
+): Promise<{ record: ApiKeyRecord; plaintextKey: string }> {
+  const res = await fetch(authApi("/auth/api-keys"), {
+    method: "POST",
+    headers: await authApiHeaders(),
+    body: JSON.stringify({ name }),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw await authApiError(res, "Could not create the API key");
+  }
+
+  const body = (await res.json()) as Record<string, unknown>;
+  const key = pluginApiKey.parse(body);
+  if (typeof body.key !== "string" || body.key === "") {
+    throw new Error("The backend did not return the new key");
+  }
+
+  return { record: toRecord(key), plaintextKey: body.key };
+}
+
+/**
+ * Revokes an API key.
+ *
+ * The plugin's Revoke deletes the row, so this is permanent: a revoked key
+ * cannot be brought back and its name becomes available again. For a reversible
+ * "disable", use `updateApiKey(id, { enabled: false })`.
+ */
+export async function revokeApiKey(id: string): Promise<void> {
+  const res = await fetch(authApi(`/auth/api-keys/${encodeURIComponent(id)}`), {
+    method: "DELETE",
+    headers: await authApiHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw await authApiError(res, "Could not revoke the API key");
+  }
+}
+
+/** Updates an API key in place, e.g. to disable or re-enable it. */
+export async function updateApiKey(
+  id: string,
+  patch: { name?: string; enabled?: boolean },
+): Promise<ApiKeyRecord> {
+  const res = await fetch(authApi(`/auth/api-keys/${encodeURIComponent(id)}`), {
+    method: "PATCH",
+    headers: await authApiHeaders(),
+    body: JSON.stringify(patch),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw await authApiError(res, "Could not update the API key");
+  }
+
+  return toRecord(pluginApiKey.parse(await res.json()));
+}
 
 export type UsageSummary = {
   requests: number;
   tokensIn: number;
   tokensOut: number;
   costUsd: number;
-  series: UsagePoint[];
-};
-
-export type TokenRequestInput = {
-  email: string;
-  telegram?: string | null;
-  useCase?: string | null;
-  userId?: string | null;
 };
 
 export type UsageRow = {
@@ -39,186 +167,37 @@ export type UsageRow = {
   costUsd: number;
 };
 
-const BACKEND_URL =
-  process.env.BACKEND_API_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:4000";
+export type TokenRequestInput = {
+  email: string;
+  telegram?: string | null;
+  useCase?: string | null;
+};
 
-const DEMO_KEYS: ApiKeyRecord[] = [
-  {
-    id: "key_demo_prod",
-    name: "Production",
-    prefix: KEY_PREFIX,
-    last4: "9f2c",
-    createdAt: new Date("2026-01-12T09:20:00Z"),
-    revokedAt: null,
-  },
-  {
-    id: "key_demo_claude",
-    name: "Claude Code",
-    prefix: KEY_PREFIX,
-    last4: "41ab",
-    createdAt: new Date("2026-02-03T14:05:00Z"),
-    revokedAt: null,
-  },
-  {
-    id: "key_demo_staging",
-    name: "Staging sandbox",
-    prefix: KEY_PREFIX,
-    last4: "e704",
-    createdAt: new Date("2026-02-18T18:42:00Z"),
-    revokedAt: null,
-  },
-];
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  const reqHeaders: Record<string, string> = {
-    "content-type": "application/json",
-  };
+/** Fetches usage totals for the signed-in account. */
+export async function getUsageSummary(): Promise<UsageSummary> {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("limen_session")?.value;
-    if (sessionCookie) {
-      reqHeaders["cookie"] = `limen_session=${sessionCookie}`;
-    }
-    const headerStore = await headers();
-    const authHeader = headerStore.get("authorization");
-    if (authHeader) {
-      reqHeaders["authorization"] = authHeader;
-    }
-  } catch {
-    // Headers or cookies might not be available in non-request contexts
-  }
-  return reqHeaders;
-}
-
-/** Lists all API keys for the current user from the backend service. */
-export async function listApiKeys(_userId?: string): Promise<ApiKeyRecord[]> {
-  try {
-    const h = await getAuthHeaders();
-    const res = await fetch(`${BACKEND_URL}/api/keys`, {
-      headers: h,
-      cache: "no-store",
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data.keys)) {
-        return data.keys.map((k: Record<string, unknown>) => ({
-          id: String(k.id),
-          name: String(k.name),
-          prefix: String(k.prefix || KEY_PREFIX),
-          last4: String(k.last4),
-          createdAt: new Date(String(k.createdAt)),
-          revokedAt: k.revokedAt ? new Date(String(k.revokedAt)) : null,
-        }));
-      }
-    }
+    const data = await backend().dashboard.Summary();
+    return {
+      requests: data.totalRequests,
+      tokensIn: data.totalTokensIn,
+      tokensOut: data.totalTokensOut,
+      costUsd: data.totalCostUsd,
+    };
   } catch (error) {
-    console.warn("[aigiare] backend /api/keys unavailable, using demo keys:", error);
-  }
-
-  return DEMO_KEYS;
-}
-
-/** Creates a new API key via backend service. */
-export async function createApiKey(_userId: string, name: string): Promise<{
-  id: string;
-  name: string;
-  prefix: string;
-  last4: string;
-  plaintextKey: string;
-  createdAt: Date;
-}> {
-  const h = await getAuthHeaders();
-  const res = await fetch(`${BACKEND_URL}/api/keys`, {
-    method: "POST",
-    headers: h,
-    body: JSON.stringify({ name }),
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || "Failed to create API key");
-  }
-
-  const data = await res.json();
-  return {
-    id: String(data.id),
-    name: data.name,
-    prefix: data.prefix,
-    last4: data.last4,
-    plaintextKey: data.key,
-    createdAt: new Date(data.createdAt),
-  };
-}
-
-/** Revokes an API key via backend service. */
-export async function setApiKeyRevoked(
-  _userId: string,
-  keyId: string,
-  _revoked = true,
-): Promise<{ id: string; revokedAt: Date | null } | null> {
-  const h = await getAuthHeaders();
-  const res = await fetch(`${BACKEND_URL}/api/keys/${keyId}`, {
-    method: "DELETE",
-    headers: h,
-    cache: "no-store",
-  });
-
-  if (!res.ok) return null;
-  return { id: keyId, revokedAt: _revoked ? new Date() : null };
-}
-
-/** Fetches usage metrics from backend service. */
-export async function getUsageSummary(_userId?: string): Promise<UsageSummary> {
-  try {
-    const h = await getAuthHeaders();
-    const res = await fetch(`${BACKEND_URL}/api/dashboard/summary`, {
-      headers: h,
-      cache: "no-store",
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      return {
-        requests: Number(data.totalRequests || 0),
-        tokensIn: Number(data.totalTokensIn || 0),
-        tokensOut: Number(data.totalTokensOut || 0),
-        costUsd: Number(data.totalCostUsd || 0),
-        series: [],
-      };
+    if (isAPIError(error) && error.status === 401) {
+      throw new Error("Not signed in");
     }
-  } catch (error) {
-    console.warn("[aigiare] backend /api/dashboard/summary unavailable:", error);
+    throw error;
   }
-
-  return {
-    requests: 0,
-    tokensIn: 0,
-    tokensOut: 0,
-    costUsd: 0,
-    series: [],
-  };
 }
 
-/** Returns recent usage activity. */
-export async function listRecentUsage(_userId?: string): Promise<UsageRow[]> {
-  return [];
-}
-
-/** Submits a public test-token request to the backend service. */
+/** Submits a public test-token request. */
 export async function createTokenRequest(input: TokenRequestInput): Promise<void> {
-  const res = await fetch(`${BACKEND_URL}/api/token-requests`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(input),
-    cache: "no-store",
+  await backend().tokenrequests.Create({
+    email: input.email,
+    telegram: input.telegram ?? "",
+    useCase: input.useCase ?? "",
+    website: "",
+    ForwardedFor: await getForwardedFor(),
   });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || "Failed to submit request");
-  }
 }

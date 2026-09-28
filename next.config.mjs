@@ -2,6 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   images: { unoptimized: true },
+  // Emits .next/standalone with a self-contained server.js and only the traced
+  // node_modules. The Docker image in deploy/agr-fe/Dockerfile depends on this
+  // being set: without it the build produces no standalone directory and the
+  // COPY in the runtime stage fails. `next start` is unaffected and still works.
+  output: "standalone",
 };
 
 export default nextConfig;

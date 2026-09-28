@@ -16,7 +16,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { Icon } from "@/lib/icons";
-import { account, dashboardNav } from "@/lib/dashboard-data";
+import { dashboardNav } from "@/lib/dashboard-data";
 import { TopUpModal } from "@/components/TopUpModal";
 import { setLocale, getLocale, type Locale } from "@/components/I18n";
 
@@ -51,11 +51,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   const { data: session } = useSession();
   const user = session?.user as Record<string, unknown> | undefined;
-  const email = (user?.email as string | undefined) ?? account.email;
+  // Limen serializes the user straight from its columns, so the name fields are
+  // snake_case.
+  const email = (user?.email as string | undefined) ?? "";
   const display =
-    [user?.firstname || user?.firstName, user?.lastname || user?.lastName]
-      .filter(Boolean)
-      .join(" ") || email;
+    [user?.first_name, user?.last_name].filter(Boolean).join(" ") || email;
   const initial = (display.trim()[0] ?? "A").toUpperCase();
 
   return (

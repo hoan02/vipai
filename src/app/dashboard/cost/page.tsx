@@ -36,16 +36,22 @@ export default function DashboardCostPage() {
               </tr>
             </thead>
             <tbody>
-              {costByModel.map((r) => (
-                <tr key={r.model}>
-                  <td>{r.model}</td>
-                  <td>{r.vendor}</td>
-                  <td className="r num">{r.requests}</td>
-                  <td className="r num">{r.tokens}</td>
-                  <td className="r num">{r.spend}</td>
-                  <td className="r num">{r.saved}</td>
+              {costByModel.length === 0 ? (
+                <tr className="empty-row">
+                  <td colSpan={6}>No spend recorded yet</td>
                 </tr>
-              ))}
+              ) : (
+                costByModel.map((r) => (
+                  <tr key={r.model}>
+                    <td>{r.model}</td>
+                    <td>{r.vendor}</td>
+                    <td className="r num">{r.requests}</td>
+                    <td className="r num">{r.tokens}</td>
+                    <td className="r num">{r.spend}</td>
+                    <td className="r num">{r.saved}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

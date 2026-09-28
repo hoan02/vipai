@@ -6,6 +6,6 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardBillingPage() {
   const account = await requireAccount();
-  const billing = await getDashboardBilling(account.id);
+  const billing = await getDashboardBilling();
   return <BillingView billing={billing} />;
 }

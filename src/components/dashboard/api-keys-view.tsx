@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Apple, Check, ChevronDown, ChevronUp, Copy, Plus } from "lucide-react";
 import { PageHead, Pill, SectionTitle } from "@/components/dashboard/kit";
-import { apiKeys as seedKeys, type ApiKey } from "@/lib/dashboard-data";
+import type { ApiKey } from "@/lib/dashboard-data";
 
 const protocols = [
   { id: "openai", label: "OpenAI", path: "/v1" },
@@ -128,41 +128,26 @@ function Connector() {
   );
 }
 
-type KeyRecord = {
-  id: string;
-  name: string;
-  prefix: string;
-  last4: string;
-  createdAt: string;
-  revokedAt: string | null;
-};
-
-function toViewKey(record: KeyRecord): ApiKey {
-  return {
-    id: record.id,
-    name: record.name,
-    masked: `${record.prefix}-••••••••${record.last4}`,
-    status: record.revokedAt ? "Revoked" : "Active",
-    created: new Date(record.createdAt).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }),
-    requests: "—",
-  };
-}
-
-export function ApiKeysView({ initialKeys = seedKeys }: { initialKeys?: ApiKey[] }) {
+export function ApiKeysView({ initialKeys }: { initialKeys: ApiKey[] }) {
   const [keys, setKeys] = useState<ApiKey[]>(initialKeys);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [fresh, setFresh] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const create = async () => {
-    const label = name.trim() || "Untitled key";
+    const label = name.trim();
+    if (label.length < 3 || label.length > 100) {
+      setError("Give the key a name between 3 and 100 characters.");
+      return;
+    }
+
     setName("");
     setCreating(false);
+    setError(null);
+    setBusy(true);
 
     try {
       const response = await fetch("/api/keys", {
@@ -170,36 +155,72 @@ export function ApiKeysView({ initialKeys = seedKeys }: { initialKeys?: ApiKey[]
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: label }),
       });
-      if (response.ok) {
-        const data = (await response.json()) as { key: string; record: KeyRecord };
-        setFresh(data.key);
-        setKeys((k) => [toViewKey(data.record), ...k]);
+      const data = (await response.json().catch(() => null)) as
+        | { key?: string; record?: ApiKey; message?: string }
+        | null;
+
+      if (!response.ok || !data?.key || !data.record) {
+        setError(data?.message || "Could not create the key. Please try again.");
         return;
       }
-    } catch {
-      // fall through to the offline-friendly placeholder below
-    }
 
-    const id = `sk-aigiare-live-${Math.random().toString(16).slice(2, 6)}••••••••${Math.random().toString(16).slice(2, 6)}`;
-    setFresh(id.replace(/•+/g, "9f3a2c1b8d4e"));
-    setKeys((k) => [{ name: label, masked: id, status: "Active", created: "Sep 25, 2026", requests: "0" }, ...k]);
+      setFresh(data.key);
+      setKeys((k) => [data.record as ApiKey, ...k]);
+    } catch {
+      setError("Could not reach the server. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const toggle = (index: number) => {
-    const current = keys[index];
-    if (!current) return;
-    const revoked = current.status === "Active";
+  const revoke = async (key: ApiKey) => {
+    if (!window.confirm(`Revoke "${key.name}"? This cannot be undone.`)) return;
 
+    setError(null);
+    setKeys((k) => k.filter((item) => item.id !== key.id));
+
+    try {
+      const response = await fetch(`/api/keys/${encodeURIComponent(key.id)}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(data?.message || "Could not revoke the key.");
+      }
+    } catch (err) {
+      // Put the key back so the table keeps matching the backend.
+      setKeys((k) => [key, ...k]);
+      setError((err as Error).message);
+    }
+  };
+
+  const setEnabled = async (key: ApiKey, enabled: boolean) => {
+    setError(null);
+    const previous = key.status;
     setKeys((k) =>
-      k.map((key, i) => (i === index ? { ...key, status: revoked ? "Revoked" : "Active" } : key))
+      k.map((item) =>
+        item.id === key.id ? { ...item, status: enabled ? "Active" : "Revoked" } : item,
+      ),
     );
 
-    if (current.id) {
-      fetch(`/api/keys/${current.id}`, {
+    try {
+      const response = await fetch(`/api/keys/${encodeURIComponent(key.id)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ revoked }),
-      }).catch(() => {});
+        body: JSON.stringify({ enabled }),
+      });
+      const data = (await response.json().catch(() => null)) as
+        | { key?: ApiKey; message?: string }
+        | null;
+      if (!response.ok || !data?.key) {
+        throw new Error(data?.message || "Could not update the key.");
+      }
+      setKeys((k) => k.map((item) => (item.id === key.id ? (data.key as ApiKey) : item)));
+    } catch (err) {
+      setKeys((k) =>
+        k.map((item) => (item.id === key.id ? { ...item, status: previous } : item)),
+      );
+      setError((err as Error).message);
     }
   };
 
@@ -214,7 +235,7 @@ export function ApiKeysView({ initialKeys = seedKeys }: { initialKeys?: ApiKey[]
               API keys <Pill tone="cap"><i />Discount cap</Pill>
             </span>
           }
-          sub="API keys are credentials for accessing the AiGiare API and carry full account permissions. Store them securely."
+          sub="API keys are credentials for accessing the AiGiare API and carry full account permissions. Store them securely. Revoking a key is permanent."
         />
       </div>
 
@@ -240,8 +261,14 @@ export function ApiKeysView({ initialKeys = seedKeys }: { initialKeys?: ApiKey[]
         </div>
       ) : null}
 
+      {error ? (
+        <div className="panel" style={{ padding: 14, marginTop: 18, color: "#b91c1c" }} role="alert">
+          {error}
+        </div>
+      ) : null}
+
       <SectionTitle
-        hint={creating ? undefined : `${keys.length} keys`}
+        hint={creating ? undefined : `${keys.length} ${keys.length === 1 ? "key" : "keys"}`}
       >
         <span style={{ display: "inline-flex", alignItems: "center", gap: 14 }}>
           Your keys
@@ -264,10 +291,11 @@ export function ApiKeysView({ initialKeys = seedKeys }: { initialKeys?: ApiKey[]
               className="field"
               style={{ flex: "1 1 220px" }}
               placeholder="e.g. Production"
+              maxLength={100}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <button className="btn btn-primary btn-sm" type="button" onClick={create}>
+            <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={create}>
               Create
             </button>
             <button
@@ -292,18 +320,17 @@ export function ApiKeysView({ initialKeys = seedKeys }: { initialKeys?: ApiKey[]
                 <th>Key</th>
                 <th>Status</th>
                 <th>Created at</th>
-                <th className="r">Requests</th>
                 <th className="r">Actions</th>
               </tr>
             </thead>
             <tbody>
               {keys.length === 0 ? (
                 <tr className="empty-row">
-                  <td colSpan={5}>No API keys yet. Create one to get started.</td>
+                  <td colSpan={4}>No API keys yet. Create one to get started.</td>
                 </tr>
               ) : (
-                keys.map((k, i) => (
-                  <tr key={`${k.name}-${i}`}>
+                keys.map((k) => (
+                  <tr key={k.id}>
                     <td>
                       <span className="cell-main">
                         <span>{k.name}</span>
@@ -311,14 +338,28 @@ export function ApiKeysView({ initialKeys = seedKeys }: { initialKeys?: ApiKey[]
                       </span>
                     </td>
                     <td>
-                      <span className={`pill ${k.status === "Active" ? "pill-ok" : "pill-off"}`}>{k.status}</span>
+                      <span className={`pill ${k.status === "Active" ? "pill-ok" : "pill-off"}`}>
+                        {k.status === "Active" ? "Active" : "Disabled"}
+                      </span>
                     </td>
                     <td>{k.created}</td>
-                    <td className="r num">{k.requests}</td>
                     <td className="r">
-                      <button className="btn btn-ghost btn-sm" type="button" onClick={() => toggle(i)}>
-                        {k.status === "Active" ? "Revoke" : "Restore"}
-                      </button>
+                      <span style={{ display: "inline-flex", gap: 6 }}>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          type="button"
+                          onClick={() => setEnabled(k, k.status !== "Active")}
+                        >
+                          {k.status === "Active" ? "Disable" : "Enable"}
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          type="button"
+                          onClick={() => revoke(k)}
+                        >
+                          Revoke
+                        </button>
+                      </span>
                     </td>
                   </tr>
                 ))

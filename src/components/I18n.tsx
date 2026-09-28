@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { vi } from "@/lib/i18n-data";
 
@@ -11,6 +11,44 @@ export type Locale = "en" | "vi";
 const en: Record<string, string> = Object.fromEntries(
   Object.entries(vi).map(([k, v]) => [v, k])
 );
+
+/**
+ * Locale as React state, for components that resolve their own copy in JSX
+ * instead of leaving it to the DOM pass below (the dialog does: it re-renders
+ * on every mode/status change, so its text has to come from state).
+ */
+export function useLocale(): Locale {
+  const [locale, setLocaleState] = useState<Locale>("vi");
+
+  useEffect(() => {
+    setLocaleState(getLocale());
+    const onLocale = (ev: Event) => {
+      const next = (ev as CustomEvent<Locale>).detail;
+      if (next !== "en" && next !== "vi") return;
+      setLocaleState(next);
+    };
+    window.addEventListener(LOCALE_EVENT, onLocale);
+    return () => window.removeEventListener(LOCALE_EVENT, onLocale);
+  }, []);
+
+  return locale;
+}
+
+/** Resolves copy authored in Vietnamese into the active locale. */
+export function useT(): (viText: string) => string {
+  const locale = useLocale();
+  return useCallback((viText: string) => (locale === "en" ? en[viText] ?? viText : viText), [locale]);
+}
+
+/**
+ * Re-runs the DOM pass below. The DOM sweep only sees markup that is in the
+ * document when it fires, so dialogs and other late-mounting surfaces ask for
+ * one sweep of their own right after they open.
+ */
+export function refreshTranslations() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent<Locale>(LOCALE_EVENT, { detail: getLocale() }));
+}
 
 // Inline chrome: leaf text nodes (nav links, buttons, pills, chips).
 const INLINE_SELECTOR = "a,button,span,label,small,strong,b,em";

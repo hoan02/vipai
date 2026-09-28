@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getAccount } from "@/server/auth";
 import { createTokenRequest } from "@/server/repositories";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -28,20 +27,20 @@ export async function POST(request: Request) {
     );
   }
 
-  let userId: string | null = null;
+  // The backend links the request to the signed-in account when the session
+  // cookie is forwarded, and stores it anonymously otherwise.
   try {
-    const account = await getAccount();
-    userId = account?.id ?? null;
-  } catch {
-    userId = null;
+    await createTokenRequest({
+      email,
+      telegram: telegram || null,
+      useCase: useCase || null,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "submit_failed", message: (error as Error).message },
+      { status: 502 },
+    );
   }
-
-  await createTokenRequest({
-    email,
-    telegram: telegram || null,
-    useCase: useCase || null,
-    userId,
-  });
 
   return NextResponse.json({ ok: true });
 }

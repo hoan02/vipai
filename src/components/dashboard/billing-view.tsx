@@ -4,13 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { Bell, LayoutGrid, LayoutList } from "lucide-react";
 import { PageHead, Stat } from "@/components/dashboard/kit";
-import { balance, billingRows, monthSpend, purchases, savedThisMonth, type BillingRow } from "@/lib/dashboard-data";
+import type { DashboardBilling } from "@/server/dashboard";
+import { purchases, savedThisMonth, type BillingRow } from "@/lib/dashboard-data";
 
-function BalanceCard() {
+function BalanceCard({ balance }: { balance: string | null }) {
   return (
     <div className="bal">
       <div className="bal-row">
-        <span className="bal-amt">{balance}</span>
+        <span className="bal-amt">{balance ?? "—"}</span>
         <button className="btn btn-primary btn-sm" type="button" data-topup>
           Top up
         </button>
@@ -132,10 +133,9 @@ function BillingDetail({ rows }: { rows: BillingRow[] }) {
   );
 }
 
-export function BillingView({ billing }: { billing?: { monthSpend: string; rows: BillingRow[] } }) {
+export function BillingView({ billing }: { billing: DashboardBilling }) {
   const [view, setView] = useState<"grid" | "list">("grid");
-  const rows = billing?.rows ?? billingRows;
-  const spend = billing?.monthSpend ?? monthSpend;
+  const { balance, monthSpend, rows } = billing;
 
   return (
     <>
@@ -168,19 +168,19 @@ export function BillingView({ billing }: { billing?: { monthSpend: string; rows:
       {view === "grid" ? (
         <div className="stack-16" style={{ marginTop: 20 }}>
           <div className="grid-2">
-            <BalanceCard />
+            <BalanceCard balance={balance} />
             <PurchaseHistory />
           </div>
           <div className="stats">
-            <Stat label="Balance" value={balance} />
-            <Stat label="This month" value={spend} />
+            <Stat label="Balance" value={balance ?? "—"} />
+            <Stat label="This month" value={monthSpend} />
             <Stat label="Saved" value={savedThisMonth} />
           </div>
           <BillingDetail rows={rows} />
         </div>
       ) : (
         <div className="stack-16" style={{ marginTop: 20 }}>
-          <BalanceCard />
+          <BalanceCard balance={balance} />
           <PurchaseHistory />
           <BillingDetail rows={rows} />
         </div>

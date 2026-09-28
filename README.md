@@ -1,95 +1,113 @@
 # AiGiare — Next.js 16 app
 
-Full Next.js rebuild of the AiGiare landing page plus a real backend:
-**Next.js 16 App Router + TypeScript + Tailwind CSS + `lucide-react`**, the
-ported design system, Clerk authentication and a Prisma/Postgres data layer.
+The AiGiare marketing, docs and dashboard front end:
+**Next.js 16 App Router + TypeScript + Tailwind CSS v4 + `lucide-react`**, with
+the ported design system.
 
-## Run
+## Architecture
+
+This app holds **no database** and runs **no auth of its own**. Everything
+behind it lives in the new-api gateway:
+
+| Concern | Owner |
+| :--- | :--- |
+| Sign-up, sign-in, sessions | gateway, under `/_aigiare/auth/*` |
+| API keys, quota, billing | gateway |
+| Relay API (`/v1/...`) | gateway |
+| Marketing pages, docs, dashboard UI | this app |
+
+Caddy fronts both tiers on one hostname, so the gateway is same-origin and the
+session cookie needs no cross-origin CORS handling.
+
+The Encore Go backend that previously owned auth and data was retired. The
+client in `src/lib/backend-client.ts` is still used as a typed HTTP wrapper, but
+it can no longer be regenerated — the generator lived in that project. Treat it
+as hand-maintained now, and do not expect `encore gen client` to work.
+
+## Run locally
 
 ```bash
-cd nextjs
 npm install
-cp .env.example .env.local     # then fill in DATABASE_URL (Clerk keys may already exist)
-npm run db:push                # create the tables (needs DATABASE_URL)
+cp .env.example .env.local     # point BACKEND_API_URL at a running gateway
 npm run dev                    # http://localhost:3000
 ```
 
-Clerk dev keys are already written to `.env.local` (provisioned by
-`npx clerk@latest init`); run `npx clerk@latest auth login` to claim the app for
-your own Clerk account.
+`BACKEND_API_URL` must point at something serving the gateway. Locally that is
+either a gateway on the same machine or a tunnel; `http://localhost:4000` in the
+example is the retired Encore port and is only a placeholder for the shape.
 
-`DATABASE_URL` is optional to boot: without it the app runs and every
-repository falls back to bundled demo data, so the dashboard still renders.
-Once it is set, `npm run db:generate` + `npm run db:push` turn on real
-persistence for API keys, usage and test-token requests.
+`NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_API_URL_PATH` are inlined at build time,
+so changing them needs a rebuild, not a restart.
+
+## Deploy
+
+The image and compose definitions live in a separate private repository,
+`hoan02/aigiare-deploy`:
+
+- `deploy/agr-fe/Dockerfile` — multi-stage, non-root, Next.js `standalone`
+- `deploy/docker-compose.web.yml` — this app, on the shared compose network
+- `deploy/Caddyfile` — routes `/_aigiare/*` to the gateway and everything else here
+
+`output: "standalone"` in `next.config.mjs` is required by that Dockerfile.
+Removing it makes the image build fail, because `.next/standalone` is what the
+runtime stage copies.
 
 ## Stack
 
-| Layer      | Choice                                                       |
-| ---------- | ------------------------------------------------------------ |
-| Framework  | Next.js 16 App Router (`src/app/`), React 19                 |
-| Language   | TypeScript                                                   |
-| Styling    | Tailwind CSS v4 (CSS-first) + the ported design-system CSS   |
-| Icons      | `lucide-react`; product/brand marks use the inline sprite    |
-| Fonts      | `next/font/google` — Geist + JetBrains Mono                  |
-| Auth       | Clerk (`@clerk/nextjs` 7) — `src/proxy.ts` middleware       |
-| Data       | Prisma 6 + Postgres (`prisma/schema.prisma`)                 |
-| Animation  | Custom CSS + Canvas 2D (no Framer Motion / GSAP)             |
+| Layer | Choice |
+| :--- | --- |
+| Framework | Next.js 16 App Router (`src/app/`), React 19 |
+| Language | TypeScript |
+| Styling | Tailwind CSS v4 (CSS-first) + the ported design-system CSS |
+| Icons | `lucide-react`; product/brand marks use the inline sprite |
+| Fonts | `next/font/google` — Geist + JetBrains Mono |
+| Auth client | `limen-auth` — talks to the gateway, stores no session itself |
+| Data | fetch only; no ORM, no database driver |
+| Animation | Custom CSS + Canvas 2D (no Framer Motion / GSAP) |
 
 ## Layout
 
-```
-nextjs/
-  prisma/schema.prisma        # User, ApiKey, UsageEvent, TokenRequest
+```text
+agr-fe/
+  next.config.mjs           # output: "standalone" is required by the Dockerfile
+  scripts/                  # dev launcher
   src/
-    proxy.ts                  # Clerk middleware (Next 16 uses proxy.ts)
     app/
-      layout.tsx              # metadata, fonts, ClerkProvider, <I18n/>
-      page.tsx                # homepage composition
-      globals.css             # design system + Tailwind + motion CSS
-      site-pages.css          # public secondary pages + docs shell
-      sign-in|sign-up/        # Clerk auth routes
+      layout.tsx            # metadata, fonts, <I18n/>
+      page.tsx              # homepage composition
+      globals.css           # design system + Tailwind + motion CSS
+      site-pages.css        # public secondary pages + docs shell
+      sign-in|sign-up/      # auth entry points
       api/
-        token-requests/       # POST — landing test-token form
-        keys/                 # GET/POST + [id] PATCH/DELETE — protected
-      dashboard/              # protected billing/routing/keys/usage views
+        token-requests/     # POST — landing test-token form
+        keys/               # GET/POST + [id] PATCH/DELETE
+      dashboard/            # api-keys, usage, cost, budgets, members, routing
       download/  docs/
     components/
-      SiteMotion.tsx          # reveal, banner stars, ASCII lens, cursor glow, route canvas
+      SiteMotion.tsx        # reveal, banner stars, ASCII lens, cursor glow, route canvas
       LaunchBanner.tsx  Nav.tsx  Hero.tsx  TrustBand.tsx
-      TokenRequest.tsx  TelegramCta.tsx
+      AuthModal.tsx  TokenRequest.tsx  TelegramCta.tsx
       Pricing.tsx  QuickStart.tsx  LiveDiscounts.tsx  Faq.tsx  TopUpModal.tsx
-      Sections.tsx            # stat bar, features, duo, tier, leaderboard, CTA, footer
+      Sections.tsx          # stat bar, features, duo, tier, leaderboard, CTA, footer
       dashboard/  docs/
     lib/
-      data.ts  dashboard-data.ts  i18n-data.ts  icons.tsx  site.ts
+      backend-client.ts     # typed HTTP wrapper for the gateway
+      auth-client.ts        # limen-auth, basePath /_aigiare/auth
+      dashboard-data.ts  i18n-data.ts  icons.tsx  site.ts
     server/
-      db.ts                   # lazy Prisma client + demo-data fallback
-      auth.ts                 # Clerk account mirroring
-      repositories.ts         # keys / usage / token requests
-  public/assets/              # local images (no hotlinking)
+      http.ts               # backend URL resolution + credential forwarding
+      backend.ts            # shared client with the per-request fetcher
+      repositories.ts       # api keys, usage, token requests
+      auth.ts  dashboard.ts
+  public/assets/            # local images (no hotlinking)
 ```
 
 ## Notes
 
-- **Homepage** is trust-first: a proof band (real upstreams, model fingerprints,
-  public list pricing, no silent downgrades), a working pricing table whose
-  “See all model prices / Show less” toggle reveals the full catalogue, a free
-  test-token form and the Telegram contact CTA (`https://t.me/aigiare`).
-- **Pricing toggle**: every model row is rendered once and the controls toggle a
-  class (`row-hidden` on the static build, `rows` state in React), so the
-  show-all/show-less state can never be clobbered by a re-render.
-- The pricing form on the standalone `index.html` validates and confirms in the
-  browser (no server there); the Next.js `TokenRequest` posts to
-  `/api/token-requests` for real persistence.
-- Tailwind `preflight` is disabled so the ported design system keeps its own
-  reset; v4 is configured CSS-first with the legacy `tailwind.config.ts` loaded
-  via `@config`.
-- `DATABASE_URL` may be absent: `src/server/db.ts` creates the Prisma client
-  lazily and every repository returns demo data instead of throwing.
-- The **dashboard reads from the repositories**: `src/app/dashboard/{page,usage,api-keys}`
-  are async server components that call `src/server/dashboard.ts` (API keys,
-  usage summary/series, billing rows) and pass the data into the client views.
-  Create/revoke on API keys goes through `/api/keys`. Routing, budgets, members
-  and purchase history stay demo content — they have no tables in the schema yet.
+- **`src/server/http.ts` validates the backend URL.** HTTPS is required unless
+  the host is loopback or in a private range, because a server-side render may
+  legitimately reach a sibling container over plain HTTP. A public hostname over
+  HTTP is refused.
+- **The gateway is addressed through Caddy**, not as `new-api:3000` directly, so
+  a render gets the same prefix routing the browser gets.
 - Motion is disabled automatically under `prefers-reduced-motion`.

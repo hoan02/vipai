@@ -1,35 +1,64 @@
 import { NextResponse } from "next/server";
 import { requireAccount } from "@/server/auth";
-import { setApiKeyRevoked } from "@/server/repositories";
+import { toViewKey } from "@/server/dashboard";
+import { revokeApiKey, updateApiKey } from "@/server/repositories";
 
 type Params = { params: Promise<{ id: string }> };
 
-async function handler(request: Request, { params }: Params) {
-  let account;
+/**
+ * Revokes an API key permanently.
+ *
+ * The backend deletes the row, so this cannot be undone. Use PATCH to disable a
+ * key temporarily instead.
+ */
+export async function DELETE(_request: Request, { params }: Params) {
   try {
-    account = await requireAccount();
+    await requireAccount();
   } catch {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
   const { id } = await params;
 
-  if (request.method === "DELETE") {
-    const record = await setApiKeyRevoked(account.id, id, true);
-    return record ? NextResponse.json({ key: record }) : NextResponse.json({ error: "not_found" }, { status: 404 });
+  try {
+    await revokeApiKey(id);
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "revoke_failed", message: (error as Error).message },
+      { status: 502 },
+    );
+  }
+}
+
+/** Enables or disables a key without deleting it, so it can be restored. */
+export async function PATCH(request: Request, { params }: Params) {
+  try {
+    await requireAccount();
+  } catch {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  let body: Record<string, unknown> = {};
+  const { id } = await params;
+
+  let body: Record<string, unknown>;
   try {
     body = (await request.json()) as Record<string, unknown>;
   } catch {
-    body = {};
+    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const revoked = body.revoked !== false;
-  const record = await setApiKeyRevoked(account.id, id, revoked);
-  return record ? NextResponse.json({ key: record }) : NextResponse.json({ error: "not_found" }, { status: 404 });
-}
+  if (typeof body.enabled !== "boolean") {
+    return NextResponse.json({ error: "invalid_body" }, { status: 422 });
+  }
 
-export const PATCH = handler;
-export const DELETE = handler;
+  try {
+    const record = await updateApiKey(id, { enabled: body.enabled });
+    return NextResponse.json({ key: toViewKey(record) });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "update_failed", message: (error as Error).message },
+      { status: 502 },
+    );
+  }
+}

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "check:backend-url": "node scripts/check-backend-url.cjs"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.3",
@@ -23,6 +24,7 @@
     "tailwindcss": "^4.3.3",
     "tailwindcss-animate": "^1.0.7",
     "tailwindcss-motion": "^1.1.1",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "zod": "^4.6.5"
   }
 }

@@ -31,13 +31,14 @@ Module._load = function (request, ...rest) {
 };
 
 const accept = [
-  ["http://caddy:80/_aigiare", "compose network, production value"],
-  ["http://127.0.0.1:8080/_aigiare", "loopback, local dev"],
+  ["http://new-api:3000", "compose network, production value"],
+  ["http://caddy:80", "the front door"],
+  ["http://127.0.0.1:8080", "loopback, local dev"],
   ["http://host.docker.internal:4000", "docker host alias"],
   ["http://localhost:4000", "loopback by name"],
-  ["http://192.168.10.211:8080/_aigiare", "private RFC1918"],
-  ["http://172.20.0.4:8080/_aigiare", "private 172.16/12"],
-  ["https://aigiare.site/_aigiare", "public over https"],
+  ["http://192.168.10.211:8080", "private RFC1918"],
+  ["http://172.20.0.4:8080", "private 172.16/12"],
+  ["https://api.aigiare.site", "public over https"],
 ];
 
 const refuse = [

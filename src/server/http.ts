@@ -37,8 +37,12 @@ const INTERNAL_HOSTS = new Set([
   "::1",
   // Docker's alias for the host from inside a container.
   "host.docker.internal",
-  // The gateway front door in the compose network. A bare service name only
-  // resolves inside Docker, never on the public internet.
+  // The gateway itself, in the compose network. Addressed directly rather than
+  // through Caddy: Caddy routes by Host header, and a server-side call carries
+  // the service name as its host, so it would fall through to the site and
+  // answer with HTML. The prefix that made Caddy necessary is gone with it.
+  "new-api",
+  // The front door, kept for callers that do want prefix routing.
   "caddy",
 ]);
 

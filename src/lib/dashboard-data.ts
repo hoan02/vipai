@@ -7,9 +7,7 @@
 export type NavItem = {
   label: string;
   href: string;
-  icon: "wallet" | "sliders" | "key" | "pulse" | "bars" | "users" | "gauge" | "shield";
-  /** Only shown to the root account. */
-  admin?: boolean;
+  icon: "wallet" | "sliders" | "key" | "pulse" | "bars" | "users" | "gauge";
 };
 
 export const dashboardNav: NavItem[] = [
@@ -20,7 +18,6 @@ export const dashboardNav: NavItem[] = [
   { label: "Cost", href: "/dashboard/cost", icon: "bars" },
   { label: "Members", href: "/dashboard/members", icon: "users" },
   { label: "Budgets", href: "/dashboard/budgets", icon: "gauge" },
-  { label: "Admin", href: "/dashboard/admin", icon: "shield", admin: true },
 ];
 
 export type ApiKey = {

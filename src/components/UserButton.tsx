@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession, signout } from "@/lib/auth-client";
-import { LogOut, LayoutDashboard, User as UserIcon } from "lucide-react";
+import { LogOut, LayoutDashboard, Shield, User as UserIcon } from "lucide-react";
 
 export function UserButton() {
   const { data: session, isPending } = useSession();
@@ -31,6 +31,7 @@ export function UserButton() {
   const email = session.user.email ?? "";
   const name = session.user.name || session.user.username || email;
   const initial = (name[0] || "U").toUpperCase();
+  const isRoot = (session.user.role ?? 0) >= 100;
 
   const handleSignOut = async () => {
     try {
@@ -69,6 +70,16 @@ export function UserButton() {
               <LayoutDashboard size={14} className="text-white/60" />
               Dashboard
             </Link>
+            {isRoot ? (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2 text-xs text-white/80 hover:bg-white/5 hover:text-white transition-colors"
+              >
+                <Shield size={14} className="text-white/60" />
+                Admin
+              </Link>
+            ) : null}
           </div>
 
           <div className="border-t border-white/5 pt-1">

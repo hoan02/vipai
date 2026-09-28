@@ -78,7 +78,12 @@ export async function requireAccount(): Promise<Account> {
 }
 
 /**
- * Redirects to sign-in when signed out; use at the top of a protected page.
+ * Sends a signed-out visitor to the auth dialog and back; use at the top of a
+ * protected page.
+ *
+ * There is no sign-in page to redirect to: the dialog is mounted in the root
+ * layout, so `?auth=` asks it to open on the home page while `?redirect_url=`
+ * remembers the page that was wanted.
  *
  * Separate from `requireAccount` because a page should send the visitor
  * somewhere useful, while a route handler should answer 401 and let the caller
@@ -87,7 +92,7 @@ export async function requireAccount(): Promise<Account> {
 export async function requireAccountOrRedirect(redirectTo = "/dashboard"): Promise<Account> {
   const account = await getAccount();
   if (!account) {
-    redirect(`/sign-in?redirect_url=${encodeURIComponent(redirectTo)}`);
+    redirect(`/?auth=signin&redirect_url=${encodeURIComponent(redirectTo)}`);
   }
   return account;
 }

@@ -80,6 +80,12 @@ function prefersReducedMotion() {
   return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
+/** Only same-origin absolute paths, so `?redirect_url=` cannot be an open redirect. */
+function safeRedirect(value: string | null): string | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+  return value;
+}
+
 /* ---------- inline glyphs: the sprite covers the brand marks, these
    cover the field icons the sprite does not ship ---------- */
 
@@ -214,6 +220,9 @@ export function AuthModal() {
   const formRef = useRef<HTMLFormElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const lastFocus = useRef<HTMLElement | null>(null);
+  /* Where to land once the request succeeds: set from `?redirect_url=` when a
+     protected page bounced the visitor here, nothing when a trigger opened it. */
+  const redirectRef = useRef<string | null>(null);
   const exitTimer = useRef(0);
   const doneTimer = useRef(0);
   const alive = useRef(true);
@@ -235,7 +244,7 @@ export function AuthModal() {
     };
   }, []);
 
-  const open = useCallback((next: AuthMode) => {
+  const open = useCallback((next: AuthMode, redirect?: string | null) => {
     window.clearTimeout(exitTimer.current);
     setMode(next);
     setStatus("idle");
@@ -245,6 +254,8 @@ export function AuthModal() {
     setFormH(null);
     setDir(1);
     setPhase("open");
+    redirectRef.current =
+      redirect ?? safeRedirect(new URLSearchParams(window.location.search).get("redirect_url"));
     lastFocus.current = document.activeElement as HTMLElement | null;
     // The DOM i18n sweep runs at mount, before this dialog exists.
     refreshTranslations();
@@ -280,6 +291,20 @@ export function AuthModal() {
       document.removeEventListener("click", onClick);
     };
   }, [open, requestClose]);
+
+  /* A signed-out visitor sent home by the server arrives with `?auth=` (see
+     proxy.ts and requireAccountOrRedirect): open straight into the requested
+     panel, then strip the marker from the URL so a reload does not reopen it. */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const intent = params.get("auth");
+    if (intent !== "signin" && intent !== "signup") return;
+    open(intent, safeRedirect(params.get("redirect_url")));
+    const url = new URL(window.location.href);
+    url.searchParams.delete("auth");
+    url.searchParams.delete("redirect_url");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [open]);
 
   /* Exit animation, then unmount and hand focus back to the trigger. */
   useEffect(() => {
@@ -354,13 +379,14 @@ export function AuthModal() {
     if (next > 0) setFormH(next);
   }, [live, mode, status, error]);
 
-  /* Success: hold the check-draw for a beat, then hand off to the router. */
+  /* Success: hold the check-draw for a beat, then hand off to the router —
+     the page the visitor was bounced from, or the dashboard by default. */
   useEffect(() => {
     if (status !== "done") return;
     doneTimer.current = window.setTimeout(
       () => {
         setPhase("closed");
-        router.push("/dashboard");
+        router.push(redirectRef.current ?? "/dashboard");
         router.refresh();
       },
       prefersReducedMotion() ? 120 : DONE_MS

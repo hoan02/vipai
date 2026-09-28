@@ -11,7 +11,6 @@ import {
   ChevronsUpDown,
   Gauge,
   KeyRound,
-  Shield,
   SlidersHorizontal,
   Users,
   Wallet,
@@ -29,7 +28,6 @@ const navIcons = {
   bars: BarChart3,
   users: Users,
   gauge: Gauge,
-  shield: Shield,
 };
 
 const topTabs = [
@@ -54,7 +52,6 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const { data: session } = useSession();
   const user = session?.user as Record<string, unknown> | undefined;
   const email = (user?.email as string | undefined) ?? "";
-  const role = Number(user?.role ?? 0);
   const display =
     (user?.name as string | undefined) || (user?.username as string | undefined) || email;
   const initial = (display.trim()[0] ?? "A").toUpperCase();
@@ -111,17 +108,15 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               <ChevronsUpDown size={15} />
             </button>
             <nav className="dash-nav" aria-label="Dashboard">
-              {dashboardNav
-                .filter((item) => !item.admin || role >= 100)
-                .map((item) => {
-                  const I = navIcons[item.icon];
-                  return (
-                    <Link key={item.href} href={item.href} className={isOn(item.href) ? "is-on" : undefined}>
-                      <I aria-hidden="true" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
+              {dashboardNav.map((item) => {
+                const I = navIcons[item.icon];
+                return (
+                  <Link key={item.href} href={item.href} className={isOn(item.href) ? "is-on" : undefined}>
+                    <I aria-hidden="true" />
+                    {item.label}
+                  </Link>
+                );
+              })}
             </nav>
           </aside>
           <main className="dash-main">{children}</main>

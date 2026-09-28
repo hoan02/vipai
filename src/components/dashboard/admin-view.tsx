@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHead, Pill, SectionTitle, Stat } from "@/components/dashboard/kit";
-import type { GatewayChannel } from "@/server/gateway";
+import type { GatewayChannel, GatewayModelMeta } from "@/server/gateway";
 import type { AdminStats, MarginConfig, ModelPrice } from "@/server/admin";
 
 const usd = (value: number) => `$${value.toFixed(value >= 1 ? 2 : 4)}`;
@@ -37,6 +37,16 @@ type UserRow = {
   usedUsd: number;
   requestCount: number;
   group: string;
+};
+type ModelMetaRow = {
+  id: number;
+  modelName: string;
+  description: string;
+  tags: string;
+  vendorId: string;
+  status: number;
+  nameRule: number;
+  squareState: string;
 };
 
 function toRows(prices: ModelPrice[]): PriceRow[] {
@@ -207,6 +217,75 @@ export function AdminView({
     }
     setNotice(`Done: ${action}.`);
     void loadLists(userQuery);
+  };
+
+  /* --- model metadata ---------------------------------------------------- */
+
+  const [modelMeta, setModelMeta] = useState<ModelMetaRow[]>([]);
+
+  const loadModelMeta = async () => {
+    const res = await fetch("/api/admin/models", { cache: "no-store" });
+    const data = (res.ok ? await res.json() : { items: [] }) as { items?: GatewayModelMeta[] };
+    setModelMeta(
+      (data.items ?? []).map((m) => ({
+        id: m.id,
+        modelName: m.modelName,
+        description: m.description,
+        tags: m.tags,
+        vendorId: m.vendorId ? String(m.vendorId) : "",
+        status: m.status,
+        nameRule: m.nameRule,
+        squareState: m.squareState,
+      })),
+    );
+  };
+
+  useEffect(() => {
+    void loadModelMeta();
+  }, []);
+
+  const patchMeta = (modelName: string, patch: Partial<ModelMetaRow>) => {
+    setModelMeta((current) =>
+      current.map((row) => (row.modelName === modelName ? { ...row, ...patch } : row)),
+    );
+  };
+
+  const saveMeta = async (row: ModelMetaRow) => {
+    setError(null);
+    setNotice(null);
+    const result = await send("/api/admin/models", row.id > 0 ? "PUT" : "POST", {
+      id: row.id,
+      modelName: row.modelName,
+      description: row.description,
+      tags: row.tags,
+      vendorId: Number(row.vendorId) || 0,
+      status: row.status,
+      nameRule: row.nameRule,
+    });
+    if (result.message) {
+      setError(result.message);
+      return;
+    }
+    setNotice(`Saved metadata for ${row.modelName}.`);
+    void loadModelMeta();
+  };
+
+  const removeMeta = async (row: ModelMetaRow) => {
+    if (row.id <= 0) return;
+    if (!window.confirm(`Delete metadata for ${row.modelName}?`)) return;
+    setError(null);
+    const result = await send(`/api/admin/models/${row.id}`, "DELETE", {});
+    if (result.message) {
+      setError(result.message);
+      return;
+    }
+    setModelMeta((current) =>
+      current.map((item) =>
+        item.modelName === row.modelName
+          ? { ...item, id: 0, description: "", tags: "", status: 0 }
+          : item,
+      ),
+    );
   };
 
   const setCell = (id: string, field: "input" | "output" | "cache" | "perCall", value: string) => {
@@ -855,6 +934,115 @@ export function AdminView({
                             Enable
                           </button>
                         )}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <SectionTitle hint={`${modelMeta.length} model(s)`}>Model metadata</SectionTitle>
+      <div className="panel" style={{ padding: 16 }}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+          <button className="btn btn-ghost btn-sm" type="button" onClick={() => loadModelMeta()}>
+            Reload
+          </button>
+        </div>
+        <p className="note" style={{ marginTop: 0 }}>
+          Description, tags, visibility and match rule for the model catalog. Vendor IDs are
+          optional (no vendors are configured yet).
+        </p>
+        <div className="twrap">
+          <table className="dtable">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Description</th>
+                <th>Tags</th>
+                <th className="r">Vendor</th>
+                <th>Visible</th>
+                <th>Match</th>
+                <th className="r">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {modelMeta.length === 0 ? (
+                <tr className="empty-row">
+                  <td colSpan={7}>No models</td>
+                </tr>
+              ) : (
+                modelMeta.map((row) => (
+                  <tr key={row.modelName}>
+                    <td>
+                      <span className="cell-main">
+                        <span>{row.modelName}</span>
+                        <small>{row.id > 0 ? row.squareState || "metadata" : "no metadata"}</small>
+                      </span>
+                    </td>
+                    <td>
+                      <input
+                        className="field"
+                        style={{ width: 220 }}
+                        value={row.description}
+                        onChange={(e) => patchMeta(row.modelName, { description: e.target.value })}
+                        aria-label={`Description for ${row.modelName}`}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="field"
+                        style={{ width: 140 }}
+                        value={row.tags}
+                        onChange={(e) => patchMeta(row.modelName, { tags: e.target.value })}
+                        aria-label={`Tags for ${row.modelName}`}
+                      />
+                    </td>
+                    <td className="r">
+                      <input
+                        className="field"
+                        type="number"
+                        style={{ width: 80, textAlign: "right" }}
+                        value={row.vendorId}
+                        onChange={(e) => patchMeta(row.modelName, { vendorId: e.target.value })}
+                        aria-label={`Vendor for ${row.modelName}`}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        className="field"
+                        value={row.status}
+                        onChange={(e) => patchMeta(row.modelName, { status: Number(e.target.value) })}
+                        aria-label={`Visibility for ${row.modelName}`}
+                      >
+                        <option value={1}>Visible</option>
+                        <option value={0}>Hidden</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select
+                        className="field"
+                        value={row.nameRule}
+                        onChange={(e) => patchMeta(row.modelName, { nameRule: Number(e.target.value) })}
+                        aria-label={`Match rule for ${row.modelName}`}
+                      >
+                        <option value={0}>Exact</option>
+                        <option value={1}>Prefix</option>
+                        <option value={2}>Contains</option>
+                        <option value={3}>Suffix</option>
+                      </select>
+                    </td>
+                    <td className="r">
+                      <span style={{ display: "inline-flex", gap: 6 }}>
+                        <button className="btn btn-ghost btn-sm" type="button" onClick={() => saveMeta(row)}>
+                          Save
+                        </button>
+                        {row.id > 0 ? (
+                          <button className="btn btn-ghost btn-sm" type="button" onClick={() => removeMeta(row)}>
+                            Delete
+                          </button>
+                        ) : null}
                       </span>
                     </td>
                   </tr>

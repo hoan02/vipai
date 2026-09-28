@@ -719,3 +719,78 @@ export async function manageUser(
     body: JSON.stringify({ id, action, value }),
   });
 }
+
+/* --- model metadata ------------------------------------------------------ */
+
+export type GatewayModelMeta = {
+  /** 0 for a channel model that has no metadata row yet. */
+  id: number;
+  modelName: string;
+  description: string;
+  tags: string;
+  vendorId: number;
+  /** 1 visible, 0 hidden. */
+  status: number;
+  /** 0 exact, 1 prefix, 2 contains, 3 suffix. */
+  nameRule: number;
+  squareState: string;
+};
+
+export async function listModelMeta(
+  accessToken: string,
+  pageSize = 200,
+): Promise<{ items: GatewayModelMeta[]; total: number }> {
+  const data = await call<{ items: Array<Record<string, unknown>>; total: number }>(
+    `/api/models/?p=0&page_size=${pageSize}&include_channel_models=true`,
+    { token: accessToken },
+  );
+  return {
+    total: data.total ?? 0,
+    items: (data.items ?? []).map((raw) => ({
+      id: Number(raw.id ?? 0),
+      modelName: String(raw.model_name ?? ""),
+      description: String(raw.description ?? ""),
+      tags: String(raw.tags ?? ""),
+      vendorId: Number(raw.vendor_id ?? 0),
+      status: Number(raw.status ?? 0),
+      nameRule: Number(raw.name_rule ?? 0),
+      squareState: String(raw.square_state ?? ""),
+    })),
+  };
+}
+
+/** Creates metadata (no id) or updates it (id > 0). */
+export async function saveModelMeta(
+  accessToken: string,
+  input: {
+    id: number;
+    modelName: string;
+    description: string;
+    tags: string;
+    vendorId: number;
+    status: number;
+    nameRule: number;
+  },
+): Promise<void> {
+  await call("/api/models/", {
+    method: input.id > 0 ? "PUT" : "POST",
+    token: accessToken,
+    body: JSON.stringify({
+      ...(input.id > 0 ? { id: input.id } : {}),
+      model_name: input.modelName,
+      description: input.description,
+      tags: input.tags,
+      vendor_id: input.vendorId,
+      status: input.status,
+      name_rule: input.nameRule,
+      sync_official: 1,
+    }),
+  });
+}
+
+export async function deleteModelMeta(accessToken: string, id: number): Promise<void> {
+  await call(`/api/models/${encodeURIComponent(String(id))}`, {
+    method: "DELETE",
+    token: accessToken,
+  });
+}

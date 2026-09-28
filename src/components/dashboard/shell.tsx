@@ -117,7 +117,6 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               </div>
               <span className="dash-user">
                 <UserButton />
-                <span className="dash-email">{email}</span>
               </span>
             </div>
           </div>

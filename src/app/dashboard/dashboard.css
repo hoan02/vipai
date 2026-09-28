@@ -72,7 +72,6 @@
 .dash-lang button:hover{ background:var(--d-soft); color:var(--ink); }
 .dash-lang button.is-on{ background:var(--d-soft); color:var(--ink); }
 .dash-user{ display:inline-flex; align-items:center; gap:8px; min-width:0; }
-.dash-email{ max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13.5px; color:color-mix(in srgb, var(--ink) 74%, transparent); }
 
 .dash-scroll{ flex:1; min-height:0; overflow-y:auto; background:#fff; }
 /* Page transition: .dash-scroll is keyed by the route in the shell, so this
@@ -239,7 +238,6 @@ select.field{ appearance:none; padding-right:30px; background-image:linear-gradi
 }
 @media (max-width:760px){
   .stats,.stats.two,.stats.four{ grid-template-columns:1fr; }
-  .dash-email{ max-width:84px; }
 }
 
 /* The landing shell reserves space for its fixed nav; the dashboard has its

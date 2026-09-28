@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { Calendar, KeyRound, Users } from "lucide-react";
 import { PageHead, SectionTitle, Stat } from "@/components/dashboard/kit";
+import { Select } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import type { DashboardUsage } from "@/server/dashboard";
 import type { UsagePoint } from "@/lib/dashboard-data";
 
@@ -35,8 +37,10 @@ function UsageChart({ series }: { series: UsagePoint[] }) {
     const n = series.length;
     if (n === 0) return null;
 
-    const x = (i: number) => padX + (i * (W - 2 * padX)) / (n - 1);
-    const y = (v: number) => H - padY - (v / max) * (H - 2 * padY);
+    // A single data point has no horizontal span, so centre it instead of
+    // dividing by (n - 1) === 0, which produced NaN coordinates.
+    const x = (i: number) => (n === 1 ? W / 2 : padX + (i * (W - 2 * padX)) / (n - 1));
+    const y = (v: number) => H - padY - ((Number.isFinite(v) ? v : 0) / max) * (H - 2 * padY);
     const line = (key: "input" | "output") =>
       series.map((d, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(d[key]).toFixed(1)}`).join(" ");
     const area =
@@ -126,28 +130,36 @@ export function UsageView({ usage }: { usage: DashboardUsage }) {
       />
 
       <div className="toolbar" style={{ marginTop: 20 }}>
-        <span className="field-wrap">
-          <Users size={16} />
-          <select className="field has-icon" defaultValue="everyone" aria-label="Member">
-            <option value="everyone">Everyone</option>
-          </select>
-        </span>
-        <span className="field-wrap">
-          <KeyRound size={16} />
-          <select className="field has-icon" defaultValue="all" aria-label="API key">
-            <option value="all">All API keys</option>
-          </select>
-        </span>
+        <Select
+          label="Member"
+          value="everyone"
+          onChange={() => {}}
+          icon={<Users size={16} />}
+          options={[{ value: "everyone", label: "Everyone" }]}
+        />
+        <Select
+          label="API key"
+          value="all"
+          onChange={() => {}}
+          icon={<KeyRound size={16} />}
+          options={[{ value: "all", label: "All API keys" }]}
+        />
         <span className="date-range">
-          <span className="field-wrap">
-            <Calendar size={16} />
-            <input className="field has-icon" type="date" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From date" />
-          </span>
+          <DatePicker
+            label="From date"
+            value={from}
+            onChange={setFrom}
+            max={to}
+            icon={<Calendar size={16} />}
+          />
           <span className="note">–</span>
-          <span className="field-wrap">
-            <Calendar size={16} />
-            <input className="field has-icon" type="date" value={to} onChange={(e) => setTo(e.target.value)} aria-label="To date" />
-          </span>
+          <DatePicker
+            label="To date"
+            value={to}
+            onChange={setTo}
+            min={from}
+            icon={<Calendar size={16} />}
+          />
         </span>
       </div>
 

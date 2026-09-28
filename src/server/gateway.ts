@@ -568,6 +568,252 @@ export async function getLogStat(accessToken: string): Promise<SelfLogStat> {
   return { quota: data.quota ?? 0, rpm: data.rpm ?? 0, tpm: data.tpm ?? 0 };
 }
 
+/**
+ * One bucket of the gateway's quota data, already summed by time unit.
+ *
+ * `created_at` is the bucket's start, in unix seconds; the other three fields
+ * are that bucket's totals for one model.
+ */
+export type GatewayQuotaDatum = {
+  id?: number;
+  user_id?: number;
+  username?: string;
+  model_name?: string;
+  created_at: number;
+  token_used?: number;
+  count?: number;
+  quota?: number;
+};
+
+/**
+ * The account's quota usage grouped by time and model.
+ *
+ * `default_time` is the bucket width the gateway groups by (`hour`, `day`,
+ * `week`). The admin path spans every account, so the caller decides the role
+ * first and this never guesses.
+ */
+export async function getQuotaData(
+  accessToken: string,
+  options: {
+    startTimestamp: number;
+    endTimestamp: number;
+    granularity: string;
+    username?: string;
+  },
+  isAdmin = false,
+): Promise<GatewayQuotaDatum[]> {
+  const params = new URLSearchParams({
+    start_timestamp: String(Math.floor(options.startTimestamp)),
+    end_timestamp: String(Math.floor(options.endTimestamp)),
+    default_time: options.granularity,
+  });
+  if (options.username) params.set("username", options.username);
+
+  const path = isAdmin ? "/api/data/" : "/api/data/self";
+  const data = await call<GatewayQuotaDatum[]>(`${path}?${params.toString()}`, {
+    token: accessToken,
+  });
+  return Array.isArray(data) ? data : [];
+}
+
+/* --- console status, performance and uptime ------------------------------ */
+
+/** One configured relay route from the console's API-info panel. */
+export type GatewayApiInfo = {
+  url: string;
+  route: string;
+  description: string;
+  color: string;
+};
+
+/** One console announcement. `type` drives the colour of its dot. */
+export type GatewayAnnouncement = {
+  id?: number;
+  content: string;
+  publishDate?: string;
+  type?: string;
+  extra?: string;
+};
+
+/** One console FAQ entry. */
+export type GatewayFaq = { id?: number; question: string; answer: string };
+
+/**
+ * The console's public status payload.
+ *
+ * Served anonymously (`GET /api/status`), and the only source for the optional
+ * Overview panels: the API route list, the announcement feed and the FAQ. Each
+ * block is present only when the gateway has it enabled, so the `*_enabled`
+ * flags are read alongside it rather than inferred from an empty list.
+ */
+export type GatewayStatus = {
+  version: string;
+  systemName: string;
+  /** When true the console shows quota as money; quota is always the unit here. */
+  displayInCurrency: boolean;
+  quotaPerUnit: number;
+  apiInfoEnabled: boolean;
+  announcementsEnabled: boolean;
+  faqEnabled: boolean;
+  uptimeKumaEnabled: boolean;
+  apiInfo: GatewayApiInfo[];
+  announcements: GatewayAnnouncement[];
+  faq: GatewayFaq[];
+};
+
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+export async function getStatus(): Promise<GatewayStatus> {
+  const data = await call<Record<string, unknown>>("/api/status");
+  return {
+    version: asString(data.version),
+    systemName: asString(data.system_name, "AiGiare"),
+    displayInCurrency: Boolean(data.display_in_currency),
+    quotaPerUnit: Number(data.quota_per_unit) || QUOTA_PER_USD,
+    apiInfoEnabled: data.api_info_enabled !== false,
+    announcementsEnabled: data.announcements_enabled !== false,
+    faqEnabled: data.faq_enabled !== false,
+    uptimeKumaEnabled: Boolean(data.uptime_kuma_enabled),
+    apiInfo: asArray<Record<string, unknown>>(data.api_info).map((item) => ({
+      url: asString(item.url),
+      route: asString(item.route),
+      description: asString(item.description),
+      color: asString(item.color, "blue"),
+    })),
+    announcements: asArray<Record<string, unknown>>(data.announcements).map((item) => ({
+      id: typeof item.id === "number" ? item.id : undefined,
+      content: asString(item.content),
+      publishDate: asString(item.publishDate) || undefined,
+      type: asString(item.type) || undefined,
+      extra: asString(item.extra) || undefined,
+    })),
+    faq: asArray<Record<string, unknown>>(data.faq).map((item) => ({
+      id: typeof item.id === "number" ? item.id : undefined,
+      question: asString(item.question),
+      answer: asString(item.answer),
+    })),
+  };
+}
+
+/** One hour-bucketed usage row, as `/api/data/self` reports it. */
+export type GatewayQuotaPoint = {
+  /** Unix seconds, truncated to the hour by the gateway. */
+  createdAt: number;
+  quota: number;
+  count: number;
+  tokens: number;
+  model: string;
+};
+
+/**
+ * The account's own usage, bucketed by hour.
+ *
+ * The dashboard's Data-export feature has to be on for the gateway to write
+ * these rows; when it is off the endpoint answers an empty list and the caller
+ * falls back to the raw log. A thin adapter over `getQuotaData`, so the Overview
+ * and the model-analytics page read the same wire shape.
+ */
+export async function getQuotaDataSelf(
+  accessToken: string,
+  range: { start: number; end: number },
+): Promise<GatewayQuotaPoint[]> {
+  const rows = await getQuotaData(accessToken, {
+    startTimestamp: range.start,
+    endTimestamp: range.end,
+    granularity: "hour",
+  });
+  return rows.map((row) => ({
+    createdAt: Number(row.created_at) || 0,
+    quota: Number(row.quota) || 0,
+    count: Number(row.count) || 0,
+    tokens: Number(row.token_used) || 0,
+    model: row.model_name || "unknown",
+  }));
+}
+
+/** Per-model performance over the metrics window. */
+export type GatewayPerfModel = {
+  modelName: string;
+  successRate: number;
+  avgLatencyMs: number;
+  avgTps: number;
+};
+
+/** Request-weighted performance totals plus the per-model breakdown. */
+export type GatewayPerfSummary = {
+  successRate: number | null;
+  avgLatencyMs: number | null;
+  avgTps: number | null;
+  models: GatewayPerfModel[];
+};
+
+export async function getPerfSummary(
+  accessToken: string | undefined,
+  hours = 24,
+): Promise<GatewayPerfSummary> {
+  const data = await call<{
+    summary?: { avg_latency_ms?: number; success_rate?: number; avg_tps?: number } | null;
+    models?: Array<Record<string, unknown>>;
+  }>(`/api/perf-metrics/summary?hours=${hours}`, { token: accessToken });
+
+  const summary = data.summary ?? null;
+  return {
+    successRate: summary ? Number(summary.success_rate) : null,
+    avgLatencyMs: summary ? Number(summary.avg_latency_ms) : null,
+    avgTps: summary ? Number(summary.avg_tps) : null,
+    models: (data.models ?? []).map((row) => ({
+      modelName: asString(row.model_name, "unknown"),
+      successRate: Number(row.success_rate) || 0,
+      avgLatencyMs: Number(row.avg_latency_ms) || 0,
+      avgTps: Number(row.avg_tps) || 0,
+    })),
+  };
+}
+
+export type GatewayUptimeMonitor = {
+  name: string;
+  /** 0–1 fraction, as the gateway reports it. */
+  uptime: number;
+  /** 1 up, 0 down, 2 pending, 3 maintenance. */
+  status: number;
+  group?: string;
+};
+
+export type GatewayUptimeGroup = { categoryName: string; monitors: GatewayUptimeMonitor[] };
+
+export async function getUptimeStatus(): Promise<GatewayUptimeGroup[]> {
+  const data = await call<Array<Record<string, unknown>>>("/api/uptime/status");
+  return asArray<Record<string, unknown>>(data).map((group) => ({
+    categoryName: asString(group.categoryName, "Services"),
+    monitors: asArray<Record<string, unknown>>(group.monitors).map((monitor) => ({
+      name: asString(monitor.name),
+      uptime: Number(monitor.uptime) || 0,
+      status: Number(monitor.status) || 0,
+      group: asString(monitor.group) || undefined,
+    })),
+  }));
+}
+
+/**
+ * Reveals a key's plaintext value.
+ *
+ * The list only ever returns a mask. This route is the single place the gateway
+ * parts with the real value, which is why the reveal is a deliberate call.
+ */
+export async function revealTokenKey(accessToken: string, id: string): Promise<string> {
+  const data = await call<{ key: string }>(`/api/token/${encodeURIComponent(id)}/key`, {
+    method: "POST",
+    token: accessToken,
+  });
+  return typeof data.key === "string" ? data.key : "";
+}
+
 /* --- wallet -------------------------------------------------------------- */
 
 /** One credit purchase the account made. */

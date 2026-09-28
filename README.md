@@ -83,6 +83,7 @@ runtime stage copies.
 | Auth client | `src/lib/auth-client.ts` — a store over this app's `/api/session` routes |
 | Data | fetch only; no ORM, no database driver |
 | Animation | Custom CSS + Canvas 2D (no Framer Motion / GSAP) |
+| Charts | `recharts` — the model-analytics page (`/dashboard/models`) |
 
 ## Layout
 
@@ -99,9 +100,10 @@ agr-fe/
       sign-in|sign-up/      # auth entry points
       api/
         admin/              # GET gateway, PUT pricing, PATCH channels (root only)
+        analytics/          # GET the model-analytics window from the quota rollup
         keys/               # GET/POST + [id] PATCH/DELETE
         session/            # login/register/logout + current user
-      dashboard/            # api-keys, usage, cost, budgets, members, routing
+      dashboard/            # api-keys, usage, models, logs, wallet, profile, security
       download/  docs/
     styles/                 # split global CSS; import order === cascade order
       index.css             # the manifest — read this first
@@ -121,6 +123,7 @@ agr-fe/
       dashboard/  docs/  admin/
     lib/
       auth-client.ts        # session store, over /api/session
+      analytics.ts          # model-analytics rollup, bucketing and chart preferences
       dashboard-data.ts  i18n-data.ts  icons.tsx  site.ts
     server/
       http.ts               # backend URL resolution and validation

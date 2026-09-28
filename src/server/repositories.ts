@@ -10,6 +10,7 @@ import {
   listLogs,
   listTokens,
   persistSession,
+  revealTokenKey,
   setTokenEnabled,
   type GatewayLog,
   type GatewayToken,
@@ -152,6 +153,17 @@ export async function createApiKey(
 export async function revokeApiKey(id: string): Promise<void> {
   const token = await requireAccessToken();
   await deleteToken(token, id);
+}
+
+/**
+ * Reveals one key's plaintext value.
+ *
+ * Only used by the Overview's "copy a ready-to-run request" action. The value is
+ * returned to that one caller and never stored or logged here.
+ */
+export async function revealApiKey(id: string): Promise<string> {
+  const token = await requireAccessToken();
+  return `${KEY_PREFIX}${await revealTokenKey(token, id)}`;
 }
 
 /** Not supported: see `setTokenEnabled`. The gateway can only revoke a key. */

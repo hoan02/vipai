@@ -7,15 +7,27 @@
 export type NavItem = {
   label: string;
   href: string;
-  icon: "credit" | "key" | "pulse" | "scroll" | "bars" | "gauge" | "shield" | "user" | "chat";
+  icon:
+    | "credit"
+    | "key"
+    | "pulse"
+    | "scroll"
+    | "bars"
+    | "gauge"
+    | "shield"
+    | "user"
+    | "chat"
+    | "receipt";
 };
 
 export const dashboardNav: NavItem[] = [
   { label: "Overview", href: "/dashboard", icon: "gauge" },
   { label: "Playground", href: "/dashboard/playground", icon: "chat" },
   { label: "Wallet", href: "/dashboard/wallet", icon: "credit" },
+  { label: "Billing", href: "/dashboard/billing", icon: "receipt" },
   { label: "API Keys", href: "/dashboard/api-keys", icon: "key" },
   { label: "Usage", href: "/dashboard/usage", icon: "pulse" },
+  { label: "Models", href: "/dashboard/models", icon: "bars" },
   { label: "Usage logs", href: "/dashboard/usage-logs", icon: "scroll" },
   { label: "Profile", href: "/dashboard/profile", icon: "user" },
   { label: "Security", href: "/dashboard/security", icon: "shield" },

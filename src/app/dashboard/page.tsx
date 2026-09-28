@@ -1,11 +1,11 @@
 import { requireAccount } from "@/server/auth";
-import { getDashboardBilling } from "@/server/dashboard";
-import { BillingView } from "@/components/dashboard/billing-view";
+import { getDashboardOverview } from "@/server/dashboard";
+import { OverviewView } from "@/components/dashboard/overview/overview-view";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardBillingPage() {
+export default async function DashboardOverviewPage() {
   const account = await requireAccount();
-  const billing = await getDashboardBilling();
-  return <BillingView billing={billing} />;
+  const overview = await getDashboardOverview();
+  return <OverviewView overview={overview} isAdmin={account.role >= 10} />;
 }

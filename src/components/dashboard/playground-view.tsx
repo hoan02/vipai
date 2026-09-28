@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { PageHead, Pill } from "@/components/dashboard/kit";
+import { Select } from "@/components/ui/select";
 import { Send, Square, Trash2 } from "lucide-react";
 
 type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
@@ -194,19 +195,18 @@ export function PlaygroundView({
               onChange={(e) => setModelFilter(e.target.value)}
             />
           ) : null}
-          <select
-            className="field"
-            style={{ width: "100%", marginTop: 8 }}
-            aria-label="Model"
+          <Select
+            label="Model"
+            block
             value={model}
-            onChange={(e) => setModel(e.target.value)}
-          >
-            {(modelFilter.trim() ? visibleModels : models).map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
+            onChange={setModel}
+            style={{ marginTop: 8 }}
+            options={(modelFilter.trim() ? visibleModels : models).map((m) => ({
+              value: m,
+              label: m,
+            }))}
+            emptyLabel="No models match the filter"
+          />
 
           <b style={{ fontSize: 14, display: "block", marginTop: 16 }}>System prompt</b>
           <textarea

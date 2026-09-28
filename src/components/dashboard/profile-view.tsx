@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Copy } from "lucide-react";
 import { PageHead, Pill, SectionTitle } from "@/components/dashboard/kit";
+import { Select } from "@/components/ui/select";
 import { setLocale, type Locale } from "@/components/site/I18n";
 
 export type ProfileData = {
@@ -204,19 +205,19 @@ export function ProfileView({ initial }: { initial: ProfileData }) {
             />
           </div>
           <div>
-            <label className="note" htmlFor="language" style={{ display: "block", marginBottom: 6 }}>
+            <span className="note" style={{ display: "block", marginBottom: 6 }}>
               Language
-            </label>
-            <select
-              id="language"
-              className="field"
-              style={{ width: "100%" }}
+            </span>
+            <Select
+              label="Language"
+              block
               value={language}
-              onChange={(e) => setLanguage(e.target.value as Locale)}
-            >
-              <option value="vi">Tiếng Việt</option>
-              <option value="en">English</option>
-            </select>
+              onChange={(next) => setLanguage(next as Locale)}
+              options={[
+                { value: "vi", label: "Tiếng Việt" },
+                { value: "en", label: "English" },
+              ]}
+            />
           </div>
         </div>
 

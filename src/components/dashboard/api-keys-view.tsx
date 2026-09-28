@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Apple, Check, ChevronDown, ChevronUp, Copy, Plus } from "lucide-react";
 import { PageHead, Pill, SectionTitle } from "@/components/dashboard/kit";
+import { Select } from "@/components/ui/select";
 import type { ApiKey } from "@/lib/dashboard-data";
 import { usd } from "@/lib/money";
 
@@ -69,14 +70,18 @@ function Connector() {
       {open ? (
         <div className="conn-row">
           <div>
-            <div className="field-wrap" style={{ width: "100%" }}>
-              <select className="field has-icon" defaultValue="all" style={{ width: "100%" }} aria-label="Model scope">
-                <option value="all">All models</option>
-                <option value="claude">Claude</option>
-                <option value="gpt">GPT</option>
-                <option value="gemini">Gemini</option>
-              </select>
-            </div>
+            <Select
+              label="Model scope"
+              block
+              value="all"
+              onChange={() => {}}
+              options={[
+                { value: "all", label: "All models" },
+                { value: "claude", label: "Claude" },
+                { value: "gpt", label: "GPT" },
+                { value: "gemini", label: "Gemini" },
+              ]}
+            />
             <div className="conn-url" style={{ marginTop: 12 }}>
               <code>{baseUrl}</code>
               <button
@@ -300,33 +305,30 @@ export function ApiKeysView({
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <select
-              className="field"
-              style={{ flex: "0 1 170px" }}
-              aria-label="Billing group"
+            <Select
+              label="Billing group"
               value={group}
-              onChange={(e) => setGroup(e.target.value)}
-            >
-              <option value="">Default group</option>
-              {groups.map((g) => (
-                <option key={g} value={g}>
-                  {g}
-                </option>
-              ))}
-            </select>
-            <select
-              className="field"
-              style={{ flex: "0 1 190px" }}
-              aria-label="Expiry"
+              onChange={setGroup}
+              className="has-icon"
+              style={{ flex: "0 1 170px", paddingLeft: 12 }}
+              options={[
+                { value: "", label: "Default group" },
+                ...groups.map((g) => ({ value: g, label: g })),
+              ]}
+            />
+            <Select
+              label="Expiry"
               value={String(expiresInDays)}
-              onChange={(e) => setExpiresInDays(Number(e.target.value) || 0)}
-            >
-              <option value="0">Never expires</option>
-              <option value="7">Expires in 7 days</option>
-              <option value="30">Expires in 30 days</option>
-              <option value="90">Expires in 90 days</option>
-              <option value="365">Expires in 365 days</option>
-            </select>
+              onChange={(next) => setExpiresInDays(Number(next) || 0)}
+              style={{ flex: "0 1 190px" }}
+              options={[
+                { value: "0", label: "Never expires" },
+                { value: "7", label: "Expires in 7 days" },
+                { value: "30", label: "Expires in 30 days" },
+                { value: "90", label: "Expires in 90 days" },
+                { value: "365", label: "Expires in 365 days" },
+              ]}
+            />
           </div>
 
           <label className="note" htmlFor="keyIps" style={{ display: "block", margin: "12px 0 6px" }}>

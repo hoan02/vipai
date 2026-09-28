@@ -13,6 +13,7 @@ import {
   Gauge,
   KeyRound,
   MessageSquare,
+  Receipt,
   ScrollText,
   Shield,
   User,
@@ -24,6 +25,7 @@ import { setLocale, getLocale, type Locale } from "@/components/site/I18n";
 
 const navIcons = {
   credit: CreditCard,
+  receipt: Receipt,
   key: KeyRound,
   pulse: Activity,
   scroll: ScrollText,

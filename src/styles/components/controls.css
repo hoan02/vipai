@@ -1,0 +1,222 @@
+/* ============================================================
+   Form controls — the select listbox and the date calendar.
+
+   Both replace controls the OS draws (the native <select> popup and
+   input[type=date]), so they are styled here rather than inside a
+   route sheet. They are rendered in a portal on document.body, which
+   means they cannot rely on the dashboard's `.dash` custom-property
+   scope; the tokens are read from :root and fall back to a local
+   value so the same rules work on the landing pages too.
+
+   Corners are square, matching the rest of the system.
+   ============================================================ */
+
+.ui-select-popup,
+.ui-date-popup{
+  position:fixed;
+  z-index:120;
+  background:var(--stage-bg, #fffefb);
+  border:1px solid color-mix(in srgb, var(--ink, #14110f) 14%, transparent);
+  box-shadow:0 18px 44px -18px rgba(20, 17, 15, .34), 0 2px 8px -4px rgba(20, 17, 15, .18);
+  animation:ui-pop-in .13s cubic-bezier(.22, 1, .36, 1) both;
+  font-size:13.8px;
+  color:var(--ink, #14110f);
+}
+@keyframes ui-pop-in{
+  from{ opacity:0; transform:translateY(-4px); }
+  to{ opacity:1; transform:none; }
+}
+
+/* ---------- Select ---------- */
+.ui-select-trigger{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  text-align:left;
+  cursor:pointer;
+}
+.ui-select-trigger.is-block{ width:100%; }
+.ui-select-trigger:disabled{ opacity:.55; cursor:not-allowed; }
+.ui-select-trigger:focus-visible{
+  outline:2px solid color-mix(in srgb, var(--amber, #f97316) 55%, transparent);
+  outline-offset:1px;
+}
+.ui-select-value{
+  flex:1 1 auto;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.ui-select-value.is-placeholder{ color:color-mix(in srgb, var(--ink, #14110f) 45%, transparent); }
+.ui-select-caret{
+  flex:none;
+  color:color-mix(in srgb, var(--ink, #14110f) 55%, transparent);
+  transition:transform .16s ease;
+}
+.ui-select-trigger[aria-expanded="true"] .ui-select-caret{ transform:rotate(180deg); }
+
+.ui-select-popup{
+  max-height:288px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:4px;
+}
+.ui-select-option{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  width:100%;
+  padding:9px 11px;
+  border:0;
+  background:transparent;
+  font:inherit;
+  font-size:13.8px;
+  color:var(--ink, #14110f);
+  text-align:left;
+  cursor:pointer;
+}
+.ui-select-option-text{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.ui-select-option-text small{ font-size:12px; color:color-mix(in srgb, var(--ink, #14110f) 55%, transparent); }
+.ui-select-option.is-active{
+  background:color-mix(in srgb, var(--amber, #f97316) 12%, transparent);
+}
+.ui-select-option.is-selected{ font-weight:600; }
+.ui-select-option.is-selected svg{ color:var(--amber-deep, #c2410c); }
+.ui-select-option:disabled{ opacity:.45; cursor:not-allowed; }
+.ui-select-empty{
+  padding:14px 12px;
+  text-align:center;
+  font-size:13px;
+  color:color-mix(in srgb, var(--ink, #14110f) 55%, transparent);
+}
+
+/* ---------- Date picker ---------- */
+.ui-date-trigger{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  text-align:left;
+  cursor:pointer;
+}
+.ui-date-trigger:disabled{ opacity:.55; cursor:not-allowed; }
+.ui-date-trigger:focus-visible{
+  outline:2px solid color-mix(in srgb, var(--amber, #f97316) 55%, transparent);
+  outline-offset:1px;
+}
+.ui-date-value{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ui-date-value.is-placeholder{ color:color-mix(in srgb, var(--ink, #14110f) 45%, transparent); }
+
+.ui-date-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:10px 10px 8px;
+}
+.ui-date-title{ font-size:13.5px; font-weight:600; letter-spacing:-.01em; }
+.ui-date-nav{
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  border:0;
+  background:transparent;
+  color:color-mix(in srgb, var(--ink, #14110f) 65%, transparent);
+  cursor:pointer;
+}
+.ui-date-nav:hover{ background:color-mix(in srgb, var(--ink, #14110f) 6%, transparent); color:var(--ink, #14110f); }
+
+.ui-date-weekdays,
+.ui-date-grid{
+  display:grid;
+  grid-template-columns:repeat(7, minmax(0, 1fr));
+  gap:1px;
+  padding:0 8px;
+}
+.ui-date-weekdays{ padding-bottom:4px; }
+.ui-date-weekdays span{
+  text-align:center;
+  font-size:11.5px;
+  font-weight:500;
+  color:color-mix(in srgb, var(--ink, #14110f) 48%, transparent);
+}
+.ui-date-grid{ padding-bottom:8px; }
+.ui-date-day{
+  height:32px;
+  display:grid;
+  place-items:center;
+  border:0;
+  background:transparent;
+  font:inherit;
+  font-size:13px;
+  color:var(--ink, #14110f);
+  cursor:pointer;
+  position:relative;
+}
+.ui-date-day:hover:not(:disabled){ background:color-mix(in srgb, var(--ink, #14110f) 7%, transparent); }
+.ui-date-day.is-outside{ color:color-mix(in srgb, var(--ink, #14110f) 32%, transparent); }
+.ui-date-day.is-today{ font-weight:700; }
+.ui-date-day.is-today::after{
+  content:"";
+  position:absolute;
+  bottom:4px;
+  width:4px;
+  height:4px;
+  background:var(--amber, #f97316);
+}
+.ui-date-day.is-selected{
+  background:var(--ink, #14110f);
+  color:var(--stage-bg, #fffefb);
+  font-weight:600;
+}
+.ui-date-day.is-selected::after{ background:var(--stage-bg, #fffefb); }
+.ui-date-day:disabled{ opacity:.28; cursor:not-allowed; }
+
+.ui-date-foot{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:8px 10px;
+  border-top:1px dashed color-mix(in srgb, var(--ink, #14110f) 14%, transparent);
+}
+.ui-date-quick{
+  border:0;
+  background:transparent;
+  font:inherit;
+  font-size:12.5px;
+  font-weight:500;
+  color:var(--amber-deep, #c2410c);
+  cursor:pointer;
+  padding:2px 4px;
+}
+.ui-date-quick:hover{ text-decoration:underline; }
+.ui-date-quick:disabled{ opacity:.4; cursor:not-allowed; text-decoration:none; }
+
+.ui-date-manual{ padding:8px 10px 10px; }
+.ui-date-manual .field{
+  width:100%;
+  height:34px;
+  font-size:13px;
+  font-family:var(--font-mono);
+}
+
+@media (prefers-reduced-motion: reduce){
+  .ui-select-popup, .ui-date-popup{ animation:none; }
+  .ui-select-caret{ transition:none; }
+}
+
+/* ============================================================
+   Native control cleanup.
+
+   The spinners on input[type=number] and the WebKit search cancel
+   button are drawn by the browser and sit outside the type scale, so
+   they are suppressed wherever a page does not deliberately ask for
+   them. Removing the spinner does not remove the ability to type or
+   arrow-key a value.
+   ============================================================ */
+input[type="number"]{ -moz-appearance:textfield; appearance:textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; appearance:none; margin:0; }

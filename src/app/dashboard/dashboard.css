@@ -154,6 +154,9 @@ select.field{ appearance:none; padding-right:30px; background-image:linear-gradi
 .pill-role{ background:var(--d-soft); color:var(--d-muted); }
 .pill-ok{ color:#0e6b45; background:color-mix(in srgb, var(--ok) 15%, transparent); }
 .pill-off{ color:var(--d-muted); background:var(--d-soft); }
+.chip{ display:inline-flex; align-items:center; height:27px; padding:0 11px; border:1px solid var(--d-line); border-radius:999px; background:#fff; font:inherit; font-size:12.8px; color:var(--d-muted); cursor:pointer; }
+.chip:hover{ border-color:color-mix(in srgb, var(--ink) 22%, transparent); color:var(--ink); }
+.chip.is-on{ background:var(--d-soft); border-color:color-mix(in srgb, var(--ink) 28%, transparent); color:var(--ink); font-weight:600; }
 .conn{ position:relative; overflow:hidden; border:1px solid var(--d-line); border-radius:var(--d-r); padding:16px 18px; background:linear-gradient(105deg,#fff7ec 0%,#fdece0 24%,#fbf3ee 55%,#eef2fb 100%); }
 .conn-hd{ display:flex; align-items:center; justify-content:space-between; gap:14px; }
 .conn-hd b{ font-size:14.5px; }

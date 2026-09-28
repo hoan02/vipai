@@ -1,12 +1,19 @@
-/* Tailwind CSS v4 entrypoint.
-   Preflight is deliberately NOT imported: the ported design system already
-   performs its own reset and the reference styling must stay byte-for-byte
-   identical. Importing `theme` + `utilities` while skipping `preflight.css`
-   replaces Tailwind v3's `corePlugins: { preflight: false }` option. */
-@layer theme, base, components, utilities;
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
-@config "../../tailwind.config.ts";
+/* ============================================================
+   AiGiare global stylesheet.
+
+   Plain CSS — no Tailwind. This file is the whole styling layer
+   for the marketing site: tokens, reset, layout primitives and
+   the landing sections. Route-scoped stylesheets layer on top
+   through their own layout.tsx:
+
+     dashboard/dashboard.css  → dashboard + admin
+     docs/docs.css            → documentation
+     site-pages.css           → download
+
+   There is no preflight import because the design system already
+   performs its own reset (see the `*,*::before,*::after` and
+   `body` rules below); a second reset would only fight it.
+   ============================================================ */
 
 /* ===== Design system (ported verbatim from the static reference build) ===== */
 
@@ -233,6 +240,53 @@ html.reveal-on .is-in{ opacity:1 !important; transform:none !important; filter:b
 .nav-burger{ display:none; }
 .nav-scrim{ display:none; }
 .nav-sheet-head{ display:none; }
+
+/* ============================================================
+   User button — avatar + account menu.
+   Shared by the landing nav, the dashboard shell and the admin
+   shell, so it lives in the global stylesheet. Dark menu surface
+   is deliberate: it matches the reference's account popover.
+   ============================================================ */
+.ub{ position:relative; display:inline-block; text-align:left; }
+.ub-av{
+  display:flex; align-items:center; justify-content:center; width:32px; height:32px;
+  border-radius:9999px; border:1px solid color-mix(in srgb, #10b981 40%, transparent);
+  background:color-mix(in srgb, #10b981 20%, transparent);
+  color:#34d399; font-weight:var(--fw-semibold); font-size:12px; cursor:pointer;
+  transition:background-color .15s ease;
+}
+.ub-av:hover{ background:color-mix(in srgb, #10b981 30%, transparent); }
+.ub-av.is-loading{ border-color:transparent; background:color-mix(in srgb, #fff 10%, transparent); animation:ubPulse 2s cubic-bezier(.4,0,.6,1) infinite; }
+@keyframes ubPulse{ 50%{ opacity:.5; } }
+.ub-menu{
+  position:absolute; right:0; top:calc(100% + 8px); z-index:50; width:224px;
+  padding:8px 0; border-radius:12px; background:#14171f; border:1px solid color-mix(in srgb, #fff 10%, transparent);
+  box-shadow:0 25px 50px -12px rgba(0,0,0,.25);
+  animation:ubIn .15s cubic-bezier(.2,0,0,1) both;
+}
+@keyframes ubIn{ from{ opacity:0; transform:scale(.95); } to{ opacity:1; transform:none; } }
+.ub-head{ padding:8px 16px; border-bottom:1px solid color-mix(in srgb, #fff 5%, transparent); }
+.ub-name{ font-size:14px; font-weight:var(--fw-medium); color:#fff; }
+.ub-email{ font-size:12px; color:color-mix(in srgb, #fff 50%, transparent); }
+.ub-name,.ub-email{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ub-list{ padding:4px 0; }
+.ub-item{
+  display:flex; align-items:center; gap:10px; padding:8px 16px; font-size:12px;
+  color:color-mix(in srgb, #fff 80%, transparent); text-decoration:none;
+  transition:background-color .15s ease, color .15s ease;
+}
+.ub-item:hover{ background:color-mix(in srgb, #fff 5%, transparent); color:#fff; }
+.ub-item svg{ color:color-mix(in srgb, #fff 60%, transparent); }
+.ub-foot{ border-top:1px solid color-mix(in srgb, #fff 5%, transparent); padding-top:4px; }
+.ub-out{
+  display:flex; align-items:center; gap:10px; width:100%; padding:8px 16px;
+  border:0; background:none; font:inherit; font-size:12px; color:#fb7185; cursor:pointer;
+  transition:background-color .15s ease;
+}
+.ub-out:hover{ background:color-mix(in srgb, #f43f5e 10%, transparent); }
+@media (prefers-reduced-motion: reduce){
+  .ub-av.is-loading, .ub-menu{ animation:none; }
+}
 
 /* ============================================================
    Hero + art background
@@ -952,15 +1006,17 @@ html.reveal-on .is-in{ opacity:1 !important; transform:none !important; filter:b
 .rank-grid > .panel{ background:color-mix(in srgb,#fff 82%,transparent); }
 .metric-cards > .mc-card{ box-shadow:var(--elev-ring),var(--elev-raised); }
 
-/* Reference motion primitives (parity layer for index.html, which has no
-   Tailwind build): fade/slide reveal, staggered children, card hover lift. */
+/* Reference motion primitives (parity layer for the static index.html
+   reference build): fade/slide reveal, staggered children, card hover lift. */
 @keyframes aiFadeUp{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
+@keyframes aiFadeLeft{ from{ opacity:0; transform:translateX(-14px); } to{ opacity:1; transform:none; } }
 @keyframes aiFadeIn{ from{ opacity:0; } to{ opacity:1; } }
 .ai-reveal{ animation:aiFadeUp .6s cubic-bezier(.2,0,0,1) both; }
+.ai-reveal-left{ animation:aiFadeLeft .6s cubic-bezier(.2,0,0,1) both; }
 .ai-lift{ transition:transform .18s cubic-bezier(.2,0,0,1), box-shadow .18s cubic-bezier(.2,0,0,1); }
 .ai-lift:hover{ transform:translateY(-3px); }
 @media (prefers-reduced-motion: reduce){
-  .ai-reveal{ animation:none !important; opacity:1 !important; transform:none !important; }
+  .ai-reveal,.ai-reveal-left{ animation:none !important; opacity:1 !important; transform:none !important; }
   .ai-lift{ transition:none !important; }
   .ai-lift:hover{ transform:none !important; }
 }

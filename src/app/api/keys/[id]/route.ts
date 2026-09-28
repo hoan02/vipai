@@ -9,8 +9,7 @@ type Params = { params: Promise<{ id: string }> };
 /**
  * Revokes an API key permanently.
  *
- * The backend deletes the row, so this cannot be undone. Use PATCH to disable a
- * key temporarily instead.
+ * The backend deletes the row, so this cannot be undone.
  */
 export async function DELETE(_request: Request, { params }: Params) {
   try {

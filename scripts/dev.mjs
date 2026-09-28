@@ -1,11 +1,10 @@
 // Start the Next.js dev server with a known NODE_ENV.
 //
 // Some shells/IDEs export NODE_ENV=production globally. `next dev` does not
-// override an existing NODE_ENV, so it warns "non-standard NODE_ENV" and then
-// skips the Tailwind/PostCSS step, which surfaces as:
-//   ./app/globals.css  Module parse failed: Unexpected character '@'
-// Forcing NODE_ENV=development here keeps `npm run dev` correct no matter what
-// the surrounding environment sets. Build/start still run as production.
+// override an existing NODE_ENV, so it warns "non-standard NODE_ENV" and the
+// dev server can skip parts of its transform pipeline. Forcing
+// NODE_ENV=development here keeps `npm run dev` correct no matter what the
+// surrounding environment sets. Build/start still run as production.
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import path from "node:path";

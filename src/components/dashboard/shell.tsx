@@ -12,6 +12,7 @@ import {
   CreditCard,
   Gauge,
   KeyRound,
+  MessageSquare,
   Shield,
   User,
   Wallet,
@@ -32,6 +33,7 @@ const navIcons = {
   gauge: Gauge,
   shield: Shield,
   user: User,
+  chat: MessageSquare,
 };
 
 const topTabs = [

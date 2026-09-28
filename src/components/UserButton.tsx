@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession, signout } from "@/lib/auth-client";
-import { LogOut, LayoutDashboard, Shield, User as UserIcon } from "lucide-react";
+import { LogOut, LayoutDashboard, Shield } from "lucide-react";
 
 export function UserButton() {
   const { data: session, isPending } = useSession();
@@ -21,7 +21,7 @@ export function UserButton() {
   }, []);
 
   if (isPending) {
-    return <div className="w-8 h-8 rounded-full bg-white/10 animate-pulse" />;
+    return <div className="ub-av is-loading" aria-hidden="true" />;
   }
 
   if (!session?.user) {
@@ -43,11 +43,11 @@ export function UserButton() {
   };
 
   return (
-    <div className="relative inline-block text-left" ref={menuRef}>
+    <div className="ub" ref={menuRef}>
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-semibold text-xs flex items-center justify-center hover:bg-emerald-500/30 transition-all cursor-pointer"
+        className="ub-av"
         aria-label="User profile menu"
         aria-expanded={open}
       >
@@ -55,39 +55,27 @@ export function UserButton() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-56 rounded-xl bg-[#14171f] border border-white/10 shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-          <div className="px-4 py-2 border-b border-white/5">
-            <p className="text-sm font-medium text-white truncate">{name}</p>
-            <p className="text-xs text-white/50 truncate">{email}</p>
+        <div className="ub-menu">
+          <div className="ub-head">
+            <p className="ub-name">{name}</p>
+            <p className="ub-email">{email}</p>
           </div>
 
-          <div className="py-1">
-            <Link
-              href="/dashboard"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2 text-xs text-white/80 hover:bg-white/5 hover:text-white transition-colors"
-            >
-              <LayoutDashboard size={14} className="text-white/60" />
+          <div className="ub-list">
+            <Link href="/dashboard" onClick={() => setOpen(false)} className="ub-item">
+              <LayoutDashboard size={14} />
               Dashboard
             </Link>
             {isRoot ? (
-              <Link
-                href="/admin"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 px-4 py-2 text-xs text-white/80 hover:bg-white/5 hover:text-white transition-colors"
-              >
-                <Shield size={14} className="text-white/60" />
+              <Link href="/admin" onClick={() => setOpen(false)} className="ub-item">
+                <Shield size={14} />
                 Admin
               </Link>
             ) : null}
           </div>
 
-          <div className="border-t border-white/5 pt-1">
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="flex w-full items-center gap-2.5 px-4 py-2 text-xs text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-            >
+          <div className="ub-foot">
+            <button type="button" onClick={handleSignOut} className="ub-out">
               <LogOut size={14} />
               Sign out
             </button>

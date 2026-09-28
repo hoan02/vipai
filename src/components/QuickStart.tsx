@@ -81,7 +81,7 @@ export function QuickStart() {
         </p>
       </div>
 
-      <div className="qsx ai-reveal motion-preset-slide-up motion-duration-500">
+      <div className="qsx ai-reveal">
         <div className="qsx-side">
           {sideCards.map((c) => (
             <a className="qsx-card ai-lift" href="#quickstart" key={c.title}>

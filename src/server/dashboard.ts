@@ -30,13 +30,25 @@ const usd = (value: number) => `$${value.toFixed(2)}`;
  * verbatim rather than composing a mask of its own.
  */
 export function toViewKey(record: ApiKeyRecord): ApiKey {
+  const statusText = record.isExpired
+    ? "Expired"
+    : record.enabled
+      ? "Active"
+      : "Disabled";
+
   return {
     id: record.id,
     name: record.name,
     masked: record.masked,
     status: record.enabled && !record.isExpired ? "Active" : "Revoked",
+    statusText,
     created: dateFmt.format(record.createdAt),
     requests: null,
+    usedUsd: record.usedUsd,
+    group: record.group,
+    models: record.models,
+    allowIps: record.allowIps,
+    expiresAt: record.expiresAt ? record.expiresAt.toISOString() : null,
   };
 }
 

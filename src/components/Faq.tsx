@@ -15,10 +15,11 @@ export function Faq() {
       <div className="faq-list">
         {faqs.map((f, i) => {
           const isOpen = open === i;
-          const delay = ["motion-delay-0", "motion-delay-75", "motion-delay-100", "motion-delay-150", "motion-delay-200", "motion-delay-300"][Math.min(i, 5)];
+          const delay = [0, 75, 100, 150, 200, 300][Math.min(i, 5)];
           return (
             <div
-              className={`faq-item ai-reveal motion-preset-slide-up motion-duration-500 ${delay}${isOpen ? " is-open" : ""}`}
+              className={`faq-item ai-reveal${isOpen ? " is-open" : ""}`}
+              style={{ animationDelay: `${delay}ms` }}
               key={f.q}
             >
               <button

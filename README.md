@@ -1,7 +1,7 @@
 # AiGiare — Next.js 16 app
 
 The AiGiare marketing, docs and dashboard front end:
-**Next.js 16 App Router + TypeScript + Tailwind CSS v4 + `lucide-react`**, with
+**Next.js 16 App Router + TypeScript + plain CSS + `lucide-react`**, with
 the ported design system.
 
 ## Architecture
@@ -77,7 +77,7 @@ runtime stage copies.
 | :--- | --- |
 | Framework | Next.js 16 App Router (`src/app/`), React 19 |
 | Language | TypeScript |
-| Styling | Tailwind CSS v4 (CSS-first) + the ported design-system CSS |
+| Styling | Plain CSS — tokens + design system in `globals.css`, route-scoped stylesheets per section |
 | Icons | `lucide-react`; product/brand marks use the inline sprite |
 | Fonts | `next/font/google` — Geist + JetBrains Mono |
 | Auth client | `src/lib/auth-client.ts` — a store over this app's `/api/session` routes |
@@ -94,7 +94,7 @@ agr-fe/
     app/
       layout.tsx            # metadata, fonts, <I18n/>
       page.tsx              # homepage composition
-      globals.css           # design system + Tailwind + motion CSS
+      globals.css           # tokens + design system + motion CSS
       site-pages.css        # public secondary pages + docs shell
       sign-in|sign-up/      # auth entry points
       api/

@@ -44,6 +44,14 @@ export type ApiKeyRecord = {
   createdAt: Date;
   lastUsedAt: Date | null;
   usedUsd: number;
+  /** Billing group; empty means the account default. */
+  group: string;
+  /** Model allow-list, empty when the key may use everything. */
+  models: string[];
+  /** Source addresses the key accepts, empty means any. */
+  allowIps: string;
+  /** -1 means the key never expires. */
+  expiresAt: Date | null;
 };
 
 /**
@@ -84,6 +92,14 @@ function toRecord(token: GatewayToken, now = Date.now()): ApiKeyRecord {
     // The gateway writes 0 for a key that has never been used.
     lastUsedAt: token.accessed_time > 0 ? new Date(token.accessed_time * 1000) : null,
     usedUsd: (token.used_quota ?? 0) / QUOTA_PER_USD,
+    group: token.group || "",
+    models: (token.model_limits ?? "")
+      .split(",")
+      .map((m) => m.trim())
+      .filter(Boolean),
+    allowIps: token.allow_ips ?? "",
+    // -1 (never) is represented as null rather than a date in 1969.
+    expiresAt: token.expired_time > 0 ? new Date(token.expired_time * 1000) : null,
   };
 }
 
@@ -103,9 +119,26 @@ export async function listApiKeys(): Promise<ApiKeyRecord[]> {
  */
 export async function createApiKey(
   name: string,
+  options: {
+    models?: string[];
+    group?: string;
+    allowIps?: string;
+    /** Days until expiry; 0 or undefined means never. */
+    expiresInDays?: number;
+  } = {},
 ): Promise<{ record: ApiKeyRecord; plaintextKey: string }> {
   const token = await requireAccessToken();
-  const { token: created, key } = await createToken(token, name);
+  const expiredTime =
+    options.expiresInDays && options.expiresInDays > 0
+      ? Math.floor(Date.now() / 1000) + options.expiresInDays * 24 * 60 * 60
+      : -1;
+
+  const { token: created, key } = await createToken(token, name, {
+    models: options.models,
+    group: options.group,
+    allowIps: options.allowIps,
+    expiredTime,
+  });
   return { record: toRecord(created), plaintextKey: `${KEY_PREFIX}${key}` };
 }
 

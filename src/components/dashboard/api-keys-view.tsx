@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Apple, Check, ChevronDown, ChevronUp, Copy, Plus } from "lucide-react";
 import { PageHead, Pill, SectionTitle } from "@/components/dashboard/kit";
 import type { ApiKey } from "@/lib/dashboard-data";
+import { usd } from "@/lib/money";
 
 const protocols = [
   { id: "openai", label: "OpenAI", path: "/v1" },
@@ -128,23 +129,46 @@ function Connector() {
   );
 }
 
-export function ApiKeysView({ initialKeys }: { initialKeys: ApiKey[] }) {
+export function ApiKeysView({
+  initialKeys,
+  groups = [],
+  models = [],
+}: {
+  initialKeys: ApiKey[];
+  /** Billing groups the account may use. Empty falls back to the default. */
+  groups?: string[];
+  /** Every model the account may call, for the allow-list picker. */
+  models?: string[];
+}) {
   const [keys, setKeys] = useState<ApiKey[]>(initialKeys);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
+  const [group, setGroup] = useState("");
+  const [modelFilter, setModelFilter] = useState("");
+  const [pickedModels, setPickedModels] = useState<string[]>([]);
+  const [allowIps, setAllowIps] = useState("");
+  const [expiresInDays, setExpiresInDays] = useState(0);
   const [fresh, setFresh] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const resetForm = () => {
+    setName("");
+    setGroup("");
+    setModelFilter("");
+    setPickedModels([]);
+    setAllowIps("");
+    setExpiresInDays(0);
+  };
+
   const create = async () => {
     const label = name.trim();
-    if (label.length < 3 || label.length > 100) {
-      setError("Give the key a name between 3 and 100 characters.");
+    if (label.length < 3 || label.length > 50) {
+      setError("Give the key a name between 3 and 50 characters.");
       return;
     }
 
-    setName("");
     setCreating(false);
     setError(null);
     setBusy(true);
@@ -153,7 +177,13 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKey[] }) {
       const response = await fetch("/api/keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: label }),
+        body: JSON.stringify({
+          name: label,
+          group,
+          models: pickedModels,
+          allowIps,
+          expiresInDays,
+        }),
       });
       const data = (await response.json().catch(() => null)) as
         | { key?: string; record?: ApiKey; message?: string }
@@ -166,12 +196,17 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKey[] }) {
 
       setFresh(data.key);
       setKeys((k) => [data.record as ApiKey, ...k]);
+      resetForm();
     } catch {
       setError("Could not reach the server. Please try again.");
     } finally {
       setBusy(false);
     }
   };
+
+  const visibleModels = modelFilter.trim()
+    ? models.filter((m) => m.toLowerCase().includes(modelFilter.trim().toLowerCase()))
+    : models;
 
   const revoke = async (key: ApiKey) => {
     if (!window.confirm(`Revoke "${key.name}"? This cannot be undone.`)) return;
@@ -261,19 +296,114 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKey[] }) {
               className="field"
               style={{ flex: "1 1 220px" }}
               placeholder="e.g. Production"
-              maxLength={100}
+              maxLength={50}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
+            <select
+              className="field"
+              style={{ flex: "0 1 170px" }}
+              aria-label="Billing group"
+              value={group}
+              onChange={(e) => setGroup(e.target.value)}
+            >
+              <option value="">Default group</option>
+              {groups.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+            <select
+              className="field"
+              style={{ flex: "0 1 190px" }}
+              aria-label="Expiry"
+              value={String(expiresInDays)}
+              onChange={(e) => setExpiresInDays(Number(e.target.value) || 0)}
+            >
+              <option value="0">Never expires</option>
+              <option value="7">Expires in 7 days</option>
+              <option value="30">Expires in 30 days</option>
+              <option value="90">Expires in 90 days</option>
+              <option value="365">Expires in 365 days</option>
+            </select>
+          </div>
+
+          <label className="note" htmlFor="keyIps" style={{ display: "block", margin: "12px 0 6px" }}>
+            Allowed IPs <span style={{ opacity: 0.7 }}>— optional, comma separated. Empty means any.</span>
+          </label>
+          <input
+            id="keyIps"
+            className="field"
+            style={{ width: "100%", fontFamily: "var(--font-mono)" }}
+            placeholder="203.0.113.7, 198.51.100.0/24"
+            value={allowIps}
+            onChange={(e) => setAllowIps(e.target.value)}
+          />
+
+          <label className="note" htmlFor="keyModels" style={{ display: "block", margin: "12px 0 6px" }}>
+            Model access <span style={{ opacity: 0.7 }}>— none selected means every model.</span>
+          </label>
+          {models.length > 8 ? (
+            <input
+              id="keyModels"
+              className="field"
+              style={{ width: "100%", marginBottom: 8 }}
+              placeholder="Filter models…"
+              value={modelFilter}
+              onChange={(e) => setModelFilter(e.target.value)}
+            />
+          ) : null}
+          <div
+            style={{
+              maxHeight: 176,
+              overflowY: "auto",
+              border: "1px solid var(--d-line)",
+              borderRadius: 10,
+              padding: 10,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+            }}
+          >
+            {visibleModels.length === 0 ? (
+              <span className="note">No models match.</span>
+            ) : (
+              visibleModels.map((m) => {
+                const on = pickedModels.includes(m);
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    className={on ? "chip is-on" : "chip"}
+                    aria-pressed={on}
+                    onClick={() =>
+                      setPickedModels((p) => (on ? p.filter((x) => x !== m) : [...p, m]))
+                    }
+                  >
+                    {m}
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {pickedModels.length > 0 ? (
+            <p className="note" style={{ marginTop: 8 }}>
+              {pickedModels.length} model{pickedModels.length === 1 ? "" : "s"} selected.
+            </p>
+          ) : null}
+
+          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
             <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={create}>
-              Create
+              {busy ? "Creating…" : "Create key"}
             </button>
             <button
               className="btn btn-ghost btn-sm"
               type="button"
               onClick={() => {
                 setCreating(false);
-                setName("");
+                resetForm();
               }}
             >
               Cancel
@@ -289,6 +419,10 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKey[] }) {
               <tr>
                 <th>Key</th>
                 <th>Status</th>
+                <th>Group</th>
+                <th>Models</th>
+                <th>Expires</th>
+                <th className="r">Spent</th>
                 <th>Created at</th>
                 <th className="r">Actions</th>
               </tr>
@@ -296,7 +430,7 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKey[] }) {
             <tbody>
               {keys.length === 0 ? (
                 <tr className="empty-row">
-                  <td colSpan={4}>No API keys yet. Create one to get started.</td>
+                  <td colSpan={8}>No API keys yet. Create one to get started.</td>
                 </tr>
               ) : (
                 keys.map((k) => (
@@ -308,10 +442,30 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKey[] }) {
                       </span>
                     </td>
                     <td>
-                      <span className={`pill ${k.status === "Active" ? "pill-ok" : "pill-off"}`}>
-                        {k.status}
-                      </span>
+                      <Pill tone={k.statusText === "Active" ? "ok" : "off"}>
+                        {k.statusText}
+                      </Pill>
                     </td>
+                    <td>{k.group || "default"}</td>
+                    <td>
+                      {k.models.length === 0 ? (
+                        <span className="note">All</span>
+                      ) : (
+                        <span className="note" title={k.models.join(", ")}>
+                          {k.models.length} selected
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {k.expiresAt
+                        ? new Intl.DateTimeFormat("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          }).format(new Date(k.expiresAt))
+                        : "Never"}
+                    </td>
+                    <td className="r num">{usd(k.usedUsd)}</td>
                     <td>{k.created}</td>
                     <td className="r">
                       <span style={{ display: "inline-flex", gap: 6 }}>

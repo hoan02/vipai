@@ -32,7 +32,7 @@ export function StatBar() {
 export function BuyHook() {
   return (
     <section className="buy buy-hook" id="buyhook" aria-label="Pay less">
-      <div className="buy-inner motion-preset-slide-up motion-duration-500">
+      <div className="buy-inner ai-reveal">
         <h2 className="buy-title">
           <span>Pay Less for</span> <span className="grad">Every Token</span>
         </h2>
@@ -65,7 +65,7 @@ export function Features() {
         </p>
       </div>
       <div className="metric-cards">
-        <article className="mc-card mc-a ai-reveal motion-preset-slide-up motion-duration-500 motion-delay-0">
+        <article className="mc-card mc-a ai-reveal">
           <span className="mc-tag">
             <i aria-hidden="true" />
             Price
@@ -78,7 +78,7 @@ export function Features() {
             best available rate. Live pricing for every model is published on this page.
           </p>
         </article>
-        <article className="mc-card mc-b ai-reveal motion-preset-slide-up motion-duration-500 motion-delay-75">
+        <article className="mc-card mc-b ai-reveal" style={{ animationDelay: "75ms" }}>
           <span className="mc-tag">
             <i aria-hidden="true" />
             Time to first token
@@ -91,7 +91,7 @@ export function Features() {
             Slow routes are pulled from rotation within minutes; the live numbers are on this page.
           </p>
         </article>
-        <article className="mc-card mc-c ai-reveal motion-preset-slide-up motion-duration-500 motion-delay-150">
+        <article className="mc-card mc-c ai-reveal" style={{ animationDelay: "150ms" }}>
           <span className="mc-tag">
             <i aria-hidden="true" />
             Uptime
@@ -184,9 +184,8 @@ function DuoColumn({ head, sub, items }: { head: string; sub: string; items: typ
       <div className="duo-list">
         {items.map((it, i) => (
           <div
-            className={`duo-card ai-lift ai-reveal motion-preset-slide-up motion-duration-500 ${
-              ["motion-delay-0", "motion-delay-75", "motion-delay-100", "motion-delay-150", "motion-delay-200", "motion-delay-300"][Math.min(i, 5)]
-            }`}
+            className="duo-card ai-lift ai-reveal"
+            style={{ animationDelay: `${[0, 75, 100, 150, 200, 300][Math.min(i, 5)]}ms` }}
             key={it.title}
           >
             <span className="duo-ico">
@@ -373,7 +372,7 @@ export function Leaderboard() {
 export function CtaSection() {
   return (
     <section className="buy" id="buy" aria-label="Cut your AI spend">
-      <div className="buy-inner motion-preset-slide-up motion-duration-500">
+      <div className="buy-inner ai-reveal">
         <h2 className="buy-title">
           Cut Your AI Spend <span className="grad">up to 90%</span>
         </h2>

@@ -55,6 +55,10 @@ export type GatewayUser = {
   usedQuota: number;
   requestCount: number;
   group: string;
+  /** Whether the account has a password set, as opposed to OAuth-only. */
+  hasPassword: boolean;
+  /** Preferred dashboard language, e.g. `vi`. Null when never chosen. */
+  language: string | null;
 };
 
 export type GatewayToken = {
@@ -68,6 +72,15 @@ export type GatewayToken = {
   remain_quota: number;
   unlimited_quota: boolean;
   used_quota: number;
+  /** Group the key bills under, e.g. `default`. Empty means the account default. */
+  group?: string;
+  /** Comma-separated model allow-list, when `model_limits_enabled`. */
+  model_limits?: string;
+  model_limits_enabled?: boolean;
+  /** Comma-separated source addresses the key accepts. Empty means any. */
+  allow_ips?: string;
+  /** Retry on another channel when the group's own is unavailable. */
+  cross_group_retry?: boolean;
 };
 
 export type GatewayLog = {
@@ -340,6 +353,8 @@ export async function getUser(accessToken: string): Promise<GatewayUser> {
     used_quota: number;
     request_count: number;
     group: string;
+    has_password?: boolean;
+    setting?: unknown;
   }>("/api/user/self", { token: accessToken });
 
   return {
@@ -352,6 +367,8 @@ export async function getUser(accessToken: string): Promise<GatewayUser> {
     usedQuota: data.used_quota ?? 0,
     requestCount: data.request_count ?? 0,
     group: data.group || "default",
+    hasPassword: Boolean(data.has_password),
+    language: languageOf(data.setting),
   };
 }
 
@@ -362,6 +379,38 @@ export async function listTokens(accessToken: string): Promise<GatewayToken[]> {
     { token: accessToken },
   );
   return (data.items ?? []).sort((a, b) => b.created_time - a.created_time);
+}
+
+/**
+ * The billing groups this account may use.
+ *
+ * Returned as a name plus its human description. The gateway keys the map by
+ * group id, so the id is carried through as `name` for the create form.
+ */
+export async function listGroups(
+  accessToken: string,
+): Promise<Array<{ name: string; description: string; ratio: number }>> {
+  const data = await call<Record<string, { desc?: string; ratio?: number }>>(
+    "/api/user/self/groups",
+    { token: accessToken },
+  );
+
+  return Object.entries(data ?? {}).map(([name, value]) => ({
+    name,
+    description: value?.desc || name,
+    ratio: value?.ratio ?? 1,
+  }));
+}
+
+/**
+ * Every model this account is allowed to call, deduplicated and sorted.
+ *
+ * The endpoint already filters by the account's group, so this is the same list
+ * the playground and the key form should offer.
+ */
+export async function getUserModels(accessToken: string): Promise<string[]> {
+  const data = await call<string[]>("/api/user/models", { token: accessToken });
+  return [...new Set(data ?? [])].sort((a, b) => a.localeCompare(b));
 }
 
 /**
@@ -378,18 +427,39 @@ export async function listTokens(accessToken: string): Promise<GatewayToken[]> {
 export async function createToken(
   accessToken: string,
   name: string,
+  options: {
+    /** Model allow-list. Empty or omitted means every model the account may use. */
+    models?: string[];
+    /** Group to bill under. Empty means the account default. */
+    group?: string;
+    /** Source addresses the key accepts, comma separated. Empty means any. */
+    allowIps?: string;
+    /** Unix seconds, or -1 for never. */
+    expiredTime?: number;
+    /** Quota in units, when not unlimited. */
+    remainQuota?: number;
+    /** Retry other groups when this one is down. */
+    crossGroupRetry?: boolean;
+  } = {},
 ): Promise<{ token: GatewayToken; key: string }> {
   const before = await listTokens(accessToken);
   const known = new Set(before.map((token) => token.id));
+
+  const models = (options.models ?? []).map((m) => m.trim()).filter(Boolean);
 
   await call("/api/token/", {
     method: "POST",
     token: accessToken,
     body: JSON.stringify({
       name,
-      remain_quota: 0,
-      unlimited_quota: true,
-      expired_time: -1,
+      remain_quota: options.remainQuota ?? 0,
+      unlimited_quota: options.remainQuota === undefined,
+      expired_time: options.expiredTime ?? -1,
+      group: options.group ?? "",
+      model_limits_enabled: models.length > 0,
+      model_limits: models.join(","),
+      allow_ips: options.allowIps ?? "",
+      cross_group_retry: options.crossGroupRetry ?? false,
     }),
   });
 
@@ -622,6 +692,362 @@ export async function revokeOtherSessions(accessToken: string): Promise<void> {
     method: "POST",
     token: accessToken,
   });
+}
+
+/* --- profile ------------------------------------------------------------- */
+
+/** Updates the editable parts of the account. */
+export async function updateSelf(
+  accessToken: string,
+  patch: { displayName?: string; username?: string; language?: string },
+): Promise<void> {
+  const body: Record<string, string> = {};
+  if (patch.displayName !== undefined) body.display_name = patch.displayName;
+  if (patch.username !== undefined) body.username = patch.username;
+  // `language` is handled by its own branch in the controller and needs no other
+  // field, so it is sent on its own.
+  if (patch.language !== undefined) body.language = patch.language;
+  if (Object.keys(body).length === 0) return;
+
+  await call("/api/user/self", {
+    method: "PUT",
+    token: accessToken,
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * Reads the account language preference out of the user's settings blob.
+ *
+ * `setting` is a JSON string on the user row, not an object, so it is parsed
+ * here and a malformed value is treated as unset rather than fatal.
+ */
+export function languageOf(setting: unknown): string | null {
+  if (typeof setting !== "string" || setting.trim() === "") return null;
+  try {
+    const parsed = JSON.parse(setting) as { language?: unknown };
+    return typeof parsed.language === "string" ? parsed.language : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The account's affiliate code, for the referral panel. */
+export async function getAffiliateCode(accessToken: string): Promise<string> {
+  const data = await call<string>("/api/user/aff", { token: accessToken });
+  return typeof data === "string" ? data : "";
+}
+
+/* --- security proofs ----------------------------------------------------- */
+
+/**
+ * Obtains a short-lived proof authorising one sensitive action.
+ *
+ * new-api guards password changes, 2FA setup and access-token generation behind
+ * a proof: `POST /api/verify` confirms the password and returns a token that is
+ * sent back as `X-Security-Proof` on the action itself. The proof is scoped, so
+ * one obtained for a password change cannot generate an access token.
+ */
+export async function obtainSecurityProof(
+  accessToken: string,
+  scope: string,
+  password: string,
+): Promise<string> {
+  const data = await call<{ proof_token: string }>("/api/verify", {
+    method: "POST",
+    token: accessToken,
+    body: JSON.stringify({ method: "password", scope, password }),
+  });
+  return data.proof_token;
+}
+
+/** Scopes accepted by `obtainSecurityProof`, mirroring the gateway's list. */
+export const SECURITY_SCOPES = {
+  passwordChange: "account.password.change",
+  twoFAEnable: "account.2fa.enable",
+  twoFADisable: "account.2fa.disable",
+  accessTokenGenerate: "account.access_token.generate",
+  accessTokenRevoke: "account.access_token.revoke",
+} as const;
+
+/**
+ * Changes the account password.
+ *
+ * The new password is checked for the same rules the gateway enforces (at least
+ * eight characters) so the user gets a local answer, and the proof is what the
+ * gateway actually requires. The response can carry a fresh access token when
+ * the gateway advances the session; that is returned so the caller can persist
+ * it, since changing the password invalidates the old one.
+ */
+export async function changePassword(
+  accessToken: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<{ accessToken: string | null }> {
+  const proof = await obtainSecurityProof(
+    accessToken,
+    SECURITY_SCOPES.passwordChange,
+    currentPassword,
+  );
+
+  const data = await call<{ access_token?: string }>("/api/user/self", {
+    method: "PUT",
+    token: accessToken,
+    headers: { "X-Security-Proof": proof },
+    body: JSON.stringify({
+      username: "",
+      display_name: "",
+      password: newPassword,
+      original_password: currentPassword,
+    }),
+  });
+
+  return { accessToken: data.access_token ?? null };
+}
+
+/* --- access token -------------------------------------------------------- */
+
+export type AccessTokenStatus = {
+  exists: boolean;
+  tokenRef: string;
+  createdAt: Date | null;
+  lastUsedAt: Date | null;
+  lastUsedIp: string;
+};
+
+export async function getAccessTokenStatus(accessToken: string): Promise<AccessTokenStatus> {
+  const data = await call<{
+    exists: boolean;
+    token_ref: string;
+    created_at: number | null;
+    last_used_at: number | null;
+    last_used_ip: string;
+  }>("/api/user/token/status", { token: accessToken });
+
+  return {
+    exists: Boolean(data.exists),
+    tokenRef: data.token_ref || "",
+    createdAt: data.created_at ? new Date(data.created_at * 1000) : null,
+    lastUsedAt: data.last_used_at ? new Date(data.last_used_at * 1000) : null,
+    lastUsedIp: data.last_used_ip || "",
+  };
+}
+
+/** Generates a fresh personal access token, replacing any existing one. */
+export async function generateAccessToken(
+  accessToken: string,
+  password: string,
+): Promise<string> {
+  const proof = await obtainSecurityProof(
+    accessToken,
+    SECURITY_SCOPES.accessTokenGenerate,
+    password,
+  );
+  const data = await call<string>("/api/user/token", {
+    method: "POST",
+    token: accessToken,
+    headers: { "X-Security-Proof": proof },
+  });
+  return typeof data === "string" ? data : "";
+}
+
+/** Revokes the personal access token. */
+export async function revokeAccessToken(
+  accessToken: string,
+  password: string,
+): Promise<void> {
+  const proof = await obtainSecurityProof(
+    accessToken,
+    SECURITY_SCOPES.accessTokenRevoke,
+    password,
+  );
+  await call("/api/user/token", {
+    method: "DELETE",
+    token: accessToken,
+    headers: { "X-Security-Proof": proof },
+  });
+}
+
+/* --- two-factor authentication ------------------------------------------ */
+
+export type TwoFactorStatus = { enabled: boolean; locked: boolean };
+
+export async function getTwoFactorStatus(accessToken: string): Promise<TwoFactorStatus> {
+  const data = await call<{ enabled?: boolean; locked?: boolean }>("/api/user/2fa/status", {
+    token: accessToken,
+  });
+  return { enabled: Boolean(data.enabled), locked: Boolean(data.locked) };
+}
+
+export type TwoFactorSetup = {
+  secret: string;
+  /** Data URI for the enrolment QR image, ready for an `<img src>`. */
+  qrCodeData: string;
+  backupCodes: string[];
+  flowToken: string;
+};
+
+/** Begins 2FA enrolment, returning the secret and the QR image to scan. */
+export async function setupTwoFactor(
+  accessToken: string,
+  password: string,
+): Promise<TwoFactorSetup> {
+  const proof = await obtainSecurityProof(
+    accessToken,
+    SECURITY_SCOPES.twoFAEnable,
+    password,
+  );
+  const data = await call<{
+    secret?: string;
+    qr_code_data?: string;
+    backup_codes?: string[];
+    flow_token?: string;
+  }>("/api/user/2fa/setup", {
+    method: "POST",
+    token: accessToken,
+    headers: { "X-Security-Proof": proof },
+  });
+
+  return {
+    secret: data.secret || "",
+    qrCodeData: data.qr_code_data || "",
+    backupCodes: data.backup_codes ?? [],
+    flowToken: data.flow_token || "",
+  };
+}
+
+/** Completes 2FA enrolment with a code from the authenticator app. */
+export async function enableTwoFactor(
+  accessToken: string,
+  flowToken: string,
+  code: string,
+): Promise<void> {
+  await call("/api/user/2fa/enable", {
+    method: "POST",
+    token: accessToken,
+    body: JSON.stringify({ flow_token: flowToken, code }),
+  });
+}
+
+/** Disables 2FA and clears its backup codes. */
+export async function disableTwoFactor(
+  accessToken: string,
+  password: string,
+): Promise<void> {
+  const proof = await obtainSecurityProof(
+    accessToken,
+    SECURITY_SCOPES.twoFADisable,
+    password,
+  );
+  await call("/api/user/2fa/disable", {
+    method: "POST",
+    token: accessToken,
+    headers: { "X-Security-Proof": proof },
+  });
+}
+
+/* --- passkey and OAuth bindings ----------------------------------------- */
+
+export type PasskeyStatus = { enabled: boolean };
+
+export async function getPasskeyStatus(accessToken: string): Promise<PasskeyStatus> {
+  const data = await call<{ enabled?: boolean }>("/api/user/passkey", { token: accessToken });
+  return { enabled: Boolean(data.enabled) };
+}
+
+export type OAuthBinding = { providerId: number; provider: string; externalId: string };
+
+export async function listOAuthBindings(accessToken: string): Promise<OAuthBinding[]> {
+  const data = await call<
+    Array<{ provider_id: number; provider: string; external_id: string }>
+  >("/api/user/oauth/bindings", { token: accessToken });
+
+  return (data ?? []).map((row) => ({
+    providerId: row.provider_id,
+    provider: row.provider,
+    externalId: row.external_id,
+  }));
+}
+
+/* --- relay (playground) -------------------------------------------------- */
+
+export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+
+export type ChatResult = {
+  content: string;
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+};
+
+/**
+ * Runs one completion through the relay.
+ *
+ * The relay authenticates with an `sk-` key, not the dashboard's access token,
+ * so a throwaway key is created for the call and deleted immediately afterwards.
+ * That keeps the user's own keys out of the browser and out of the request path;
+ * the cost lands on the account either way, which is the intended behaviour.
+ *
+ * The delete runs in a `finally` so a failed completion cannot leave a stray key
+ * behind. If the delete itself fails there is nothing useful to do about it — the
+ * key is unlimited and unnamed, and the account owner can revoke it from the keys
+ * screen.
+ */
+export async function runPlayground(
+  accessToken: string,
+  options: { model: string; messages: ChatMessage[]; temperature?: number; maxTokens?: number },
+): Promise<ChatResult> {
+  const { token: ephemeral, key } = await createToken(accessToken, "playground", {
+    // Scope the throwaway key to the model being tried.
+    models: [options.model],
+  });
+
+  try {
+    const response = await fetch(url("/v1/chat/completions"), {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer sk-${key}`,
+      },
+      body: JSON.stringify({
+        model: options.model,
+        messages: options.messages,
+        temperature: options.temperature ?? 1,
+        max_tokens: options.maxTokens ?? 1024,
+        stream: false,
+      }),
+    });
+
+    const text = await response.text();
+    let body: {
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
+      model?: string;
+      error?: { message?: string };
+    } = {};
+    try {
+      body = text ? JSON.parse(text) : {};
+    } catch {
+      throw new GatewayError(`The relay returned a non-JSON response (HTTP ${response.status}).`, 502);
+    }
+
+    if (!response.ok || body.error) {
+      throw new GatewayError(
+        body.error?.message || `Relay error (HTTP ${response.status})`,
+        response.status === 200 ? 400 : response.status,
+      );
+    }
+
+    return {
+      content: body.choices?.[0]?.message?.content ?? "",
+      model: body.model || options.model,
+      promptTokens: body.usage?.prompt_tokens ?? 0,
+      completionTokens: body.usage?.completion_tokens ?? 0,
+    };
+  } finally {
+    await deleteToken(accessToken, String(ephemeral.id)).catch(() => {});
+  }
 }
 
 /**

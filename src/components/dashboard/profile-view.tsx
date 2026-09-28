@@ -109,7 +109,7 @@ export function ProfileView({ initial }: { initial: ProfileData }) {
         body: JSON.stringify({ currentPassword, newPassword }),
       });
       const payload = (await response.json().catch(() => null)) as
-        | { message?: string }
+        | { message?: string; relogin?: boolean }
         | null;
       if (!response.ok) {
         setError(payload?.message || "Could not change the password.");
@@ -118,6 +118,15 @@ export function ProfileView({ initial }: { initial: ProfileData }) {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+
+      if (payload?.relogin) {
+        // The old session cannot renew, so it is ended deliberately rather than
+        // left to fail on the next request.
+        await fetch("/api/session/logout", { method: "POST" }).catch(() => {});
+        window.location.href = "/?signedout=1";
+        return;
+      }
+
       setNotice("Password changed.");
     } catch {
       setError("Could not reach the server.");

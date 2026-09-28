@@ -40,7 +40,6 @@ export function toViewKey(record: ApiKeyRecord): ApiKey {
     id: record.id,
     name: record.name,
     masked: record.masked,
-    status: record.enabled && !record.isExpired ? "Active" : "Revoked",
     statusText,
     created: dateFmt.format(record.createdAt),
     requests: null,

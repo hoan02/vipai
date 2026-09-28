@@ -84,10 +84,12 @@ export async function PUT(request: Request) {
         );
       }
 
-      const { accessToken } = await changePassword(token, currentPassword, newPassword);
-      // Changing the password rotates the session; hand the fresh token back so
-      // the caller's route can persist it before the old one is rejected.
-      return NextResponse.json({ ok: true, rotatedToken: accessToken });
+      const { accessToken: rotated } = await changePassword(token, currentPassword, newPassword);
+      // This app's own cookie holds a refresh token that the password change
+      // invalidates; the gateway only returns a fresh access token, which cannot
+      // be renewed on its own. So the honest answer is that the session must be
+      // re-established by signing in again.
+      return NextResponse.json({ ok: true, relogin: true, rotatedToken: rotated });
     }
 
     const displayName = field("displayName");

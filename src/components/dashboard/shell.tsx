@@ -13,9 +13,9 @@ import {
   Gauge,
   KeyRound,
   MessageSquare,
+  ScrollText,
   Shield,
   User,
-  Wallet,
 } from "lucide-react";
 import { Icon } from "@/lib/icons";
 import { dashboardNav } from "@/lib/dashboard-data";
@@ -23,13 +23,11 @@ import { TopUpModal } from "@/components/site/TopUpModal";
 import { setLocale, getLocale, type Locale } from "@/components/site/I18n";
 
 const navIcons = {
-  wallet: Wallet,
   credit: CreditCard,
-  sliders: Gauge,
   key: KeyRound,
   pulse: Activity,
+  scroll: ScrollText,
   bars: BarChart3,
-  users: Shield,
   gauge: Gauge,
   shield: Shield,
   user: User,
@@ -64,67 +62,68 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="dash">
-      <header className="dash-top">
-        <div className="dash-top-in">
-          <Link className="dash-brand" href="/">
-            <Icon name="ic-aigiare" viewBox="0 0 24 24" width={20} height={20} />
-            AiGiare
-          </Link>
-          <nav className="dash-tabs" aria-label="Primary">
-            {topTabs.map((t) => (
-              <Link
-                key={t.label}
-                href={t.href}
-                className={`dash-tab${t.href === "/dashboard" ? " is-on" : ""}`}
-              >
-                {t.label}
+      <aside className="dash-side">
+        <Link className="dash-brand" href="/">
+          <Icon name="ic-aigiare" viewBox="0 0 24 24" width={20} height={20} />
+          AiGiare
+        </Link>
+        <button className="dash-acct" type="button" aria-label="Switch organization">
+          <span className="av" aria-hidden="true">
+            {initial}
+          </span>
+          <span className="em">{display}</span>
+          <ChevronsUpDown size={15} />
+        </button>
+        <nav className="dash-nav" aria-label="Dashboard">
+          {dashboardNav.map((item) => {
+            const I = navIcons[item.icon];
+            return (
+              <Link key={item.href} href={item.href} className={isOn(item.href) ? "is-on" : undefined}>
+                <I aria-hidden="true" />
+                {item.label}
               </Link>
-            ))}
-          </nav>
-          <div className="dash-account">
-            <div className="dash-lang" role="group" aria-label="Language">
-              {(["en", "vi"] as const).map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  className={lang === l ? "is-on" : undefined}
-                  aria-pressed={lang === l}
-                  onClick={() => chooseLang(l)}
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
-            </div>
-            <span className="dash-user">
-              <UserButton />
-              <span className="dash-email">{email}</span>
-            </span>
-          </div>
-        </div>
-      </header>
+            );
+          })}
+        </nav>
+      </aside>
 
-      <div className="dash-wrap">
-        <div className="dash-frame">
-          <aside className="dash-side">
-            <button className="dash-acct" type="button" aria-label="Switch organization">
-              <span className="av" aria-hidden="true">
-                {initial}
-              </span>
-              <span className="em">{display}</span>
-              <ChevronsUpDown size={15} />
-            </button>
-            <nav className="dash-nav" aria-label="Dashboard">
-              {dashboardNav.map((item) => {
-                const I = navIcons[item.icon];
-                return (
-                  <Link key={item.href} href={item.href} className={isOn(item.href) ? "is-on" : undefined}>
-                    <I aria-hidden="true" />
-                    {item.label}
-                  </Link>
-                );
-              })}
+      <div className="dash-body">
+        <header className="dash-top">
+          <div className="dash-top-in">
+            <nav className="dash-tabs" aria-label="Primary">
+              {topTabs.map((t) => (
+                <Link
+                  key={t.label}
+                  href={t.href}
+                  className={`dash-tab${t.href === "/dashboard" ? " is-on" : ""}`}
+                >
+                  {t.label}
+                </Link>
+              ))}
             </nav>
-          </aside>
+            <div className="dash-account">
+              <div className="dash-lang" role="group" aria-label="Language">
+                {(["en", "vi"] as const).map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    className={lang === l ? "is-on" : undefined}
+                    aria-pressed={lang === l}
+                    onClick={() => chooseLang(l)}
+                  >
+                    {l.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <span className="dash-user">
+                <UserButton />
+                <span className="dash-email">{email}</span>
+              </span>
+            </div>
+          </div>
+        </header>
+
+        <div className="dash-scroll" key={path}>
           <main className="dash-main">{children}</main>
         </div>
       </div>

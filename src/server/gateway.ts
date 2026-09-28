@@ -763,12 +763,24 @@ export async function obtainSecurityProof(
 
 /** Scopes accepted by `obtainSecurityProof`, mirroring the gateway's list. */
 export const SECURITY_SCOPES = {
+  passwordSet: "account.password.set",
   passwordChange: "account.password.change",
-  twoFAEnable: "account.2fa.enable",
-  twoFADisable: "account.2fa.disable",
-  accessTokenGenerate: "account.access_token.generate",
-  accessTokenRevoke: "account.access_token.revoke",
+  twoFASetup: "2fa.setup",
+  twoFADisable: "2fa.disable",
+  accessTokenGenerate: "access_token.generate",
+  accessTokenRevoke: "access_token.revoke",
 } as const;
+
+/**
+ * Chooses the password scope for the account's current state.
+ *
+ * The gateway distinguishes setting a first password (`account.password.set`)
+ * from changing one that exists (`account.password.change`), and rejects a proof
+ * obtained for the wrong one.
+ */
+function passwordScopeFor(hasPassword: boolean): string {
+  return hasPassword ? SECURITY_SCOPES.passwordChange : SECURITY_SCOPES.passwordSet;
+}
 
 /**
  * Changes the account password.
@@ -784,9 +796,12 @@ export async function changePassword(
   currentPassword: string,
   newPassword: string,
 ): Promise<{ accessToken: string | null }> {
+  // The scope depends on whether a password already exists, so the account is
+  // read rather than assumed to have one.
+  const user = await getUser(accessToken);
   const proof = await obtainSecurityProof(
     accessToken,
-    SECURITY_SCOPES.passwordChange,
+    passwordScopeFor(user.hasPassword),
     currentPassword,
   );
 
@@ -894,7 +909,7 @@ export async function setupTwoFactor(
 ): Promise<TwoFactorSetup> {
   const proof = await obtainSecurityProof(
     accessToken,
-    SECURITY_SCOPES.twoFAEnable,
+    SECURITY_SCOPES.twoFASetup,
     password,
   );
   const data = await call<{

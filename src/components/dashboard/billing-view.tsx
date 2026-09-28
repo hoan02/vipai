@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Bell, LayoutGrid, LayoutList } from "lucide-react";
 import { PageHead, Stat } from "@/components/dashboard/kit";
 import type { DashboardBilling } from "@/server/dashboard";
-import { purchases, savedThisMonth, type BillingRow } from "@/lib/dashboard-data";
+import type { BillingRow } from "@/lib/dashboard-data";
 
 function BalanceCard({ balance }: { balance: string | null }) {
   return (
@@ -27,52 +26,6 @@ function BalanceCard({ balance }: { balance: string | null }) {
   );
 }
 
-function PurchaseHistory() {
-  return (
-    <div className="panel">
-      <div className="panel-hd">
-        <h3>Purchase history</h3>
-      </div>
-      <div className="twrap" style={{ marginTop: 8 }}>
-        <table className="dtable">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Source</th>
-              <th>Status</th>
-              <th className="r">Amount</th>
-              <th>Invoice</th>
-            </tr>
-          </thead>
-          <tbody>
-            {purchases.length === 0 ? (
-              <tr className="empty-row">
-                <td colSpan={5}>No purchases yet</td>
-              </tr>
-            ) : (
-              purchases.map((p) => (
-                <tr key={p.invoice}>
-                  <td>{p.date}</td>
-                  <td>{p.source}</td>
-                  <td>
-                    <span className="pill pill-ok">{p.status}</span>
-                  </td>
-                  <td className="r num">{p.amount}</td>
-                  <td>
-                    <span className="link" style={{ borderBottom: 0 }}>
-                      {p.invoice}
-                    </span>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 function BillingDetail({ rows }: { rows: BillingRow[] }) {
   return (
     <div className="panel">
@@ -84,11 +37,7 @@ function BillingDetail({ rows }: { rows: BillingRow[] }) {
             Questions about your bill?
           </a>
           <br />
-          Each request is billed at its real-time discount. If you need a discount cap, set it in{" "}
-          <Link className="link" href="/dashboard/routing">
-            Routing
-          </Link>
-          .
+          Each request is billed at its real-time discount.
         </p>
       </div>
       <div className="twrap" style={{ marginTop: 10 }}>
@@ -167,21 +116,16 @@ export function BillingView({ billing }: { billing: DashboardBilling }) {
 
       {view === "grid" ? (
         <div className="stack-16" style={{ marginTop: 20 }}>
-          <div className="grid-2">
-            <BalanceCard balance={balance} />
-            <PurchaseHistory />
-          </div>
-          <div className="stats">
+          <BalanceCard balance={balance} />
+          <div className="stats two">
             <Stat label="Balance" value={balance ?? "—"} />
             <Stat label="This month" value={monthSpend} />
-            <Stat label="Saved" value={savedThisMonth} />
           </div>
           <BillingDetail rows={rows} />
         </div>
       ) : (
         <div className="stack-16" style={{ marginTop: 20 }}>
           <BalanceCard balance={balance} />
-          <PurchaseHistory />
           <BillingDetail rows={rows} />
         </div>
       )}

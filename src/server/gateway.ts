@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
-import { BACKEND_URL } from "./http";
+import { BACKEND_URL, getForwardedFor } from "./http";
 import {
   SESSION_COOKIE,
   cookieOptions,
@@ -121,6 +121,13 @@ async function call<T>(
   const headers = new Headers(rest.headers);
   headers.set("accept", "application/json");
   if (rest.body !== undefined) headers.set("content-type", "application/json");
+
+  // Forward the caller's address so the gateway's per-IP rate limiter counts the
+  // visitor, not this server. Every call leaves from one container IP otherwise,
+  // so unrelated people would share a single bucket and trip it for each other.
+  const forwardedFor = await getForwardedFor();
+  if (forwardedFor) headers.set("x-forwarded-for", forwardedFor);
+
   if (token) {
     headers.set("authorization", `Bearer ${token}`);
     const sub = subjectOf(token);
@@ -203,9 +210,19 @@ type LoginData = { access_token: string; access_expires_at: number };
 
 /** Signs in. Throws GatewayError with status 401 on bad credentials. */
 export async function login(username: string, password: string): Promise<Session> {
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    accept: "application/json",
+  };
+  // Sign-in and registration are rate limited per IP, and this call is the one
+  // that trips first. Forward the caller's address so one NAT or office does not
+  // exhaust the allowance for everyone behind it.
+  const forwardedFor = await getForwardedFor();
+  if (forwardedFor) headers["x-forwarded-for"] = forwardedFor;
+
   const response = await fetch(url("/api/user/login"), {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
+    headers,
     body: JSON.stringify({ username, password }),
     cache: "no-store",
   });
@@ -241,14 +258,18 @@ export async function login(username: string, password: string): Promise<Session
  * session ends.
  */
 export async function renew(session: Session): Promise<Session | null> {
+  const headers: Record<string, string> = {
+    accept: "application/json",
+    cookie: `new_api_refresh=${session.refreshToken}`,
+  };
+  const forwardedFor = await getForwardedFor();
+  if (forwardedFor) headers["x-forwarded-for"] = forwardedFor;
+
   let response: Response;
   try {
     response = await fetch(url("/api/user/auth/refresh"), {
       method: "POST",
-      headers: {
-        accept: "application/json",
-        cookie: `new_api_refresh=${session.refreshToken}`,
-      },
+      headers,
       cache: "no-store",
     });
   } catch {

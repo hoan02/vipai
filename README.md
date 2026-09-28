@@ -51,8 +51,9 @@ npm run dev                    # http://localhost:3000
 routes by Host header, and a server-side call carries the service name as its
 host, so going through it would fall through to this app and answer with HTML.
 
-`NEXT_PUBLIC_API_URL` is inlined at build time, so changing it needs a rebuild,
-not a restart. `BACKEND_API_URL` and `SESSION_SECRET` are read at runtime.
+Both settings the app reads — `BACKEND_API_URL` and `SESSION_SECRET` — are read
+at runtime. There is no `NEXT_PUBLIC_*` variable: the browser never calls the
+gateway directly, so nothing about it belongs in the client bundle.
 
 `npm run check:backend-url` asserts which backend URLs the validator accepts and
 which it refuses.
@@ -103,8 +104,8 @@ agr-fe/
       download/  docs/
     components/
       SiteMotion.tsx        # reveal, banner stars, ASCII lens, cursor glow, route canvas
-      LaunchBanner.tsx  Nav.tsx  Hero.tsx  TrustBand.tsx
-      AuthModal.tsx  TokenRequest.tsx  TelegramCta.tsx
+      LaunchBanner.tsx  Nav.tsx  Hero.tsx  UserButton.tsx
+      AuthModal.tsx  TelegramCta.tsx  RouteDecisionGraph.tsx
       Pricing.tsx  QuickStart.tsx  LiveDiscounts.tsx  Faq.tsx  TopUpModal.tsx
       Sections.tsx          # stat bar, features, duo, tier, leaderboard, CTA, footer
       dashboard/  docs/

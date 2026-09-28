@@ -27,29 +27,25 @@ const nav = [
   { label: "Models", href: "/admin/models", icon: Boxes },
 ];
 
+/** A compact admin chrome: a slim rail, a thin top bar, no page filler. */
 export function AdminShell({ children }: { children: ReactNode }) {
   const path = usePathname() ?? "/admin";
   const isOn = (href: string) =>
     href === "/admin" ? path === "/admin" : path === href || path.startsWith(`${href}/`);
 
   return (
-    <div className="dash">
+    <div className="dash admin">
       <header className="dash-top">
         <div className="dash-top-in">
           <Link className="dash-brand" href="/">
-            <Icon name="ic-aigiare" viewBox="0 0 24 24" width={20} height={20} />
+            <Icon name="ic-aigiare" viewBox="0 0 24 24" width={18} height={18} />
             AiGiare
-            <span style={{ color: "var(--d-muted)", fontWeight: 500 }}>· Admin</span>
+            <span className="dash-crumb">Admin</span>
           </Link>
-          <nav className="dash-tabs" aria-label="Primary">
+          <div className="dash-account">
             <Link className="dash-tab" href="/dashboard">
               Dashboard
             </Link>
-            <Link className="dash-tab" href="/">
-              Home
-            </Link>
-          </nav>
-          <div className="dash-account">
             <UserButton />
           </div>
         </div>
@@ -58,10 +54,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <div className="dash-wrap">
         <div className="dash-frame">
           <aside className="dash-side">
-            <div className="dash-acct" style={{ cursor: "default" }}>
-              <span className="av">A</span>
-              <span className="em">Administration</span>
-            </div>
             <nav className="dash-nav" aria-label="Admin">
               {nav.map((item) => {
                 const I = item.icon;
@@ -70,6 +62,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                     key={item.href}
                     href={item.href}
                     className={isOn(item.href) ? "is-on" : undefined}
+                    title={item.label}
                   >
                     <I aria-hidden="true" />
                     {item.label}

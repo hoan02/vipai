@@ -81,6 +81,38 @@
 .dtable.compact .field{ height:30px; font-size:12.8px; padding:0 9px; }
 .dtable.compact .btn-sm{ padding:5px 10px; font-size:12.5px; }
 
+/* ---------- Admin chrome ---------- */
+.admin{ --d-r:10px; --d-r-sm:8px; }
+.admin .dash-top-in{ height:52px; max-width:1200px; }
+.admin .dash-brand{ font-size:15px; }
+.admin .dash-crumb{ margin-left:2px; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--d-amber-deep); background:color-mix(in srgb, var(--d-amber) 12%, transparent); }
+.admin .dash-account{ gap:10px; }
+.admin .dash-tab{ font-size:13.5px; padding:6px 10px; }
+.admin .dash-wrap{ max-width:1200px; padding:18px clamp(12px,2vw,22px) 64px; }
+.admin .dash-frame{ grid-template-columns:196px minmax(0,1fr); border-radius:12px; }
+.admin .dash-side{ padding:10px; }
+.admin .dash-nav{ margin-top:0; gap:2px; }
+.admin .dash-nav a{ padding:8px 10px; gap:10px; font-size:13.5px; border-radius:7px; }
+.admin .dash-nav svg{ width:16px; height:16px; opacity:.85; }
+.admin .dash-main{ padding:clamp(14px,1.8vw,20px); }
+.admin .ph{ padding-bottom:12px; }
+.admin .ph h1{ font-size:19px; }
+.admin .ph .sub{ margin-top:5px; font-size:13px; line-height:1.5; }
+.admin .sh{ padding:16px 0 8px; }
+.admin .sh h2{ font-size:14.5px; }
+.admin .stat{ padding:12px 14px; }
+.admin .stat .v{ margin-top:6px; font-size:22px; }
+.admin .stats{ gap:10px; }
+
+/* Compact pager footer, shared by every admin table. */
+.dtable-foot{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 2px 0; }
+.dtable-foot .note{ font-size:12.5px; }
+.dtable-pager{ display:inline-flex; align-items:center; gap:6px; }
+.dtable-pager .pg{ width:26px; height:26px; display:grid; place-items:center; border:1px solid var(--d-line); border-radius:7px; background:#fff; color:color-mix(in srgb, var(--ink) 65%, transparent); cursor:pointer; font-size:15px; line-height:1; }
+.dtable-pager .pg:hover:not(:disabled){ background:var(--d-soft); color:var(--ink); }
+.dtable-pager .pg:disabled{ opacity:.4; cursor:not-allowed; }
+.dtable-pager .pg-n{ font-family:var(--font-mono); font-size:12px; color:var(--d-muted); min-width:34px; text-align:center; }
+
 /* ---------- Balance card ---------- */
 .bal{ position:relative; isolation:isolate; overflow:hidden; border:1px solid var(--d-line); border-radius:var(--d-r); padding:22px 24px; min-height:200px; display:flex; flex-direction:column; background:linear-gradient(112deg,#fde7de 0%,#f9dcd4 26%,#eef1fa 68%,#dde8fb 100%); }
 .bal::before{ content:""; position:absolute; z-index:0; width:460px; height:460px; right:-130px; bottom:-250px; border-radius:50%; background:radial-gradient(circle, rgba(248,113,30,.48), transparent 62%); }
@@ -203,6 +235,9 @@ select.field{ appearance:none; padding-right:30px; background-image:linear-gradi
   .grid-2{ grid-template-columns:1fr; }
   .conn-row{ grid-template-columns:1fr; }
   .conn-dl{ border-left:0; border-top:1px dashed var(--d-dash); padding-left:0; padding-top:16px; }
+}
+@media (max-width:1040px){
+  .admin .dash-nav a{ font-size:13px; padding:7px 9px; }
 }
 @media (max-width:900px){
   .dash-top-in{ height:auto; padding-top:10px; padding-bottom:10px; grid-template-columns:1fr auto; row-gap:8px; }

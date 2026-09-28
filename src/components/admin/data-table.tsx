@@ -162,33 +162,31 @@ export function DataTable<T extends RowData>({
       </div>
 
       {filteredCount > pageSize ? (
-        <div
-          className="toolbar"
-          style={{ justifyContent: "space-between", alignItems: "center", marginTop: 10 }}
-        >
-          <span className="note" style={{ fontSize: 12.5 }}>
-            {pageIndex * pageSize + 1}–{Math.min(filteredCount, (pageIndex + 1) * pageSize)} of{" "}
-            {filteredCount}
+        <div className="dtable-foot">
+          <span className="note">
+            {pageIndex * pageSize + 1}–{Math.min(filteredCount, (pageIndex + 1) * pageSize)} / {filteredCount}
           </span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <span className="dtable-pager">
             <button
-              className="btn btn-ghost btn-sm"
+              className="pg"
               type="button"
+              aria-label="Previous page"
               disabled={!table.getCanPreviousPage()}
               onClick={() => table.previousPage()}
             >
-              Previous
+              ‹
             </button>
-            <span className="note" style={{ fontSize: 12.5 }}>
-              {pageIndex + 1} / {Math.max(1, pageCount)}
+            <span className="pg-n">
+              {pageIndex + 1}/{Math.max(1, pageCount)}
             </span>
             <button
-              className="btn btn-ghost btn-sm"
+              className="pg"
               type="button"
+              aria-label="Next page"
               disabled={!table.getCanNextPage()}
               onClick={() => table.nextPage()}
             >
-              Next
+              ›
             </button>
           </span>
         </div>

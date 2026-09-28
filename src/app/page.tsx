@@ -9,6 +9,7 @@ import { QuickStart } from "@/components/QuickStart";
 import { LiveDiscounts } from "@/components/LiveDiscounts";
 import { Faq } from "@/components/Faq";
 import { TopUpModal } from "@/components/TopUpModal";
+import { getPublicModels } from "@/server/pricing";
 import {
   StatBar,
   BuyHook,
@@ -21,7 +22,9 @@ import {
   Footer,
 } from "@/components/Sections";
 
-export default function Page() {
+export default async function Page() {
+  const models = await getPublicModels();
+
   return (
     <>
       <SvgSprite />
@@ -29,7 +32,7 @@ export default function Page() {
       <LaunchBanner />
       <Nav />
       <Hero />
-      <Pricing />
+      <Pricing models={models} />
       <StatBar />
       <BuyHook />
       <QuickStart />

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Icon } from "@/lib/icons";
-import { PICK_MODEL_EVENT, brandIcon, brands, modelKey, models, vendors, type Model, type PickModelDetail, type Vendor } from "@/lib/data";
+import { PICK_MODEL_EVENT, brandIcon, brands, modelKey, vendors, type Model, type PickModelDetail, type Vendor } from "@/lib/data";
 
 function ModelMark({ model, size }: { model: Model; size: number }) {
   return (
@@ -24,7 +24,7 @@ const COLLAPSE_MS = 440;
 const JUMP_AFTER_EXPAND_MS = 660;
 const JUMP_FLASH_MS = 1800;
 
-export function Pricing() {
+export function Pricing({ models }: { models: Model[] }) {
   const [vendor, setVendor] = useState<Vendor>("Featured");
   const [expanded, setExpanded] = useState(false);
   const [query, setQuery] = useState("");
@@ -35,7 +35,7 @@ export function Pricing() {
   const animating = useRef(false);
   const rowRefs = useRef(new Map<string, HTMLTableRowElement>());
 
-  const featured = useMemo(() => models.filter((m) => m.featured), []);
+  const featured = useMemo(() => models.filter((m) => m.featured), [models]);
 
   const liveBadge = useMemo(
     () =>
@@ -49,7 +49,7 @@ export function Pricing() {
     const q = query.trim().toLowerCase();
     const base = vendor === "Featured" ? models : models.filter((m) => m.vendor === vendor);
     return q ? base.filter((m) => `${m.name} ${m.vendor}`.toLowerCase().includes(q)) : base;
-  }, [vendor, query]);
+  }, [vendor, query, models]);
 
   const tableRelRef = useRef<HTMLDivElement | null>(null);
 

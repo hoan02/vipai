@@ -15,6 +15,8 @@ export const brandIcon: Record<string, string> = {
 };
 
 export type Model = {
+  /** new-api model id, as it appears in /api/pricing. */
+  id: string;
   name: string;
   vendor: keyof typeof brands;
   ctx: string;
@@ -29,18 +31,18 @@ export type Model = {
 };
 
 export const models: Model[] = [
-  { name: "GPT-5.6 Sol", vendor: "OpenAI", ctx: "1M", cacheList: "$0.50", listIn: "$5.00", listOut: "$30.00", cache: "$0.053", inNow: "$0.53", outNow: "$3.18", disc: "90% off", featured: true },
-  { name: "Claude Fable 5", vendor: "Anthropic", ctx: "1M", cacheList: "$1.00", listIn: "$10.00", listOut: "$50.00", cache: "$0.242", inNow: "$2.42", outNow: "$12.10", disc: "76% off", featured: true },
-  { name: "Claude Sonnet 5", vendor: "Anthropic", ctx: "1M", cacheList: "$0.30", listIn: "$3.00", listOut: "$15.00", cache: "$0.050", inNow: "$0.50", outNow: "$2.52", disc: "-84%", featured: true },
-  { name: "Claude Opus 4.8", vendor: "Anthropic", ctx: "1M", cacheList: "$0.50", listIn: "$5.00", listOut: "$25.00", cache: "$0.133", inNow: "$1.33", outNow: "$6.65", disc: "-74%", featured: true },
-  { name: "GPT-5.5", vendor: "OpenAI", ctx: "1M", cacheList: "$0.50", listIn: "$5.00", listOut: "$30.00", cache: "$0.055", inNow: "$0.55", outNow: "$3.30", disc: "-89%", featured: true },
-  { name: "Gemini 3.1 Pro (Preview)", vendor: "Google", ctx: "2M", cacheList: "$0.20", listIn: "$2.00", listOut: "$12.00", cache: "$0.029", inNow: "$0.29", outNow: "$1.73", disc: "-86%", featured: true },
-  { name: "GPT-5.6 Terra", vendor: "OpenAI", ctx: "1M", cacheList: "$0.25", listIn: "$2.50", listOut: "$15.00", cache: "$0.027", inNow: "$0.27", outNow: "$1.61", disc: "90% off" },
-  { name: "GPT-5.6 Luna", vendor: "OpenAI", ctx: "1M", cacheList: "$0.10", listIn: "$1.00", listOut: "$6.00", cache: "$0.011", inNow: "$0.11", outNow: "$0.64", disc: "90% off" },
-  { name: "GPT-5.4", vendor: "OpenAI", ctx: "1M", cacheList: "$0.25", listIn: "$2.50", listOut: "$15.00", cache: "$0.027", inNow: "$0.27", outNow: "$1.62", disc: "90% off" },
-  { name: "GPT-5.4 mini", vendor: "OpenAI", ctx: "1M", cacheList: "$0.075", listIn: "$0.75", listOut: "$4.50", cache: "$0.009", inNow: "$0.09", outNow: "$0.51", disc: "-89%" },
-  { name: "DS DeepSeek V4 Pro", vendor: "DeepSeek", ctx: "1M", cacheList: "$0.0036", listIn: "$0.435", listOut: "$0.87", cache: "$0.0036", inNow: "$0.435", outNow: "$0.87", disc: "" },
-  { name: "GLM GLM-5.2", vendor: "GLM", ctx: "1M", cacheList: "$0.26", listIn: "$1.40", listOut: "$4.40", cache: "$0.26", inNow: "$1.40", outNow: "$4.40", disc: "" },
+  { id: "gpt-5.6-sol", name: "GPT-5.6 Sol", vendor: "OpenAI", ctx: "1M", cacheList: "$0.50", listIn: "$5.00", listOut: "$30.00", cache: "$0.053", inNow: "$0.53", outNow: "$3.18", disc: "90% off", featured: true },
+  { id: "claude-fable-5", name: "Claude Fable 5", vendor: "Anthropic", ctx: "1M", cacheList: "$1.00", listIn: "$10.00", listOut: "$50.00", cache: "$0.242", inNow: "$2.42", outNow: "$12.10", disc: "76% off", featured: true },
+  { id: "claude-sonnet-5", name: "Claude Sonnet 5", vendor: "Anthropic", ctx: "1M", cacheList: "$0.30", listIn: "$3.00", listOut: "$15.00", cache: "$0.050", inNow: "$0.50", outNow: "$2.52", disc: "-84%", featured: true },
+  { id: "claude-opus-4-8", name: "Claude Opus 4.8", vendor: "Anthropic", ctx: "1M", cacheList: "$0.50", listIn: "$5.00", listOut: "$25.00", cache: "$0.133", inNow: "$1.33", outNow: "$6.65", disc: "-74%", featured: true },
+  { id: "gpt-5.5", name: "GPT-5.5", vendor: "OpenAI", ctx: "1M", cacheList: "$0.50", listIn: "$5.00", listOut: "$30.00", cache: "$0.055", inNow: "$0.55", outNow: "$3.30", disc: "-89%", featured: true },
+  { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro (Preview)", vendor: "Google", ctx: "2M", cacheList: "$0.20", listIn: "$2.00", listOut: "$12.00", cache: "$0.029", inNow: "$0.29", outNow: "$1.73", disc: "-86%", featured: true },
+  { id: "gpt-5.6-terra", name: "GPT-5.6 Terra", vendor: "OpenAI", ctx: "1M", cacheList: "$0.25", listIn: "$2.50", listOut: "$15.00", cache: "$0.027", inNow: "$0.27", outNow: "$1.61", disc: "90% off" },
+  { id: "gpt-5.6-luna", name: "GPT-5.6 Luna", vendor: "OpenAI", ctx: "1M", cacheList: "$0.10", listIn: "$1.00", listOut: "$6.00", cache: "$0.011", inNow: "$0.11", outNow: "$0.64", disc: "90% off" },
+  { id: "gpt-5.4", name: "GPT-5.4", vendor: "OpenAI", ctx: "1M", cacheList: "$0.25", listIn: "$2.50", listOut: "$15.00", cache: "$0.027", inNow: "$0.27", outNow: "$1.62", disc: "90% off" },
+  { id: "gpt-5.4-mini", name: "GPT-5.4 mini", vendor: "OpenAI", ctx: "1M", cacheList: "$0.075", listIn: "$0.75", listOut: "$4.50", cache: "$0.009", inNow: "$0.09", outNow: "$0.51", disc: "-89%" },
+  { id: "deepseek-v4-pro", name: "DS DeepSeek V4 Pro", vendor: "DeepSeek", ctx: "1M", cacheList: "$0.0036", listIn: "$0.435", listOut: "$0.87", cache: "$0.0036", inNow: "$0.435", outNow: "$0.87", disc: "" },
+  { id: "glm-5.2", name: "GLM GLM-5.2", vendor: "GLM", ctx: "1M", cacheList: "$0.26", listIn: "$1.40", listOut: "$4.40", cache: "$0.26", inNow: "$1.40", outNow: "$4.40", disc: "" },
 ];
 
 export const vendors = ["Featured", "OpenAI", "Anthropic", "Google", "DeepSeek", "GLM"] as const;

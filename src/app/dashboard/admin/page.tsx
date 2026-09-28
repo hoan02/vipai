@@ -1,5 +1,13 @@
 import { redirect } from "next/navigation";
-import { getMarginConfigs, getModelPrices, requireRoot, type MarginConfig, type ModelPrice } from "@/server/admin";
+import {
+  getAdminStats,
+  getMarginConfigs,
+  getModelPrices,
+  requireRoot,
+  type AdminStats,
+  type MarginConfig,
+  type ModelPrice,
+} from "@/server/admin";
 import { listChannels } from "@/server/gateway";
 import { AdminView } from "@/components/dashboard/admin-view";
 
@@ -21,10 +29,11 @@ export default async function DashboardAdminPage() {
   }
   if (!access) redirect("/dashboard");
 
-  const [channels, prices, costs] = await Promise.all([
+  const [channels, prices, costs, stats] = await Promise.all([
     listChannels(access.token),
     getModelPrices(access.token),
     getMarginConfigs(access.token),
+    getAdminStats(access.token),
   ]);
 
   const models = [...new Set(channels.flatMap((channel) => channel.models))].sort();
@@ -36,6 +45,11 @@ export default async function DashboardAdminPage() {
   );
 
   return (
-    <AdminView initialChannels={channels} initialPrices={rows} initialCosts={costRows} />
+    <AdminView
+      initialChannels={channels}
+      initialPrices={rows}
+      initialCosts={costRows}
+      stats={stats}
+    />
   );
 }

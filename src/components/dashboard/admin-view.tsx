@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PageHead, Pill, SectionTitle } from "@/components/dashboard/kit";
+import { PageHead, Pill, SectionTitle, Stat } from "@/components/dashboard/kit";
 import type { GatewayChannel } from "@/server/gateway";
-import type { MarginConfig, ModelPrice } from "@/server/admin";
+import type { AdminStats, MarginConfig, ModelPrice } from "@/server/admin";
+
+const usd = (value: number) => `$${value.toFixed(value >= 1 ? 2 : 4)}`;
 
 /**
  * The admin surface.
@@ -58,10 +60,12 @@ export function AdminView({
   initialChannels,
   initialPrices,
   initialCosts,
+  stats,
 }: {
   initialChannels: GatewayChannel[];
   initialPrices: ModelPrice[];
   initialCosts: MarginConfig[];
+  stats: AdminStats;
 }) {
   const router = useRouter();
   const [channels, setChannels] = useState(initialChannels);
@@ -492,6 +496,74 @@ export function AdminView({
             </tbody>
           </table>
         </div>
+      </div>
+
+      <SectionTitle hint={stats.costComplete ? "revenue − cost" : "cost incomplete"}>
+        Statistics
+      </SectionTitle>
+      <div className="stats four" style={{ marginTop: 8 }}>
+        <Stat label="Requests" value={stats.requests.toLocaleString()} />
+        <Stat label="Revenue" value={usd(stats.revenueUsd)} />
+        <Stat label="Cost" value={usd(stats.costUsd)} />
+        <Stat label="Margin" value={usd(stats.marginUsd)} />
+      </div>
+      <div className="panel">
+        <div
+          className="panel-hd"
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+        >
+          <h3>By model</h3>
+          <button className="btn btn-ghost btn-sm" type="button" onClick={() => router.refresh()}>
+            Refresh
+          </button>
+        </div>
+        <div className="twrap">
+          <table className="dtable">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th className="r">Requests</th>
+                <th className="r">Tokens in</th>
+                <th className="r">Tokens out</th>
+                <th className="r">Revenue</th>
+                <th className="r">Cost</th>
+                <th className="r">Margin</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.byModel.length === 0 ? (
+                <tr className="empty-row">
+                  <td colSpan={7}>No usage recorded yet</td>
+                </tr>
+              ) : (
+                stats.byModel.map((model) => (
+                  <tr key={model.id}>
+                    <td>{model.id}</td>
+                    <td className="r num">{model.requests.toLocaleString()}</td>
+                    <td className="r num">{model.tokensIn.toLocaleString()}</td>
+                    <td className="r num">{model.tokensOut.toLocaleString()}</td>
+                    <td className="r num">{usd(model.revenueUsd)}</td>
+                    <td className="r num">{model.costUsd === null ? "—" : usd(model.costUsd)}</td>
+                    <td
+                      className="r num"
+                      style={
+                        model.marginUsd !== null && model.marginUsd < 0
+                          ? { color: "#b91c1c" }
+                          : undefined
+                      }
+                    >
+                      {model.marginUsd === null ? "—" : usd(model.marginUsd)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <p className="note" style={{ padding: "0 16px 12px" }}>
+          Aggregated over {stats.sampled.toLocaleString()} of {stats.total.toLocaleString()} recent
+          requests.
+        </p>
       </div>
     </>
   );

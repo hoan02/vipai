@@ -584,3 +584,25 @@ export async function setOption(
     body: JSON.stringify({ key, value }),
   });
 }
+
+/** One admin usage row, as `/api/log/` reports it. */
+export type GatewayAdminLog = {
+  model_name: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  quota: number;
+  channel: number;
+  created_at: number;
+};
+
+/** Recent usage across every account, newest first. */
+export async function listAdminLogs(
+  accessToken: string,
+  pageSize = 1000,
+): Promise<{ items: GatewayAdminLog[]; total: number }> {
+  const data = await call<{ items: GatewayAdminLog[]; total: number }>(
+    `/api/log/?p=0&page_size=${pageSize}`,
+    { token: accessToken },
+  );
+  return { items: data.items ?? [], total: data.total ?? 0 };
+}

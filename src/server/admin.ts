@@ -4,8 +4,10 @@ import {
   currentAccess,
   getOptions,
   getUser,
+  listAdminLogs,
   persistSession,
   setOption,
+  QUOTA_PER_USD,
   type GatewayUser,
 } from "./gateway";
 
@@ -228,4 +230,105 @@ export async function setMarginConfigs(
       }));
     if (prices.length > 0) await setModelPrices(accessToken, prices);
   }
+}
+
+/** Per-model totals over the sampled usage window. */
+export type ModelStat = {
+  id: string;
+  requests: number;
+  tokensIn: number;
+  tokensOut: number;
+  revenueUsd: number;
+  /** Null when this model has no cost configured. */
+  costUsd: number | null;
+  marginUsd: number | null;
+};
+
+export type AdminStats = {
+  requests: number;
+  tokensIn: number;
+  tokensOut: number;
+  revenueUsd: number;
+  costUsd: number;
+  marginUsd: number;
+  /** True when every model in the sample has a cost, so the totals are exact. */
+  costComplete: boolean;
+  /** Rows aggregated, and the gateway's total row count. */
+  sampled: number;
+  total: number;
+  byModel: ModelStat[];
+};
+
+/**
+ * Revenue, cost and margin over recent usage.
+ *
+ * Revenue is the gateway's own charge (`quota / 500000`). Cost is token counts
+ * times the upstream price from `aigiare.cost`. Both are computed over the most
+ * recent page of logs, which is enough for a live picture; `sampled` and
+ * `total` say how complete the window is.
+ */
+export async function getAdminStats(accessToken: string, pageSize = 1000): Promise<AdminStats> {
+  const [{ items, total }, costs] = await Promise.all([
+    listAdminLogs(accessToken, pageSize),
+    getMarginConfigs(accessToken),
+  ]);
+
+  const byModel = new Map<string, ModelStat>();
+  let requests = 0;
+  let tokensIn = 0;
+  let tokensOut = 0;
+  let revenueUsd = 0;
+  let costUsd = 0;
+  let costComplete = true;
+
+  for (const log of items) {
+    const id = log.model_name || "unknown";
+    const rowIn = log.prompt_tokens ?? 0;
+    const rowOut = log.completion_tokens ?? 0;
+    const revenue = (log.quota ?? 0) / QUOTA_PER_USD;
+    const cost = costs.get(id);
+    const rowCost =
+      cost && cost.in > 0 && cost.out > 0
+        ? (rowIn * cost.in + rowOut * cost.out) / 1e6
+        : null;
+
+    const stat =
+      byModel.get(id) ??
+      { id, requests: 0, tokensIn: 0, tokensOut: 0, revenueUsd: 0, costUsd: 0 as number | null, marginUsd: 0 as number | null };
+
+    stat.requests += 1;
+    stat.tokensIn += rowIn;
+    stat.tokensOut += rowOut;
+    stat.revenueUsd += revenue;
+    if (rowCost === null) {
+      stat.costUsd = null;
+      stat.marginUsd = null;
+    } else if (stat.costUsd !== null) {
+      stat.costUsd += rowCost;
+      stat.marginUsd = (stat.marginUsd ?? 0) + (revenue - rowCost);
+    }
+    byModel.set(id, stat);
+
+    requests += 1;
+    tokensIn += rowIn;
+    tokensOut += rowOut;
+    revenueUsd += revenue;
+    if (rowCost === null) costComplete = false;
+    else costUsd += rowCost;
+  }
+
+  const list = [...byModel.values()].sort((a, b) => b.revenueUsd - a.revenueUsd);
+
+  return {
+    requests,
+    tokensIn,
+    tokensOut,
+    revenueUsd,
+    costUsd,
+    marginUsd: revenueUsd - costUsd,
+    costComplete,
+    sampled: items.length,
+    total,
+    byModel: list,
+  };
 }

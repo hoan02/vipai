@@ -8,7 +8,7 @@ import { UserButton } from "@/components/UserButton";
 import { Icon } from "@/lib/icons";
 import { languages } from "@/lib/data";
 import { TELEGRAM_URL } from "@/lib/site";
-import { setLocale } from "@/components/I18n";
+import { setLocale } from "@/components/site/I18n";
 
 const links = [
   { href: "/", label: "Home", active: true },

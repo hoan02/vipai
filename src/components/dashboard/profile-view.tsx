@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Copy } from "lucide-react";
 import { PageHead, Pill, SectionTitle } from "@/components/dashboard/kit";
-import { setLocale, type Locale } from "@/components/I18n";
+import { setLocale, type Locale } from "@/components/site/I18n";
 
 export type ProfileData = {
   id: number;

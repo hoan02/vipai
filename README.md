@@ -94,8 +94,8 @@ agr-fe/
     app/
       layout.tsx            # metadata, fonts, <I18n/>
       page.tsx              # homepage composition
-      globals.css           # tokens + design system + motion CSS
-      site-pages.css        # public secondary pages + docs shell
+      globals.css           # entry: @imports src/styles/index.css
+      site-pages.css        # download page
       sign-in|sign-up/      # auth entry points
       api/
         admin/              # GET gateway, PUT pricing, PATCH channels (root only)
@@ -103,13 +103,22 @@ agr-fe/
         session/            # login/register/logout + current user
       dashboard/            # api-keys, usage, cost, budgets, members, routing
       download/  docs/
+    styles/                 # split global CSS; import order === cascade order
+      index.css             # the manifest — read this first
+      base/                 # foundation, reveal, responsive, motion
+      layout/               # chrome (banner + nav + user button), footer
+      home/                 # hero, sections, features, pricing, finale
+      components/           # route graph, auth modal
+      overrides.css         # reference-ground / parity tuning layers
     components/
-      SiteMotion.tsx        # reveal, banner stars, ASCII lens, cursor glow, route canvas
-      LaunchBanner.tsx  Nav.tsx  Hero.tsx  UserButton.tsx
-      AuthModal.tsx  TelegramCta.tsx  RouteDecisionGraph.tsx
-      Pricing.tsx  QuickStart.tsx  LiveDiscounts.tsx  Faq.tsx  TopUpModal.tsx
-      Sections.tsx          # stat bar, features, duo, tier, leaderboard, CTA, footer
-      dashboard/  docs/
+      site/                 # homepage + marketing chrome
+        Nav.tsx  Hero.tsx  LaunchBanner.tsx  SiteMotion.tsx  I18n.tsx
+        Sections.tsx        # stat bar, features, duo, tier, leaderboard, CTA, footer
+        Pricing.tsx  QuickStart.tsx  LiveDiscounts.tsx  Faq.tsx
+        AuthModal.tsx  TelegramCta.tsx  RouteDecisionGraph.tsx
+        TopUpModal.tsx  download-platforms.tsx
+      UserButton.tsx        # shared by nav, dashboard and admin
+      dashboard/  docs/  admin/
     lib/
       auth-client.ts        # session store, over /api/session
       dashboard-data.ts  i18n-data.ts  icons.tsx  site.ts
@@ -134,4 +143,9 @@ agr-fe/
 - **A key cannot be disabled, only revoked.** `status` is not writable through
   `PUT /api/token/`, and targeting a key with `/api/token/batch` deletes it. The
   API's only state change is deletion, so the dashboard exposes only Revoke.
+- **CSS import order is the cascade.** `src/styles/index.css` reproduces the
+  order of the old single-file stylesheet. The override layers at the bottom
+  (`base/responsive.css`, `base/motion.css`, `overrides.css`,
+  `home/pricing-expand.css`) intentionally tune rules declared above them, so a
+  new file must be placed to preserve that order — not alphabetically.
 - Motion is disabled automatically under `prefers-reduced-motion`.

@@ -1,0 +1,27 @@
+/* ============================================================
+   Style manifest.
+
+   Import order === cascade order. This list reproduces the order of
+   the original single-file stylesheet exactly, so a rule moved to a
+   new file keeps its position in the cascade as long as its place in
+   this list is preserved.
+
+   The layers that tune earlier rules — base/responsive.css,
+   base/motion.css, overrides.css, home/pricing-expand.css and the
+   pricing table extras — must stay below the sections they tune.
+   ============================================================ */
+@import "./base/foundation.css";
+@import "./base/reveal.css";
+@import "./layout/chrome.css";
+@import "./home/hero.css";
+@import "./home/sections.css";
+@import "./home/features.css";
+@import "./layout/footer.css";
+@import "./base/responsive.css";
+@import "./base/motion.css";
+@import "./overrides.css";
+@import "./components/route-graph.css";
+@import "./home/finale.css";
+@import "./home/pricing-tables.css";
+@import "./home/pricing-expand.css";
+@import "./components/auth-modal.css";

@@ -13,7 +13,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { signIn, signUp } from "@/lib/auth-client";
 import { Icon } from "@/lib/icons";
-import { refreshTranslations, useT } from "@/components/I18n";
+import { refreshTranslations, useT } from "@/components/site/I18n";
 import type { AuthMode } from "@/lib/auth-modal";
 
 /* ------------------------------------------------------------------ *

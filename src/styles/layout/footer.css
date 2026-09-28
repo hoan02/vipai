@@ -1,0 +1,60 @@
+/* ============================================================
+   Finale + footer
+   ============================================================ */
+.finale{ position:relative; z-index:1; max-width:1400px; margin:0 auto; text-align:center; padding:clamp(70px,9vw,130px) var(--edge); }
+.finale h2{ font-size:clamp(34px,5.6vw,68px); font-weight:var(--fw-bold); letter-spacing:-.04em; }
+.finale p{ margin-top:16px; color:color-mix(in srgb, var(--ink) 62%, transparent); }
+
+.site-foot{ position:relative; z-index:1; max-width:var(--maxw); margin:0 auto; padding:clamp(52px,8vh,88px) var(--edge) clamp(26px,4vh,40px); }
+.foot-top{ display:grid; grid-template-columns:minmax(240px,.95fr) 2.05fr; gap:clamp(14px,1.6vw,22px); align-items:stretch; }
+.fc-brand{ display:flex; flex-direction:column; gap:18px; padding:clamp(22px,2.4vw,30px); color:#fff; background:linear-gradient(180deg,rgba(16,13,10,.74),rgba(16,13,10,.34) 46%,rgba(16,13,10,.8)),url("/assets/foot-sky.jpg") center 38%/cover no-repeat,#14110e; }
+.fc-brand .b{ display:inline-flex; align-items:center; gap:9px; font-weight:var(--fw-bold); font-size:1.125rem; letter-spacing:-.02em; color:#fff; }
+.fc-brand .b svg{ width:21px; height:22px; }
+.foot-tag{ margin-top:auto; max-width:300px; font-size:16px; line-height:1.6; color:rgba(255,255,255,.82); }
+.fc-touch{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.fc-k{ display:inline-flex; align-items:center; font-family:var(--font-mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.55); }
+.fc-k i{ width:6px; height:6px; background:currentColor; opacity:.8; margin-right:7px; }
+.fc-soc{ display:inline-flex; gap:8px; }
+.fc-soc a{ display:inline-grid; place-items:center; width:34px; height:34px; border-radius:var(--corner); background:rgba(255,255,255,.13); color:#fff; transition:background var(--transition-fast); }
+.fc-soc a:hover{ background:rgba(255,255,255,.24); }
+.fc-soc svg{ width:15px; height:15px; }
+.fc-links{ display:flex; flex-direction:column; gap:clamp(26px,4vh,40px); padding:clamp(22px,2.4vw,30px) clamp(24px,2.8vw,36px); background:color-mix(in srgb, var(--ink) 4%, #fffdf8); border:1px solid color-mix(in srgb, var(--ink) 6%, transparent); }
+.foot-cols{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:clamp(20px,3vw,48px); max-width:640px; }
+.foot-col{ display:flex; flex-direction:column; gap:15px; }
+.foot-col h4{ font-family:var(--font-mono); font-size:11px; font-weight:var(--fw-medium); letter-spacing:.12em; text-transform:uppercase; color:color-mix(in srgb, var(--ink) 40%, transparent); }
+.foot-col ul{ display:grid; gap:15px; }
+.foot-col a{ font-size:15px; color:color-mix(in srgb, var(--ink) 72%, transparent); text-decoration:none; transition:color var(--transition-fast); }
+.foot-col a:hover{ color:var(--ink); }
+.fc-endrow{ display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-top:auto; }
+.fc-copy{ font-size:13px; color:color-mix(in srgb, var(--ink) 46%, transparent); }
+
+/* ============================================================
+   Top-up modal
+   ============================================================ */
+.tu-overlay{ position:fixed; inset:0; z-index:200; display:none; place-items:center; padding:20px; background:rgba(18,18,18,.55); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+.tu-overlay.open{ display:grid; }
+.tu{ width:min(440px,100%); background:var(--stage-bg); border:1px solid color-mix(in srgb, var(--ink) 14%, transparent); padding:24px; box-shadow:0 40px 90px -40px rgba(20,17,15,.7); animation:tu-in var(--transition-med); }
+@keyframes tu-in{ from{ opacity:0; transform:translateY(16px) } }
+.tu-hd{ display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.tu-hd h3{ font-size:18px; }
+.tu-x{ width:34px; height:34px; display:grid; place-items:center; border:0; border-radius:var(--corner); background:color-mix(in srgb, var(--ink) 6%, transparent); cursor:pointer; }
+.tu-x:hover{ background:color-mix(in srgb, var(--ink) 12%, transparent); }
+.tu-note{ margin-top:10px; font-size:13px; color:color-mix(in srgb, var(--ink) 56%, transparent); }
+.tu-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:18px; }
+.tu-amt{ padding:14px 8px; border:1px solid color-mix(in srgb, var(--ink) 14%, transparent); border-radius:var(--corner); background:transparent; cursor:pointer; display:grid; gap:4px; text-align:center; }
+.tu-amt:hover{ border-color:color-mix(in srgb, var(--ink) 24%, transparent); }
+.tu-amt.on{ border-color:var(--amber); background:color-mix(in srgb, var(--amber) 8%, transparent); }
+.tu-amt b{ font-size:15px; }
+.tu-amt small{ font-size:11px; color:color-mix(in srgb, var(--ink) 44%, transparent); }
+.tu-custom{ margin-top:12px; display:grid; gap:6px; }
+.tu-custom label{ font-size:12.5px; color:color-mix(in srgb, var(--ink) 58%, transparent); }
+.tu-custom input{ width:100%; padding:11px 14px; border:1px solid color-mix(in srgb, var(--ink) 14%, transparent); border-radius:var(--corner); background:var(--stage-bg); font-family:var(--font-mono); font-size:14px; color:var(--ink); }
+.tu-est{ margin-top:16px; padding:14px; background:color-mix(in srgb, var(--ink) 4%, transparent); display:grid; gap:8px; }
+.tu-est div{ display:flex; justify-content:space-between; font-size:13.5px; }
+.tu-est span{ color:color-mix(in srgb, var(--ink) 56%, transparent); }
+.tu-est b{ font-weight:var(--fw-semibold); }
+.tu-terms{ margin-top:14px; font-size:12px; color:color-mix(in srgb, var(--ink) 44%, transparent); }
+.tu-actions{ display:flex; gap:10px; margin-top:18px; }
+.tu-actions .btn{ flex:1; justify-content:center; }
+.tu-stripe{ margin-top:12px; text-align:center; font-family:var(--font-mono); font-size:11px; color:color-mix(in srgb, var(--ink) 40%, transparent); }
+

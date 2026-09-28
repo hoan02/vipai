@@ -1,0 +1,131 @@
+/* ============================================================
+   Clean pass — calmer neutral ground, less decoration, more air.
+   ============================================================ */
+:root{
+  --stage-bg:#fcfcfb;
+  --dot-rule-ink:color-mix(in srgb, var(--ink) 10%, transparent);
+  --sec-pt:clamp(96px,15vh,200px);
+  --sec-pb:clamp(96px,15vh,200px);
+}
+.art-bg{ opacity:.72; }
+.hero-flow{ opacity:.5; }
+.hero-ascii{ opacity:.42; }
+.buy::before{ opacity:.45; }
+.sec-sub{ max-width:66ch; }
+
+/* ============================================================
+   Reference ground — coloured gradient page wash (cam → xanh)
+   plus raised white cards. Replaces the earlier flat clean pass
+   with the reference's layered look, on AiGiare's warm palette.
+   ============================================================ */
+.stage{
+  background:
+    radial-gradient(120% 70% at 12% -6%, color-mix(in srgb, #ffd9c4 92%, transparent), transparent 62%),
+    radial-gradient(110% 62% at 92% 2%, color-mix(in srgb, #ffe4cd 88%, transparent), transparent 60%),
+    radial-gradient(120% 80% at 50% 118%, color-mix(in srgb, #e6ecff 82%, transparent), transparent 66%),
+    var(--stage-bg);
+}
+.art-bg{ opacity:.9; }
+.hero-flow{ opacity:.72; }
+.hero-ascii{ opacity:.5; }
+.buy::before{ opacity:.72; }
+.price-featured, .table-rel, .qsx, .live-panel, .rank-grid > .panel, .metric-cards > .mc-card{
+  border-radius:var(--corner);
+}
+.price-featured{ padding:clamp(16px,2vw,22px); background:color-mix(in srgb,#fff 78%,transparent); box-shadow:var(--elev-ring),var(--elev-raised); }
+.table-rel{ padding:clamp(10px,1.4vw,16px); background:color-mix(in srgb,#fff 78%,transparent); box-shadow:var(--elev-ring),var(--elev-raised); }
+.live-panel{ padding:clamp(14px,1.8vw,20px); background:color-mix(in srgb,#fff 78%,transparent); box-shadow:var(--elev-ring),var(--elev-raised); }
+.rank-grid > .panel{ background:color-mix(in srgb,#fff 82%,transparent); }
+.metric-cards > .mc-card{ box-shadow:var(--elev-ring),var(--elev-raised); }
+
+/* Reference motion primitives (parity layer for the static index.html
+   reference build): fade/slide reveal, staggered children, card hover lift. */
+@keyframes aiFadeUp{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
+@keyframes aiFadeLeft{ from{ opacity:0; transform:translateX(-14px); } to{ opacity:1; transform:none; } }
+@keyframes aiFadeIn{ from{ opacity:0; } to{ opacity:1; } }
+.ai-reveal{ animation:aiFadeUp .6s cubic-bezier(.2,0,0,1) both; }
+.ai-reveal-left{ animation:aiFadeLeft .6s cubic-bezier(.2,0,0,1) both; }
+.ai-lift{ transition:transform .18s cubic-bezier(.2,0,0,1), box-shadow .18s cubic-bezier(.2,0,0,1); }
+.ai-lift:hover{ transform:translateY(-3px); }
+@media (prefers-reduced-motion: reduce){
+  .ai-reveal,.ai-reveal-left{ animation:none !important; opacity:1 !important; transform:none !important; }
+  .ai-lift{ transition:none !important; }
+  .ai-lift:hover{ transform:none !important; }
+}
+.tg-cta{
+  display:grid; gap:clamp(20px,3vw,40px);
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:center;
+  padding:clamp(24px,3vw,40px); border-radius:var(--corner,16px);
+  border:1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+  background:linear-gradient(180deg, color-mix(in srgb, #c2410c 5%, #ffffff), #ffffff);
+}
+@media (max-width:860px){ .tg-cta{ grid-template-columns:1fr; } }
+.tg-badge{ display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:var(--fw-semibold,600); color:#c2410c; }
+.tg-cta h3{ margin:0; font-size:clamp(22px,2.6vw,30px); letter-spacing:-.02em; }
+.tg-cta p{ margin:0; color:color-mix(in srgb, var(--ink) 62%, transparent); line-height:1.6; }
+.tg-cta .stack{ display:grid; gap:12px; }
+.form-note{ font-size:12.5px; color:color-mix(in srgb, var(--ink) 52%, transparent); }
+
+.btn-solid{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  min-height:46px; padding:0 20px; border:0; border-radius:9999px;
+  background:#c2410c; color:#fff; font-weight:var(--fw-semibold,600); font-size:15px;
+  text-decoration:none; cursor:pointer; transition:background-color var(--transition-fast,150ms) ease;
+}
+/* ============================================================
+   Reference parity layer 2 — launch banner entrance, hero stagger,
+   hub pulse, pricing/live structure, finale band, top-up modal.
+   Rules are scoped so existing AiGiare sections are untouched.
+   ============================================================ */
+.btn-solid:hover{ background:#9a3412; }
+@keyframes launch-banner-in{ 0%{ transform:translateY(-100%); opacity:0; } to{ transform:translateY(0); opacity:1; } }
+.launch-banner.is-entering{ animation:launch-banner-in .52s cubic-bezier(.2,0,0,1) 80ms both; }
+/* The wipe used to live in the base rule as
+   `linear-gradient(90deg,#000 0,#000 -1px,transparent 0px)`. A negative stop is
+   clamped to 0, so that gradient resolves to "opaque at 0, transparent from 0"
+   — the whole link, text and arrow, is masked out. Nothing animates
+   --lb-reveal-in/--lb-reveal-out in this port (the static build drove them from
+   JS), so the banner rendered as an empty bar until the lb-mask-off fallback
+   fired at 4s. The mask now only exists inside the keyframes' `from`, and ends
+   fully opaque, so the base state is always visible: if the animation never
+   runs, or is disabled, the text shows. */
+.launch-banner.is-stars .launch-banner-link{
+  animation:lb-mask-reveal .85s cubic-bezier(.2,0,0,1) .45s both;
+}
+@keyframes lb-mask-reveal{
+  from{
+    -webkit-mask-image:linear-gradient(90deg,#000 0,#000 0%,transparent 0%);
+    mask-image:linear-gradient(90deg,#000 0,#000 0%,transparent 0%);
+  }
+  to{
+    -webkit-mask-image:linear-gradient(90deg,#000 0,#000 100%,transparent 100%);
+    mask-image:linear-gradient(90deg,#000 0,#000 100%,transparent 100%);
+  }
+}
+html.launch-banner-off .launch-banner{ display:none; }
+.launch-banner .lb-stars{ z-index:2; }
+.launch-banner-close{ z-index:3; }
+
+.hero.t-stagger .t-stagger-line{ animation:tLineIn .72s var(--stagger-ease) both; }
+.hero.t-stagger .t-stagger-line--2{ animation-delay:calc(var(--stagger-stagger) * 1); }
+.hero.t-stagger .t-stagger-line--3{ animation-delay:calc(var(--stagger-stagger) * 2); }
+.hero.t-stagger .t-stagger-line--4{ animation-delay:calc(var(--stagger-stagger) * 3); }
+@keyframes tLineIn{ 0%{ opacity:0; transform:translateY(var(--stagger-distance,14px)); filter:blur(var(--stagger-blur,3px)); } to{ opacity:1; transform:translateY(0); filter:blur(0); } }
+.btn-primary .knob{ display:inline-flex; align-items:center; justify-content:center; }
+.btn-primary .knob svg{ width:16px; height:16px; }
+
+.route-node.hub{ position:absolute; z-index:2; }
+.hub-core{ position:relative; overflow:visible; }
+.hub-core .hub-pulse{
+  position:absolute; left:50%; top:50%; width:72%; height:72%; z-index:0; pointer-events:none; border-radius:50%;
+  transform:translate(-50%,-50%) scale(var(--glow-s,.7)); filter:blur(2.5px); opacity:var(--glow-o,.1);
+  background:
+    radial-gradient(66% 70% at 30% 32%, rgba(255,140,92,.95), transparent 70%),
+    radial-gradient(66% 68% at 74% 72%, rgba(96,142,255,.92), transparent 68%),
+    radial-gradient(58% 60% at 56% 50%, rgba(255,210,150,.5), transparent 72%);
+  animation:hubPulse 4.6s ease-in-out infinite;
+}
+@keyframes hubPulse{ 0%,to{ --glow-s:.98; --glow-o:.5; } 50%{ --glow-s:1.16; --glow-o:.72; } }
+@property --glow-s{ syntax:"<number>"; inherits:false; initial-value:1; }
+@property --glow-o{ syntax:"<number>"; inherits:false; initial-value:.5; }
+

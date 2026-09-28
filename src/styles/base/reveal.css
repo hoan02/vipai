@@ -1,0 +1,42 @@
+/* ============================================================
+   Reveal on scroll — source selector group, not a per-element
+   attribute: blur 4px / translateY 16px / .72s, .is-in resets,
+   the six featured cards staggered 60ms apart.
+   The id-bearing targets go through :where() so the whole :is()
+   keeps the source's (0,2,0) specificity and the nth-child delay
+   rules below still win.
+   ============================================================ */
+html.reveal-on :is(
+  :where(
+    #pricing .sec-head, #live .sec-head, #live .live-controls, #live .live-panel,
+    #stats, #buyhook, #features, #why, #routing, #ranking, #buy,
+    #finale, #quickstart, #faq, #telegram
+  ),
+  .price-featured > .pf-card,
+  .price-toggle-row
+){
+  opacity:0; transform:translateY(16px); filter:blur(4px);
+  transition:opacity .72s var(--stagger-ease), transform .72s var(--stagger-ease), filter .72s var(--stagger-ease);
+  will-change:transform,opacity,filter;
+}
+html.reveal-on .price-featured > .pf-card:nth-child(2){ transition-delay:60ms; }
+html.reveal-on .price-featured > .pf-card:nth-child(3){ transition-delay:.12s; }
+html.reveal-on .price-featured > .pf-card:nth-child(4){ transition-delay:.18s; }
+html.reveal-on .price-featured > .pf-card:nth-child(5){ transition-delay:.24s; }
+html.reveal-on .price-featured > .pf-card:nth-child(6){ transition-delay:.3s; }
+html.reveal-on .is-in{ opacity:1 !important; transform:none !important; filter:blur(0) !important; }
+
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-behavior:auto; }
+  html.reveal-on :is(
+    :where(
+      #pricing .sec-head, #live .sec-head, #live .live-controls, #live .live-panel,
+      #stats, #buyhook, #features, #why, #routing, #ranking, #buy,
+      #finale, #quickstart, #faq, #telegram
+    ),
+    .price-featured > .pf-card,
+    .price-toggle-row
+  ){ opacity:1; transform:none; filter:none; transition:none; }
+  *,*::before,*::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
+}
+

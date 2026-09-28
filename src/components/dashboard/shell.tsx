@@ -19,8 +19,8 @@ import {
 } from "lucide-react";
 import { Icon } from "@/lib/icons";
 import { dashboardNav } from "@/lib/dashboard-data";
-import { TopUpModal } from "@/components/TopUpModal";
-import { setLocale, getLocale, type Locale } from "@/components/I18n";
+import { TopUpModal } from "@/components/site/TopUpModal";
+import { setLocale, getLocale, type Locale } from "@/components/site/I18n";
 
 const navIcons = {
   wallet: Wallet,

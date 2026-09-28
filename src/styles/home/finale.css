@@ -1,0 +1,18 @@
+.brand-finale{ position:relative; z-index:0; }
+.finale-band{ overflow:hidden; background:radial-gradient(120% 90% at 50% 55%, #17100a 0, #070504 70%); }
+.brand-finale .dim-gl{ position:absolute; inset:0; z-index:1; width:100%; height:100%; display:block; opacity:.55; }
+.dim-tx{ position:relative; z-index:3; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center; padding:clamp(64px,12vh,140px) var(--edge); pointer-events:none; }
+.dim-kick{
+  display:inline-flex; gap:8px; padding:5px 12px; border-radius:var(--corner);
+  border:1px solid rgba(255,240,220,.22); background:rgba(255,251,244,.08);
+  font-family:var(--font-mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,244,226,.72);
+}
+.dim-title{ margin:0; font-size:clamp(24px,3.6vw,42px); font-weight:var(--fw-bold); letter-spacing:-.01em; color:#fffaf2; text-shadow:0 2px 30px rgba(0,0,0,.55); }
+.dither-fade{
+  width:calc(100% + 24px); height:clamp(72px,11vh,132px); margin-top:clamp(28px,5vh,56px); pointer-events:none;
+  background:linear-gradient(90deg,#f3a25c,#fb7d3a 50%,#6d92dd);
+  -webkit-mask-image:url("/assets/dither-fade.svg"); mask-image:url("/assets/dither-fade.svg");
+  -webkit-mask-repeat:repeat-x; mask-repeat:repeat-x; -webkit-mask-position:bottom left; mask-position:bottom left;
+  -webkit-mask-size:24px 100%; mask-size:24px 100%;
+}
+

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LaunchBanner } from "@/components/LaunchBanner";
-import { Nav } from "@/components/Nav";
-import { SiteMotion } from "@/components/SiteMotion";
-import { Footer } from "@/components/Sections";
-import { DownloadPlatforms } from "@/components/download-platforms";
+import { LaunchBanner } from "@/components/site/LaunchBanner";
+import { Nav } from "@/components/site/Nav";
+import { SiteMotion } from "@/components/site/SiteMotion";
+import { Footer } from "@/components/site/Sections";
+import { DownloadPlatforms } from "@/components/site/download-platforms";
 import { Icon } from "@/lib/icons";
 
 export const metadata: Metadata = {

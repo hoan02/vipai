@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { Icon } from "@/lib/icons";
 import { agents, topModels } from "@/lib/data";
 import { TELEGRAM_URL } from "@/lib/site";
-import { RouteDecisionGraph } from "@/components/RouteDecisionGraph";
+import { RouteDecisionGraph } from "@/components/site/RouteDecisionGraph";
 
 export function StatBar() {
   return (

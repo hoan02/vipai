@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import { Geist, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "./site-pages.css";
-import { I18n } from "@/components/I18n";
-import { AuthModal } from "@/components/AuthModal";
+import { I18n } from "@/components/site/I18n";
+import { AuthModal } from "@/components/site/AuthModal";
 
 const geist = Geist({
   subsets: ["latin"],

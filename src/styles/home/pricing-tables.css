@@ -1,0 +1,133 @@
+.price-filters{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:18px; }
+.price-filters .pf-chips{ display:contents; }
+.lf-chip{
+  display:inline-flex; align-items:center; gap:7px; height:34px; padding:0 14px; border-radius:var(--corner);
+  cursor:pointer; white-space:nowrap; font-family:var(--font-sans); font-size:15px; font-weight:var(--fw-medium);
+  color:color-mix(in srgb,var(--ink) 56%,transparent); background:none;
+  border:1px solid color-mix(in srgb,var(--ink) 14%,transparent);
+  transition:color var(--transition-fast),background var(--transition-fast),border-color var(--transition-fast);
+}
+.lf-chip:hover{ color:var(--ink); }
+.lf-chip.is-active{ color:#fff; background:var(--nav-ink); border-color:var(--nav-ink); }
+.pf-search{
+  margin-left:auto; flex:0 1 320px; min-width:150px; display:inline-flex; align-items:center; gap:7px;
+  height:34px; padding:0 11px; border:1px solid color-mix(in srgb,var(--ink) 14%,transparent); border-radius:var(--corner);
+  background:color-mix(in srgb,#fff 62%,transparent); color:color-mix(in srgb,var(--ink) 46%,transparent);
+}
+.pf-search svg{ width:15px; height:15px; flex:none; }
+.pf-search input{ flex:1; min-width:0; border:0; background:none; outline:none; font:inherit; font-size:14px; color:var(--ink); }
+.pf-empty{ margin:28px 0 8px; text-align:center; font-size:14px; color:color-mix(in srgb,var(--ink) 46%,transparent); }
+.table-rel{ position:relative; width:100%; min-width:840px; }
+.tr-band{
+  position:absolute; top:-12px; left:var(--tr-band-left, 56%); width:var(--tr-band-width, 24%); bottom:4px; z-index:0; pointer-events:none;
+  border-radius:var(--corner); overflow:hidden;
+  background:linear-gradient(180deg, color-mix(in srgb,#f97316 12%,transparent), color-mix(in srgb,#f97316 4%,transparent));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);
+  opacity:0; transform:translateY(16px) scale(.984);
+  transition:opacity .75s ease, transform .75s cubic-bezier(.2,.72,.2,1);
+}
+.tr-band.in{ opacity:1; transform:none; }
+.tr-sheen{
+  position:absolute; top:0; bottom:0; left:0; width:40%; pointer-events:none; opacity:0;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.5),transparent);
+  transform:translateX(-160%) skewX(-12deg);
+}
+.tr-band.in .tr-sheen{ animation:trSheen 1.5s ease-in-out 1.2s 1 both; }
+@keyframes trSheen{ 0%{ transform:translateX(-160%) skewX(-12deg); opacity:0; } 14%{ opacity:1; } 86%{ opacity:1; } to{ transform:translateX(430%) skewX(-12deg); opacity:0; } }
+.price-table{ position:relative; z-index:1; table-layout:fixed; }
+
+.live-controls{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:16px; }
+.live-filters{ display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.live-search{
+  position:relative; flex:1 1 240px; min-width:200px; max-width:360px; display:inline-flex; align-items:center; gap:7px;
+  height:34px; padding:0 11px; border:1px solid color-mix(in srgb,var(--ink) 14%,transparent); border-radius:var(--corner);
+  background:color-mix(in srgb,#fff 62%,transparent); color:color-mix(in srgb,var(--ink) 46%,transparent);
+}
+.live-search svg{ width:15px; height:15px; flex:none; }
+.live-search input{ flex:1; min-width:0; border:0; background:none; outline:none; font:inherit; font-size:14px; color:var(--ink); }
+.live-panel{ position:relative; }
+.lm-pill{
+  display:flex; width:100%; align-items:center; gap:9px; padding:10px 12px; border:0; border-radius:var(--corner);
+  background:transparent; cursor:pointer; text-align:left; font:inherit; font-size:14px; font-weight:var(--fw-medium);
+  color:color-mix(in srgb,var(--ink) 62%,transparent); transition:background .18s ease,color .18s ease;
+}
+.lm-pill .lg{ width:17px; height:17px; flex:none; }
+.lm-pill .nm{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lm-pill.is-on{ background:var(--nav-ink); color:#fff; }
+
+/* Vendor marks are tinted from here rather than from an inline style, so the
+   selected row can re-tint them. Inline colour cannot be overridden by a class
+   rule, and it has to be overridden: the OpenAI mark is #0b0a08, which scores
+   1.24:1 on the dark selection and effectively vanishes. Same trap as the
+   price-table highlight — a selected state has to account for what it inverts.
+   Anthropic and Google are mixed toward ink because at 17px on the #f5f5f5
+   panel they measured 2.86:1 and 3.27:1, under the 3:1 floor for an icon. */
+.lm-pill[data-v="OpenAI"] .lg{ color:var(--p-gpt); }
+.lm-pill[data-v="Anthropic"] .lg{ color:color-mix(in srgb, var(--p-claude) 86%, var(--ink)); }
+.lm-pill[data-v="Google"] .lg{ color:color-mix(in srgb, var(--p-gemini) 94%, var(--ink)); }
+.lm-pill[data-v="DeepSeek"] .lg{ color:var(--p-deepseek); }
+.lm-pill[data-v="GLM"] .lg{ color:var(--p-glm); }
+.lm-pill.is-on .lg{ color:#fff; }
+
+/* The badge and the selected pill were both --nav-ink, so on a selected row the
+   chip had no shape and the percentage floated on the fill (1:1). A translucent
+   white chip keeps the pill calm and the chip legible: ~1.8:1 against the pill,
+   ~8.9:1 for the text on the chip. */
+.lm-pill.is-on .disc{ background:color-mix(in srgb, #fff 18%, transparent); }
+
+/* The pill is a button and had no focus indicator at all. */
+.lm-pill:focus-visible{ outline:2px solid var(--amber-deep); outline-offset:-2px; }
+.lc2-stats{ display:flex; flex-wrap:wrap; gap:8px 36px; }
+.lc2-stat{ display:flex; flex-direction:column; gap:3px; }
+.lc2-stat span{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:.08em; color:color-mix(in srgb,var(--ink) 46%,transparent); }
+.lc2-stat b{ font-size:19px; font-weight:var(--fw-bold); color:var(--ink); font-variant-numeric:tabular-nums; }
+.lc2-px{ position:relative; flex:1; min-height:210px; touch-action:pan-y; }
+.lc2-px svg{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+.lc2-y-axis{
+  position:absolute; inset:0 auto 0 0; width:6.8%; z-index:2; pointer-events:none;
+  font-family:var(--font-mono); font-size:11px; font-weight:var(--fw-semibold);
+  color:color-mix(in srgb,var(--ink) 50%,transparent);
+}
+.lc2-y-axis span{ position:absolute; left:0; transform:translateY(-50%); white-space:nowrap; font-variant-numeric:tabular-nums; }
+.lc2-y-axis span.is-emphasis{ color:var(--amber-deep); font-weight:var(--fw-bold); }
+.lc2-tip{ position:absolute; top:0; transform:translateX(-50%); padding:4px 9px; border-radius:var(--corner); white-space:nowrap; background:var(--nav-ink); color:#fff; font-family:var(--font-mono); font-size:11px; opacity:0; pointer-events:none; transition:opacity .15s ease; }
+.lc2-axis{ position:relative; height:16px; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.04em; color:color-mix(in srgb,var(--ink) 42%,transparent); }
+.lc2-axis span{ position:absolute; top:0; transform:translateX(-50%); white-space:nowrap; font-variant-numeric:tabular-nums; }
+.lc2-note{ display:block; text-align:center; }
+.live-empty{
+  position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+  text-align:center; background:color-mix(in srgb,#fffefb 94%,transparent);
+}
+.live-empty[hidden]{ display:none; }
+.live-empty b{ font-size:15px; }
+.live-empty span{ font-size:13px; color:color-mix(in srgb,var(--ink) 52%,transparent); }
+.tu-amt.is-on{ border-color:var(--amber); background:color-mix(in srgb,var(--amber) 8%,transparent); }
+
+@media (max-width:1000px){
+  /* below the sticky breakpoint nothing sticks, so the wide table can scroll
+     inside its own box instead of widening the page */
+  .table-rel{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+}
+@media (max-width:900px){
+  .hub-core .hub-pulse{ display:none; }
+  .rd-note{ display:none; }
+}
+@media (max-width:640px){
+  .pf-search, .live-search{ flex:0 0 auto; width:100%; max-width:none; height:44px; }
+  .price-filters .pf-chips, .live-filters{ width:100%; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+  .table-rel{ min-width:0; }
+  .tr-band{ display:none; }
+  .pt-toggle{ height:44px; padding-inline:18px; }
+  .lc2-stats{ display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .launch-banner.is-entering{ animation:none; }
+  .launch-banner.is-stars .launch-banner-link{ mask-image:none; -webkit-mask-image:none; animation:none; }
+  .hero.t-stagger .t-stagger-line{ animation:none; opacity:1; transform:none; filter:none; }
+  .hub-core .hub-pulse{ animation:none; }
+  .tr-band, .tr-band .tr-sheen, .pricing.show-all .tr-band .tr-sheen{ transition:none; animation:none; opacity:1; }
+  .pt-logos .pl{ animation:none; }
+  .pf-disc.is-live{ animation:none; background-image:none; }
+  .pf-disc.is-live:before, .pf-disc.is-live:after{ display:none; }
+}
+

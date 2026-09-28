@@ -1,0 +1,83 @@
+/* ============================================================
+   Pricing — #priceAll expand/collapse + live discount badge
+   ============================================================ */
+.price-all{ display:none; margin-top:clamp(24px,3.6vh,36px); }
+.pricing.show-all .price-all{ display:block; }
+.pricing.is-expanding{ overflow:hidden; }
+.pricing.is-expanding .price-filters,
+.pricing.is-expanding .price-table thead th{ position:static !important; }
+/* the band is the expand flourish: it can only exist while the table does */
+.pricing.show-all .tr-band{ opacity:1; transform:none; }
+.pricing.show-all .tr-band .tr-sheen{ animation:trSheen 1.5s ease-in-out 1.2s 1 both; }
+
+@media (min-width:1000px){
+  .pricing.show-all .price-filters{
+    position:sticky; top:var(--nav-h); z-index:3;
+    background:color-mix(in srgb, var(--stage-bg) 92%, transparent);
+    backdrop-filter:blur(8px);
+    padding-block:10px; margin-bottom:8px;
+  }
+  .pricing.show-all .price-table thead th{
+    position:sticky; top:calc(var(--nav-h) + var(--price-filters-h, 54px)); z-index:2;
+    background:color-mix(in srgb, var(--stage-bg) 92%, transparent);
+    backdrop-filter:blur(8px);
+  }
+}
+
+.price-toggle-row{ display:flex; justify-content:center; gap:12px; flex-wrap:wrap; margin-top:clamp(34px,5vh,52px); }
+.pt-logos{ display:inline-flex; align-items:center; margin-right:10px; }
+.pt-logos .pl{
+  width:26px; height:26px; border-radius:50%; flex:none; display:inline-grid; place-items:center;
+  background:#fff; border:1px solid color-mix(in srgb,var(--ink) 12%,transparent); margin-left:-8px;
+  animation:ptLogoWave 1.2s ease-in-out infinite;
+}
+.pt-logos .pl:first-child{ margin-left:0; }
+.pt-logos .pl svg{ width:14px; height:14px; display:block; }
+.pt-logos .pl:nth-child(2){ animation-delay:.09s; }
+.pt-logos .pl:nth-child(3){ animation-delay:.18s; }
+.pt-logos .pl:nth-child(4){ animation-delay:.27s; }
+.pt-logos .pl:nth-child(5){ animation-delay:.36s; }
+.pt-logos .pl:nth-child(6){ animation-delay:.45s; }
+.pt-logos .pl:nth-child(7){ animation-delay:.54s; }
+#priceToggle:hover .pt-logos .pl{ animation-play-state:paused; }
+#priceToggle .pt-open, .pricing.show-all .pt-logos{ display:none; }
+.pricing.show-all #priceToggle .pt-open{ display:inline; }
+.price-all, .pricing.show-all #priceToggle .pt-closed{ display:none; }
+@keyframes ptLogoWave{ 0%,to{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
+
+.pf-disc{
+  margin-left:auto; flex:none; height:26px; padding:0 10px; display:inline-flex; align-items:center;
+  border-radius:var(--corner); background:var(--nav-ink); color:#fff;
+  font-family:var(--font-mono); font-size:13px; font-weight:var(--fw-bold); letter-spacing:.02em;
+  font-variant-numeric:tabular-nums;
+}
+/* the discount badge is a link into the live chart */
+.pf-disc.is-linkable{ cursor:pointer; transition:transform .15s ease, opacity .15s ease; }
+.pf-disc.is-linkable:hover{ opacity:.84; transform:translateY(-1px); }
+.pf-disc.is-linkable:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; opacity:1; }
+.pf-disc.is-live{
+  position:relative; transform-style:preserve-3d; background-color:var(--nav-ink);
+  background-image:linear-gradient(115deg,transparent 38%,color-mix(in srgb,#22abf3 60%,transparent) 42%,color-mix(in srgb,#c0c7e0 85%,transparent) 46%,color-mix(in srgb,#fff 70%,transparent) 50%,color-mix(in srgb,#fbc6a2 85%,transparent) 54%,color-mix(in srgb,#fead00 55%,transparent) 58%,transparent 62%);
+  background-repeat:no-repeat; background-size:300% 100%; background-position:100% 0;
+  text-shadow:0 0 2px color-mix(in srgb,var(--nav-ink) 70%,transparent);
+  animation:pf-free-flip 6.6s linear .25s infinite,pf-free-sweep 6.6s linear .25s infinite;
+}
+.pf-disc.is-live:before, .pf-disc.is-live:after{ content:""; position:absolute; top:0; bottom:0; width:8px; background:color-mix(in srgb,var(--nav-ink) 58%,#fff); }
+.pf-disc.is-live:after{ left:100%; transform-origin:left center; transform:rotateY(90deg); }
+.pf-disc.is-live:before{ right:100%; transform-origin:right center; transform:rotateY(-90deg); }
+@keyframes pf-free-flip{
+  0%{ transform:perspective(360px) rotateY(0deg) scale(1); animation-timing-function:cubic-bezier(.55,0,.9,.4); }
+  4.5%{ transform:perspective(360px) rotateY(-90deg) scale(1.16); animation-timing-function:step-end; }
+  4.6%{ transform:perspective(360px) rotateY(90deg) scale(1.16); animation-timing-function:cubic-bezier(.22,1,.36,1); }
+  10.6%,to{ transform:perspective(360px) rotateY(0deg) scale(1); }
+}
+@keyframes pf-free-sweep{
+  0%,21.2%{ background-position:100% 0; animation-timing-function:cubic-bezier(.45,0,.55,1); }
+  34.8%{ background-position:0 0; animation-timing-function:step-end; }
+  34.9%,43.9%{ background-position:100% 0; animation-timing-function:cubic-bezier(.45,0,.55,1); }
+  57.6%{ background-position:0 0; animation-timing-function:step-end; }
+  57.7%,66.7%{ background-position:100% 0; animation-timing-function:cubic-bezier(.45,0,.55,1); }
+  80.3%{ background-position:0 0; animation-timing-function:step-end; }
+  80.4%,to{ background-position:100% 0; }
+}
+

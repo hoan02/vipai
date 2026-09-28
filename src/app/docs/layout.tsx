@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
-import { LaunchBanner } from "@/components/LaunchBanner";
-import { Nav } from "@/components/Nav";
-import { SiteMotion } from "@/components/SiteMotion";
-import { Footer } from "@/components/Sections";
+import { LaunchBanner } from "@/components/site/LaunchBanner";
+import { Nav } from "@/components/site/Nav";
+import { SiteMotion } from "@/components/site/SiteMotion";
+import { Footer } from "@/components/site/Sections";
 import { SvgSprite } from "@/lib/icons";
 import { DocsShell } from "@/components/docs/docs-shell";
 import "./docs.css";

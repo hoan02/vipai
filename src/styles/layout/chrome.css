@@ -1,0 +1,110 @@
+/* ============================================================
+   Launch banner â€” fixed, 44px, #14110f
+   ============================================================ */
+.launch-banner{ position:fixed; top:0; left:0; right:0; z-index:60; height:var(--lb-h); background:var(--ink); color:var(--stage-bg); }
+.launch-banner-link{
+  position:relative; z-index:1; display:flex; align-items:center; justify-content:center; flex-wrap:wrap;
+  gap:7px; min-height:44px; padding:12px 52px; color:inherit; text-align:center; text-decoration:none;
+}
+.launch-banner-text{
+  position:relative; display:block; height:20px; min-width:clamp(200px,46vw,460px);
+  font-size:14px; line-height:20px; font-weight:var(--fw-medium); letter-spacing:.005em;
+}
+.lb-msg{
+  position:absolute; inset:0; display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  white-space:nowrap; opacity:0; transform:translateY(7px); pointer-events:none;
+  transition:opacity .38s ease-out, transform .38s cubic-bezier(.2,0,0,1);
+}
+.lb-msg.is-on{ opacity:1; transform:none; }
+.lb-msg svg{ flex:none; width:15px; height:15px; }
+.launch-banner-arrow{ flex:none; transition:transform .2s cubic-bezier(.2,0,0,1); }
+.launch-banner-link:hover .launch-banner-arrow{ transform:translateX(4px); }
+@media (prefers-reduced-motion: reduce){ .lb-msg{ transition:none !important; } }
+.launch-banner-close{
+  position:absolute; z-index:1; top:50%; right:14px; transform:translateY(-50%);
+  display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px;
+  border:0; border-radius:6px; background:transparent; color:color-mix(in srgb, var(--stage-bg) 52%, transparent); cursor:pointer;
+  transition:color .16s linear, background-color .16s linear;
+}
+.launch-banner-close:hover{ color:var(--stage-bg); background:color-mix(in srgb, var(--stage-bg) 13%, transparent); }
+
+/* ============================================================
+   Nav â€” fixed full-width bar, dotted bottom rule
+   ============================================================ */
+.nav-pill{
+  position:fixed; top:var(--lb-h); left:0; right:0; z-index:50; height:var(--nav-h);
+  background-color:var(--stage-bg);
+  background-image:var(--dot-rule); background-repeat:repeat-x; background-position:0 100%; background-size:var(--dot-rule-size);
+}
+.nav-in{ max-width:var(--maxw); height:100%; margin:0 auto; padding:0 var(--edge); display:flex; align-items:center; gap:clamp(14px,1.8vw,36px); }
+.brand{ display:inline-flex; align-items:center; flex:none; font-weight:var(--fw-bold); font-size:17px; letter-spacing:-.02em; color:var(--ink); text-decoration:none; }
+.brand .logo{ width:21px; height:22px; flex:none; display:block; color:var(--amber-deep); transition:transform var(--transition-med); }
+.brand:hover .logo{ transform:scale(1.12) rotate(-6deg); }
+.brand-name{ display:inline-block; margin-left:9px; white-space:nowrap; }
+.links{ flex:1; display:flex; align-items:center; justify-content:center; gap:clamp(12px,1.5vw,26px); font-weight:var(--fw-medium); font-size:14.5px; color:var(--nav-ink); }
+.links a{ position:relative; display:inline-flex; gap:5px; white-space:nowrap; text-decoration:none; color:inherit; transition:opacity var(--transition-fast), color var(--transition-fast); }
+.links a:hover{ opacity:.6; }
+.links a.is-active{ opacity:1; color:var(--amber); }
+.actions{ min-width:182px; display:flex; align-items:center; justify-content:flex-end; gap:10px; }
+.icon-btn{ width:36px; height:36px; display:grid; place-items:center; border:0; background:transparent; color:var(--nav-ink); cursor:pointer; transition:background-color var(--transition-fast), opacity var(--transition-fast); }
+.icon-btn:hover{ background:color-mix(in srgb, var(--nav-ink) 7%, transparent); }
+.login-btn{ display:inline-flex; height:36px; padding:0 18px; align-items:center; justify-content:center; border:0; border-radius:var(--corner); background:var(--nav-ink); color:var(--stage-bg); font-size:14px; font-weight:var(--fw-medium); text-decoration:none; transition:opacity .14s ease; cursor:pointer; }
+.login-btn:hover{ opacity:.9; }
+.lang-wrap{ position:relative; }
+.lang-menu{ position:absolute; right:0; top:calc(100% + 8px); min-width:150px; padding:6px; background:color-mix(in srgb, var(--stage-bg) 98%, transparent); border:1px solid color-mix(in srgb, var(--ink) 14%, transparent); backdrop-filter:blur(16px); display:none; z-index:70; }
+.lang-menu.open{ display:block; }
+.lang-opt{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border:0; background:transparent; cursor:pointer; font-size:14px; text-align:left; }
+.lang-opt:hover{ background:color-mix(in srgb, var(--ink) 5%, transparent); }
+.lang-opt .ck{ width:15px; height:15px; opacity:0; color:var(--amber-deep); }
+.lang-opt[aria-selected="true"] .ck{ opacity:1; }
+.nav-burger{ display:none; }
+.nav-scrim{ display:none; }
+.nav-sheet-head{ display:none; }
+
+/* ============================================================
+   User button — avatar + account menu.
+   Shared by the landing nav, the dashboard shell and the admin
+   shell, so it lives in the global stylesheet. Dark menu surface
+   is deliberate: it matches the reference's account popover.
+   ============================================================ */
+.ub{ position:relative; display:inline-block; text-align:left; }
+.ub-av{
+  display:flex; align-items:center; justify-content:center; width:32px; height:32px;
+  border-radius:9999px; border:1px solid color-mix(in srgb, #10b981 40%, transparent);
+  background:color-mix(in srgb, #10b981 20%, transparent);
+  color:#34d399; font-weight:var(--fw-semibold); font-size:12px; cursor:pointer;
+  transition:background-color .15s ease;
+}
+.ub-av:hover{ background:color-mix(in srgb, #10b981 30%, transparent); }
+.ub-av.is-loading{ border-color:transparent; background:color-mix(in srgb, #fff 10%, transparent); animation:ubPulse 2s cubic-bezier(.4,0,.6,1) infinite; }
+@keyframes ubPulse{ 50%{ opacity:.5; } }
+.ub-menu{
+  position:absolute; right:0; top:calc(100% + 8px); z-index:50; width:224px;
+  padding:8px 0; border-radius:12px; background:#14171f; border:1px solid color-mix(in srgb, #fff 10%, transparent);
+  box-shadow:0 25px 50px -12px rgba(0,0,0,.25);
+  animation:ubIn .15s cubic-bezier(.2,0,0,1) both;
+}
+@keyframes ubIn{ from{ opacity:0; transform:scale(.95); } to{ opacity:1; transform:none; } }
+.ub-head{ padding:8px 16px; border-bottom:1px solid color-mix(in srgb, #fff 5%, transparent); }
+.ub-name{ font-size:14px; font-weight:var(--fw-medium); color:#fff; }
+.ub-email{ font-size:12px; color:color-mix(in srgb, #fff 50%, transparent); }
+.ub-name,.ub-email{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ub-list{ padding:4px 0; }
+.ub-item{
+  display:flex; align-items:center; gap:10px; padding:8px 16px; font-size:12px;
+  color:color-mix(in srgb, #fff 80%, transparent); text-decoration:none;
+  transition:background-color .15s ease, color .15s ease;
+}
+.ub-item:hover{ background:color-mix(in srgb, #fff 5%, transparent); color:#fff; }
+.ub-item svg{ color:color-mix(in srgb, #fff 60%, transparent); }
+.ub-foot{ border-top:1px solid color-mix(in srgb, #fff 5%, transparent); padding-top:4px; }
+.ub-out{
+  display:flex; align-items:center; gap:10px; width:100%; padding:8px 16px;
+  border:0; background:none; font:inherit; font-size:12px; color:#fb7185; cursor:pointer;
+  transition:background-color .15s ease;
+}
+.ub-out:hover{ background:color-mix(in srgb, #f43f5e 10%, transparent); }
+@media (prefers-reduced-motion: reduce){
+  .ub-av.is-loading, .ub-menu{ animation:none; }
+}
+

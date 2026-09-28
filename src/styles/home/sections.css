@@ -1,0 +1,160 @@
+/* ============================================================
+   Shared section scaffolding
+   ============================================================ */
+.section{
+  position:relative; z-index:1; max-width:1400px; margin:0 auto;
+  padding:var(--sec-pt) var(--edge) var(--sec-pb);
+}
+.sec-head{ margin-bottom:clamp(40px,6vh,68px); }
+.sec-title{ font-size:clamp(30px,3.6vw,46px); font-weight:var(--fw-bold); letter-spacing:-.03em; line-height:1.12; }
+.sec-sub{ margin-top:14px; color:color-mix(in srgb, var(--ink) 62%, transparent); font-size:16px; max-width:66ch; }
+.sec-head.center{ text-align:center; }
+.sub-link{ display:inline-flex; align-items:center; gap:5px; margin-top:10px; font-weight:var(--fw-medium); font-size:15px; color:var(--amber-deep); text-decoration:none; border-bottom:1px solid color-mix(in srgb, var(--amber-deep) 30%, transparent); padding-bottom:1px; transition:border-color .18s ease, gap .18s var(--stagger-ease); }
+.sub-link:hover{ border-color:var(--amber-deep); gap:8px; }
+.sub-link svg{ width:15px; height:15px; }
+
+/* Capability strip */
+.capstrip{ position:relative; z-index:1; max-width:1400px; margin:0 auto; padding:clamp(20px,3.4vh,44px) var(--edge) clamp(26px,4vh,52px); display:flex; flex-direction:column; align-items:center; gap:clamp(16px,2.2vh,22px); }
+.cap-pills{ display:flex; flex-wrap:wrap; justify-content:center; gap:10px; }
+.cap-pills li{
+  display:inline-flex; align-items:center; gap:8px; padding:8px 14px;
+  border:1px solid rgba(255,255,255,.55); border-radius:var(--corner); background:rgba(255,255,255,.5);
+  backdrop-filter:blur(16px) saturate(1.3); -webkit-backdrop-filter:blur(16px) saturate(1.3);
+  font-size:13.5px; font-weight:var(--fw-medium); color:color-mix(in srgb, var(--ink) 78%, transparent);
+}
+.cap-pills li svg{ width:15px; height:15px; flex:none; color:color-mix(in srgb, var(--ink) 40%, transparent); }
+.trusted{ display:inline-flex; align-items:center; gap:12px; }
+.tr-av{ display:inline-flex; }
+.tr-av span{ width:28px; height:28px; margin-left:-9px; border-radius:50%; display:grid; place-items:center; background:rgba(255,255,255,.82); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.6); }
+.tr-av span:first-child{ margin-left:0; }
+.tr-av img{ width:19px; height:19px; object-fit:contain; }
+.tr-av svg{ width:14px; height:14px; }
+.trusted p{ font-size:15px; color:color-mix(in srgb, var(--ink) 68%, transparent); }
+.trusted b{ font-family:var(--font-mono); font-weight:var(--fw-bold); font-size:19px; letter-spacing:-.01em; color:var(--ink); }
+
+/* ============================================================
+   Pricing
+   ============================================================ */
+.price-featured{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.pf-card{ display:flex; flex-direction:column; gap:18px; padding:24px 26px 22px; border-radius:var(--corner); border:1px solid color-mix(in srgb, var(--ink) 12%, transparent); background:color-mix(in srgb, #fff 55%, transparent); position:relative; transition:transform .22s var(--stagger-ease), border-color .22s var(--stagger-ease); }
+.pf-card:hover{ border-color:color-mix(in srgb, var(--ink) 20%, transparent); transform:translateY(-2px); }
+.pf-hd{ display:flex; align-items:center; gap:11px; flex-wrap:wrap; row-gap:8px; }
+.pf-hd .lg{ width:22px; height:22px; flex:none; }
+.pf-tx{ display:flex; flex-direction:column; gap:2px; min-width:0; flex:1; }
+.pf-name{ font-size:16px; font-weight:var(--fw-semibold); letter-spacing:-.01em; }
+.pf-sub{ font-size:13px; color:color-mix(in srgb, var(--ink) 50%, transparent); }
+.pf-prices{ display:grid; grid-template-columns:1fr 1fr; gap:14px; border-top:1px solid color-mix(in srgb, var(--ink) 10%, transparent); padding-top:16px; margin-top:auto; }
+.pf-col{ display:grid; gap:3px; }
+.pf-cap{ font-size:11.5px; color:color-mix(in srgb, var(--ink) 44%, transparent); }
+.pf-off{ font-size:12.5px; color:color-mix(in srgb, var(--ink) 44%, transparent); text-decoration:line-through; }
+.pf-now{ font-size:26px; font-weight:var(--fw-bold); letter-spacing:-.02em; }
+.disc{ display:inline-flex; align-items:center; height:20px; padding:0 7px; border-radius:var(--corner); background:var(--nav-ink); color:#fff; font-family:var(--font-mono); font-size:11px; font-weight:var(--fw-bold); white-space:nowrap; }
+.pf-disc{ flex:none; }
+
+.table-tools{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:clamp(30px,4vh,46px) 0 8px; }
+.filters{ display:flex; flex-wrap:wrap; gap:8px; }
+.filter{
+  padding:8px 14px; border:1px solid color-mix(in srgb, var(--ink) 14%, transparent); border-radius:var(--corner);
+  background:transparent; font-size:13.5px; font-weight:var(--fw-medium); cursor:pointer; color:color-mix(in srgb, var(--ink) 70%, transparent);
+  transition:background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.filter:hover{ background:color-mix(in srgb, var(--ink) 5%, transparent); color:var(--ink); }
+.filter[aria-pressed="true"]{ background:var(--nav-ink); color:#fff; border-color:var(--nav-ink); }
+.price-table{ width:100%; min-width:920px; table-layout:fixed; border-collapse:separate; border-spacing:0; font-variant-numeric:tabular-nums; }
+.price-table th,.price-table td{ padding:22px 20px; text-align:left; white-space:nowrap; vertical-align:middle; overflow:hidden; text-overflow:ellipsis; }
+.price-table th:first-child,.price-table td:first-child{ padding-left:6px; }
+.price-table thead th{ font-weight:var(--fw-medium); font-size:14.5px; color:color-mix(in srgb, var(--ink) 48%, transparent); padding-top:8px; padding-bottom:16px; }
+.price-table thead tr{ background:var(--dot-rule) 0 100%/var(--dot-rule-size) repeat-x; }
+.price-table tbody tr{ background:var(--dot-rule) 0 100%/var(--dot-rule-size) repeat-x; }
+.price-table tbody td{ font-size:17px; color:var(--ink); transition:background-color var(--transition-fast); }
+.price-table tbody tr:hover td{ background-color:color-mix(in srgb, var(--ink) 3%, transparent); }
+/* a row is a link into the live chart, and the row a card jumps to says so */
+.price-table tbody tr[data-model]{ cursor:pointer; }
+/* 1.8s flash on the row a featured card jumps to */
+.price-table tbody tr.is-jumped>td{ animation:pfRowJump 1.8s ease both; }
+@keyframes pfRowJump{
+  0%{ background-color:transparent; }
+  14%{ background-color:color-mix(in srgb, var(--ink) 7%, transparent); }
+  82%{ background-color:color-mix(in srgb, var(--ink) 7%, transparent); }
+  to{ background-color:transparent; }
+}
+@media (prefers-reduced-motion: reduce){
+  .price-table tbody tr.is-jumped>td{ animation:none; background-color:color-mix(in srgb, var(--ink) 7%, transparent); }
+}
+.price-table td.tr{ font-weight:var(--fw-bold); color:var(--ink); }
+/* the two AiGiare columns carry price + discount badge + cache line: let them
+   wrap instead of clipping the badge away */
+.price-table th.tr, .price-table td.tr{ white-space:normal; }
+/* When the table opens (See all model prices), the AiGiare Input/Output
+   columns sweep a highlight to draw the eye, then settle back. Runs once.
+   Three things this has to get right, and previously did not:
+   1. The stagger is derived from each row's own index (--i), not from six
+      hand-written :nth-child rules. The old `n+7` catch-all put half a
+      twelve-row table on one delay, so rows 7-12 lit as a single flat slab
+      right after a six-step wave — it read as the sweep repeating.
+   2. Duration and easing match the work. The old 1.4s with a hard
+      cubic-bezier(.2,0,0,1) put the entire visible event in the first ~250ms
+      and then sat transparent for the remaining 1.15s.
+   3. The tint is an overlay inset 1px from the bottom, not a background on
+      the cell. The dotted row rule is painted on the <tr>, so a cell
+      background covers it and the separator visibly breaks across exactly the
+      two highlighted columns. */
+.price-table th.tr, .price-table td.tr{ position:relative; }
+.price-table th.tr::after, .price-table td.tr::after{
+  content:""; position:absolute; inset:0 0 1px 0; pointer-events:none; opacity:0;
+  background:color-mix(in srgb, var(--amber) 26%, transparent);
+}
+@keyframes ptColHighlight{
+  0%{ opacity:0; }
+  26%{ opacity:1; }
+  100%{ opacity:0; }
+}
+.price-table[data-expanded="true"] td.tr::after{
+  animation:ptColHighlight 700ms cubic-bezier(.33,0,.2,1) 1 both;
+  animation-delay:calc(var(--i, 0) * 45ms);
+}
+/* the header names the columns first, so the wave reads as coming from them */
+.price-table[data-expanded="true"] thead th.tr::after{
+  animation:ptColHighlight 700ms cubic-bezier(.33,0,.2,1) 1 both;
+}
+@media (prefers-reduced-motion: reduce){
+  .price-table[data-expanded="true"] th.tr::after,
+  .price-table[data-expanded="true"] td.tr::after{ animation:none !important; }
+}
+.pt-model{ display:flex; align-items:center; gap:9px; font-weight:var(--fw-semibold); font-size:17.5px; letter-spacing:-.01em; white-space:nowrap; }
+.pt-model .lg{ width:18px; height:18px; flex:none; }
+.pt-off{ color:color-mix(in srgb, var(--ink) 44%, transparent); text-decoration:line-through; }
+.pt-sub{ display:block; font-size:12.5px; color:color-mix(in srgb, var(--ink) 44%, transparent); }
+.pt-prov{ color:color-mix(in srgb, var(--ink) 55%, transparent); font-size:15px; }
+
+/* ============================================================
+   Stat bar
+   ============================================================ */
+.statbar{ position:relative; z-index:1; max-width:1400px; margin:0 auto; padding:clamp(56px,8.5vh,104px) var(--edge) 0; }
+.statbar-in{
+  display:grid; grid-template-columns:repeat(4,1fr);
+  background-image:var(--dot-rule),var(--dot-rule),var(--rule-v),var(--rule-v),var(--rule-v);
+  background-position:0 0,0 100%,25% 0,50% 0,75% 0;
+  background-size:var(--dot-rule-size),var(--dot-rule-size),var(--rule-v-size),var(--rule-v-size),var(--rule-v-size);
+  background-repeat:repeat-x,repeat-x,repeat-y,repeat-y,repeat-y;
+}
+.sb-i{ padding:clamp(20px,3vh,30px) clamp(14px,2vw,28px); }
+.sb-i:first-child{ padding-left:0; }
+.sb-i b{ display:block; font-family:var(--font-mono); font-weight:var(--fw-bold); font-size:clamp(1.65rem,2.6vw,2.1rem); line-height:1.1; letter-spacing:-.02em; color:var(--ink); }
+.sb-i span{ display:block; margin-top:8px; font-size:14px; color:color-mix(in srgb, var(--ink) 56%, transparent); }
+
+/* ============================================================
+   Buy band
+   ============================================================ */
+.buy{ position:relative; z-index:1; display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden; background:var(--stage-bg); aspect-ratio:1440/613; min-height:460px; padding:clamp(40px,6vh,80px) var(--edge) clamp(48px,6.2vw,90px); }
+.buy.buy-hook{ aspect-ratio:auto; min-height:380px; padding:clamp(36px,5.5vh,60px) var(--edge); }
+.buy::before{ content:""; position:absolute; inset:0; z-index:0; pointer-events:none; background:url("/assets/buy-art-bg.webp") center/cover no-repeat; }
+.buy::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:44%; z-index:0; background:linear-gradient(180deg,transparent,color-mix(in srgb, #ffe7d8 72%, transparent) 68%,#ffe7d8); }
+.buy-inner{ position:relative; z-index:1; max-width:760px; margin:0 auto; }
+.buy-title{ font-weight:var(--fw-bold); font-size:clamp(2rem,4.4vw,3.2rem); line-height:1.14; letter-spacing:-.02em; }
+.buy.buy-hook .buy-title{ font-size:clamp(1.75rem,3.6vw,2.6rem); }
+.buy-title .grad{ background:url("/assets/agent-grad.webp") 0 50%/240% 160% no-repeat,linear-gradient(90deg,#fcd7d3,#fd924f 50%,#e3eaf4) 0 0/100% 100% no-repeat; -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; animation:agentFlow 6.5s ease-in-out infinite alternate; }
+.buy-sub{ margin-top:14px; max-width:600px; margin-inline:auto; font-size:clamp(1rem,1.5vw,1.15rem); line-height:1.55; color:color-mix(in srgb, var(--ink) 68%, transparent); }
+.buy-actions{ margin-top:clamp(26px,3.8vh,40px); display:flex; justify-content:center; gap:10px; flex-wrap:wrap; }
+.buy-trust{ margin-top:18px; font-family:var(--font-mono); font-size:12.5px; letter-spacing:.05em; color:color-mix(in srgb, var(--ink) 54%, transparent); }
+

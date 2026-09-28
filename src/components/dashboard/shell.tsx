@@ -9,10 +9,11 @@ import {
   Activity,
   BarChart3,
   ChevronsUpDown,
+  CreditCard,
   Gauge,
   KeyRound,
-  SlidersHorizontal,
-  Users,
+  Shield,
+  User,
   Wallet,
 } from "lucide-react";
 import { Icon } from "@/lib/icons";
@@ -22,12 +23,15 @@ import { setLocale, getLocale, type Locale } from "@/components/I18n";
 
 const navIcons = {
   wallet: Wallet,
-  sliders: SlidersHorizontal,
+  credit: CreditCard,
+  sliders: Gauge,
   key: KeyRound,
   pulse: Activity,
   bars: BarChart3,
-  users: Users,
+  users: Shield,
   gauge: Gauge,
+  shield: Shield,
+  user: User,
 };
 
 const topTabs = [

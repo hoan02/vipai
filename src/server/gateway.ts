@@ -78,6 +78,20 @@ export type GatewayLog = {
   completion_tokens: number;
   quota: number;
   token_name: string;
+  /** Request id assigned by the gateway, shown in the detail dialog. */
+  request_id?: string;
+  /** True when the answer was streamed. */
+  is_stream?: boolean;
+  /** Seconds the upstream took to answer. */
+  use_time?: number;
+  /** Source address the request came from. */
+  ip?: string;
+  /** Group the key was used under, e.g. `default`. */
+  group?: string;
+  /** Register channel that served it, for diagnostics. */
+  channel_name?: string;
+  /** 1 consumption, 2 top-up, 3 refund, 4 system, 5 error. */
+  type?: number;
 };
 
 type Envelope<T> = { data?: T; message?: string; success?: boolean };
@@ -438,6 +452,176 @@ export async function listLogs(
     { token: accessToken },
   );
   return data.items ?? [];
+}
+
+/**
+ * A page of usage rows with the gateway's own totals.
+ *
+ * The richer sibling of `listLogs`: it keeps the pagination metadata and the
+ * fields the usage screen filters and renders (request id, stream flag, latency,
+ * source ip, group), which the dashboard summary does not need.
+ */
+export type PagedLogs = {
+  items: GatewayLog[];
+  page: number;
+  pageSize: number;
+  total: number;
+};
+
+export async function listLogsPaged(
+  accessToken: string,
+  options: { page?: number; pageSize?: number } = {},
+): Promise<PagedLogs> {
+  const page = Math.max(0, options.page ?? 0);
+  const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 20));
+
+  const data = await call<{
+    items: GatewayLog[];
+    page: number;
+    page_size: number;
+    total: number;
+  }>(`/api/log/self?p=${page}&page_size=${pageSize}`, { token: accessToken });
+
+  return {
+    items: data.items ?? [],
+    page: data.page ?? page,
+    pageSize: data.page_size ?? pageSize,
+    total: data.total ?? 0,
+  };
+}
+
+/** The account's own usage rollup: quota spent, requests per minute, tokens per minute. */
+export type SelfLogStat = { quota: number; rpm: number; tpm: number };
+
+export async function getLogStat(accessToken: string): Promise<SelfLogStat> {
+  const data = await call<SelfLogStat>("/api/log/self/stat", { token: accessToken });
+  return { quota: data.quota ?? 0, rpm: data.rpm ?? 0, tpm: data.tpm ?? 0 };
+}
+
+/* --- wallet -------------------------------------------------------------- */
+
+/** One credit purchase the account made. */
+export type GatewayTopUp = {
+  id: number;
+  user_id: number;
+  amount: number;
+  money: number;
+  trade_no: string;
+  create_time: number;
+  complete_time: number;
+  status: string;
+  payment_method: string;
+};
+
+/** The account's purchase history, newest first. */
+export async function listTopUps(
+  accessToken: string,
+  pageSize = 50,
+): Promise<GatewayTopUp[]> {
+  const data = await call<{ items: GatewayTopUp[] }>(
+    `/api/user/topup/self?p=0&page_size=${pageSize}`,
+    { token: accessToken },
+  );
+  return data.items ?? [];
+}
+
+/** What the gateway will accept for a purchase: amounts, methods, toggles. */
+export type TopUpInfo = {
+  minTopup: number;
+  amountOptions: number[];
+  enableRedemption: boolean;
+  enableOnlineTopup: boolean;
+  payMethods: Array<{ name: string; type: string; icon: string }>;
+};
+
+export async function getTopUpInfo(accessToken: string): Promise<TopUpInfo> {
+  const data = await call<{
+    amount_options?: number[];
+    min_topup?: number;
+    enable_redemption?: boolean;
+    enable_online_topup?: boolean;
+    pay_methods?: Array<{ name: string; type: string; icon: string }>;
+  }>("/api/user/topup/info", { token: accessToken });
+
+  return {
+    minTopup: data.min_topup ?? 1,
+    amountOptions: data.amount_options ?? [10, 20, 50, 100, 200, 500],
+    enableRedemption: data.enable_redemption ?? false,
+    enableOnlineTopup: data.enable_online_topup ?? false,
+    payMethods: data.pay_methods ?? [],
+  };
+}
+
+/**
+ * Redeems a credit code.
+ *
+ * Returns the credited amount in quota units. The gateway answers a generic
+ * failure for every bad code, deliberately, so the caller cannot tell an
+ * already-used code from a nonexistent one.
+ */
+export async function redeemCode(accessToken: string, key: string): Promise<number> {
+  const data = await call<number>("/api/user/topup", {
+    method: "POST",
+    token: accessToken,
+    body: JSON.stringify({ key }),
+  });
+  return typeof data === "number" ? data : 0;
+}
+
+/* --- sessions ------------------------------------------------------------ */
+
+/** One signed-in browser session. */
+export type GatewaySession = {
+  sid: string;
+  current: boolean;
+  loginMethod: string;
+  ip: string;
+  userAgent: string;
+  createdAt: Date;
+  lastActiveAt: Date;
+  expiresAt: Date;
+};
+
+export async function listSessions(accessToken: string): Promise<GatewaySession[]> {
+  const data = await call<
+    Array<{
+      sid: string;
+      current: boolean;
+      login_method: string;
+      ip: string;
+      user_agent: string;
+      created_at: number;
+      last_active_at: number;
+      expires_at: number;
+    }>
+  >("/api/user/sessions", { token: accessToken });
+
+  return (data ?? []).map((row) => ({
+    sid: row.sid,
+    current: row.current,
+    loginMethod: row.login_method || "password",
+    ip: row.ip || "",
+    userAgent: row.user_agent || "",
+    createdAt: new Date(row.created_at * 1000),
+    lastActiveAt: new Date(row.last_active_at * 1000),
+    expiresAt: new Date(row.expires_at * 1000),
+  }));
+}
+
+/** Revokes one session by id. */
+export async function revokeSession(accessToken: string, sid: string): Promise<void> {
+  await call(`/api/user/sessions/${encodeURIComponent(sid)}`, {
+    method: "DELETE",
+    token: accessToken,
+  });
+}
+
+/** Revokes every session except the one making the call. */
+export async function revokeOtherSessions(accessToken: string): Promise<void> {
+  await call("/api/user/sessions/revoke-others", {
+    method: "POST",
+    token: accessToken,
+  });
 }
 
 /**

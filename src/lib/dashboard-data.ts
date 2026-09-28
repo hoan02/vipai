@@ -1,8 +1,8 @@
 // Shapes for the dashboard views, plus the static navigation.
 //
-// Data is never defined here. Every figure comes from the Go backend through
-// `@/server/*`; when the account has no data yet, the views render their empty
-// state instead of sample numbers.
+// Data is never defined here. Every figure comes from the new-api gateway
+// through `@/server/*`; when the account has no data yet, the views render
+// their empty state instead of sample numbers.
 
 export type NavItem = {
   label: string;
@@ -63,14 +63,6 @@ export type UsageSummary = {
   cacheWrite: string;
 };
 
-/** Zeroed summary shown when the backend has no usage recorded yet. */
-export const usageSummary: UsageSummary = {
-  input: "0",
-  output: "0",
-  cacheRead: "0",
-  cacheWrite: "0",
-};
-
 export type UsagePoint = {
   /** Day of month, as rendered on the chart's x axis. */
   day: string;
@@ -79,14 +71,8 @@ export type UsagePoint = {
   output: number;
 };
 
-/** Empty series; the usage view renders an empty state. */
-export const usageSeries: UsagePoint[] = [];
-
 export const monthSpend = "$0.00";
 export const savedThisMonth = "$0.00";
-
-/** Credit balance. Not tracked by the backend yet. */
-export const balance: string | null = null;
 
 export type Member = {
   email: string;
@@ -98,8 +84,6 @@ export type Member = {
 
 /** No members until an organization or team backend exists. */
 export const members: Member[] = [];
-
-export const orgBudget: { total: string; used: string; pct: number } | null = null;
 
 export type CostByModel = {
   model: string;

@@ -28,7 +28,7 @@ export default async function DashboardAdminPage() {
 
   const models = [...new Set(channels.flatMap((channel) => channel.models))].sort();
   const rows: ModelPrice[] = models.map(
-    (id) => prices.get(id) ?? { id, input: 0, output: 0, cache: null },
+    (id) => prices.get(id) ?? { id, input: 0, output: 0, cache: null, perCall: null },
   );
 
   return <AdminView initialChannels={channels} initialPrices={rows} />;

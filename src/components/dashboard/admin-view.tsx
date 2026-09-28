@@ -14,7 +14,7 @@ import type { ModelPrice } from "@/server/admin";
  * which hold the root token server-side; the browser never sees it.
  */
 
-type PriceRow = { id: string; input: string; output: string; cache: string };
+type PriceRow = { id: string; input: string; output: string; cache: string; perCall: string };
 
 function toRows(prices: ModelPrice[]): PriceRow[] {
   return prices.map((price) => ({
@@ -22,6 +22,7 @@ function toRows(prices: ModelPrice[]): PriceRow[] {
     input: price.input > 0 ? String(price.input) : "",
     output: price.output > 0 ? String(price.output) : "",
     cache: price.cache !== null ? String(price.cache) : "",
+    perCall: price.perCall !== null ? String(price.perCall) : "",
   }));
 }
 
@@ -57,7 +58,7 @@ export function AdminView({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const setCell = (id: string, field: "input" | "output" | "cache", value: string) => {
+  const setCell = (id: string, field: "input" | "output" | "cache" | "perCall", value: string) => {
     setRows((current) =>
       current.map((row) => (row.id === id ? { ...row, [field]: value } : row)),
     );
@@ -65,19 +66,25 @@ export function AdminView({
 
   const savePrices = async () => {
     const models = rows
-      .filter((row) => row.input.trim() !== "" || row.output.trim() !== "")
+      .filter(
+        (row) =>
+          row.input.trim() !== "" || row.output.trim() !== "" || row.perCall.trim() !== "",
+      )
       .map((row) => ({
         id: row.id,
-        input: Number(row.input),
-        output: Number(row.output),
+        input: Number(row.input) || 0,
+        output: Number(row.output) || 0,
         cache: row.cache.trim() === "" ? null : Number(row.cache),
+        perCall: row.perCall.trim() === "" ? null : Number(row.perCall),
       }));
 
-    const invalid = models.find(
-      (m) => !(m.input > 0) || !(m.output > 0) || Number.isNaN(m.input) || Number.isNaN(m.output),
-    );
+    const invalid = models.find((m) => {
+      const tokenPriced = m.input > 0 && m.output > 0;
+      const callPriced = m.perCall !== null && m.perCall > 0;
+      return !tokenPriced && !callPriced;
+    });
     if (invalid) {
-      setError(`"${invalid.id}" needs a positive input and output price.`);
+      setError(`"${invalid.id}" needs a positive input and output price, or a per-call price.`);
       return;
     }
     if (models.length === 0) {
@@ -267,12 +274,13 @@ export function AdminView({
                 <th className="r">Input</th>
                 <th className="r">Output</th>
                 <th className="r">Cache read</th>
+                <th className="r">Per call</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr className="empty-row">
-                  <td colSpan={4}>No models on any channel</td>
+                  <td colSpan={5}>No models on any channel</td>
                 </tr>
               ) : (
                 rows.map((row) => (
@@ -280,7 +288,9 @@ export function AdminView({
                     <td>
                       <span className="cell-main">
                         <span>{row.id}</span>
-                        {row.input === "" ? <small>unpriced — not routable</small> : null}
+                        {row.input === "" && row.perCall === "" ? (
+                          <small>unpriced — not routable</small>
+                        ) : null}
                       </span>
                     </td>
                     <td className="r">
@@ -317,6 +327,18 @@ export function AdminView({
                         value={row.cache}
                         onChange={(e) => setCell(row.id, "cache", e.target.value)}
                         aria-label={`Cache read price for ${row.id}`}
+                      />
+                    </td>
+                    <td className="r">
+                      <input
+                        className="field"
+                        type="number"
+                        step="0.0001"
+                        min="0"
+                        style={{ width: 110, textAlign: "right" }}
+                        value={row.perCall}
+                        onChange={(e) => setCell(row.id, "perCall", e.target.value)}
+                        aria-label={`Per-call price for ${row.id}`}
                       />
                     </td>
                   </tr>

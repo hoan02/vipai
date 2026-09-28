@@ -12,7 +12,7 @@ export async function GET() {
 
     const models = [...new Set(channels.flatMap((channel) => channel.models))].sort();
     const rows = models.map(
-      (id) => prices.get(id) ?? { id, input: 0, output: 0, cache: null },
+      (id) => prices.get(id) ?? { id, input: 0, output: 0, cache: null, perCall: null },
     );
 
     return NextResponse.json({ channels, prices: rows });

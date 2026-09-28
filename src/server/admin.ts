@@ -40,16 +40,24 @@ export async function requireRoot(): Promise<{ token: string; user: GatewayUser 
 /** new-api's ratio base: a model ratio of 1 costs $2 per 1M input tokens. */
 const USD_PER_RATIO_POINT = 2;
 
-/** USD per 1M tokens, as the admin page shows and edits. */
+/**
+ * How a model is billed.
+ *
+ * Token models carry per-1M prices; image models carry a per-call price and no
+ * token price. A model may have either, and the page renders both.
+ */
 export type ModelPrice = {
   id: string;
+  /** USD per 1M input tokens. Zero when the model is billed per call. */
   input: number;
   output: number;
-  /** Null when the model has no cache rate configured. */
+  /** USD per 1M cache-read tokens, or null when unset. */
   cache: number | null;
+  /** USD per call, or null when the model is billed per token. */
+  perCall: number | null;
 };
 
-function ratioMap(raw: string | undefined): Record<string, number> {
+function numberMap(raw: string | undefined): Record<string, number> {
   if (!raw) return {};
   try {
     const parsed = JSON.parse(raw) as Record<string, unknown>;
@@ -66,65 +74,75 @@ function ratioMap(raw: string | undefined): Record<string, number> {
 const round = (value: number) => Math.round(value * 1e10) / 1e10;
 
 /**
- * The retail price of every model that currently has a ratio.
+ * The retail price of every model that has one, token or per-call.
  *
- * The three option maps hold ratios, not dollars. Input is `ratio × 2`;
- * output multiplies input by the completion ratio; cache read multiplies
- * input by the cache ratio. Models with no ratio are simply absent.
+ * The ratio maps hold ratios, not dollars. Input is `ratio × 2`; output
+ * multiplies input by the completion ratio; cache read multiplies input by the
+ * cache ratio. `ModelPrice` is already in dollars per call.
  */
 export async function getModelPrices(accessToken: string): Promise<Map<string, ModelPrice>> {
   const options = await getOptions(accessToken);
-  const ratios = ratioMap(options.get("ModelRatio"));
-  const completions = ratioMap(options.get("CompletionRatio"));
-  const caches = ratioMap(options.get("CacheRatio"));
+  const ratios = numberMap(options.get("ModelRatio"));
+  const completions = numberMap(options.get("CompletionRatio"));
+  const caches = numberMap(options.get("CacheRatio"));
+  const perCall = numberMap(options.get("ModelPrice"));
 
   const prices = new Map<string, ModelPrice>();
+
   for (const [id, ratio] of Object.entries(ratios)) {
     const input = ratio * USD_PER_RATIO_POINT;
-    const completion = completions[id] ?? 1;
     const cache = caches[id];
     prices.set(id, {
       id,
       input: round(input),
-      output: round(input * completion),
+      output: round(input * (completions[id] ?? 1)),
       cache: cache === undefined ? null : round(input * cache),
+      perCall: perCall[id] ?? null,
     });
   }
+
+  for (const [id, price] of Object.entries(perCall)) {
+    if (!prices.has(id)) {
+      prices.set(id, { id, input: 0, output: 0, cache: null, perCall: price });
+    }
+  }
+
   return prices;
 }
 
 /**
- * Writes prices back as ratios.
+ * Writes prices back as ratios and a per-call map.
  *
- * The three maps are read first and merged, so a save only changes the models
- * it was given and never drops an unrelated model or one of new-api's built-in
- * defaults.
+ * Every map is read first and merged, so a save only changes the models it was
+ * given and never drops an unrelated model or one of new-api's built-in
+ * defaults. A token model needs a positive input and output price; a per-call
+ * model needs a positive per-call price. Anything else is left untouched.
  */
 export async function setModelPrices(
   accessToken: string,
   entries: ModelPrice[],
 ): Promise<void> {
   const options = await getOptions(accessToken);
-  const ratios = ratioMap(options.get("ModelRatio"));
-  const completions = ratioMap(options.get("CompletionRatio"));
-  const caches = ratioMap(options.get("CacheRatio"));
+  const ratios = numberMap(options.get("ModelRatio"));
+  const completions = numberMap(options.get("CompletionRatio"));
+  const caches = numberMap(options.get("CacheRatio"));
+  const perCall = numberMap(options.get("ModelPrice"));
 
   for (const entry of entries) {
-    if (!(entry.input > 0)) {
-      // A zero or missing input price would make the model unusable, so it is
-      // treated as "leave alone" rather than written.
-      continue;
+    if (entry.perCall !== null && entry.perCall > 0) {
+      perCall[entry.id] = round(entry.perCall);
     }
-    ratios[entry.id] = round(entry.input / USD_PER_RATIO_POINT);
-    if (entry.output > 0) {
+    if (entry.input > 0 && entry.output > 0) {
+      ratios[entry.id] = round(entry.input / USD_PER_RATIO_POINT);
       completions[entry.id] = round(entry.output / entry.input);
-    }
-    if (entry.cache !== null && entry.cache >= 0) {
-      caches[entry.id] = round(entry.cache / entry.input);
+      if (entry.cache !== null && entry.cache >= 0) {
+        caches[entry.id] = round(entry.cache / entry.input);
+      }
     }
   }
 
   await setOption(accessToken, "ModelRatio", JSON.stringify(ratios));
   await setOption(accessToken, "CompletionRatio", JSON.stringify(completions));
   await setOption(accessToken, "CacheRatio", JSON.stringify(caches));
+  await setOption(accessToken, "ModelPrice", JSON.stringify(perCall));
 }

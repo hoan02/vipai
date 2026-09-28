@@ -98,8 +98,9 @@ agr-fe/
       site-pages.css        # public secondary pages + docs shell
       sign-in|sign-up/      # auth entry points
       api/
-        token-requests/     # POST — landing test-token form
+        admin/              # GET gateway, PUT pricing, PATCH channels (root only)
         keys/               # GET/POST + [id] PATCH/DELETE
+        session/            # login/register/logout + current user
       dashboard/            # api-keys, usage, cost, budgets, members, routing
       download/  docs/
     components/

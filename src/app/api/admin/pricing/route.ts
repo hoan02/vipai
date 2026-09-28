@@ -41,15 +41,24 @@ export async function PUT(request: Request) {
   const entries: ModelPrice[] = [];
   for (const raw of body.models as Array<Record<string, unknown>>) {
     const id = typeof raw?.id === "string" ? raw.id.trim() : "";
-    const input = parseNumber(raw?.input);
-    const output = parseNumber(raw?.output);
-    if (!id || input === null || input <= 0 || output === null || output <= 0) {
+    const input = parseNumber(raw?.input) ?? 0;
+    const output = parseNumber(raw?.output) ?? 0;
+    const cache = parseNumber(raw?.cache);
+    const perCall = parseNumber(raw?.perCall);
+
+    const tokenPriced = input > 0 && output > 0;
+    const callPriced = perCall !== null && perCall > 0;
+
+    if (!id || (!tokenPriced && !callPriced)) {
       return NextResponse.json(
-        { error: "invalid_price", message: `Model ${id || "(unnamed)"} needs a positive input and output price.` },
+        {
+          error: "invalid_price",
+          message: `Model ${id || "(unnamed)"} needs a positive input and output price, or a per-call price.`,
+        },
         { status: 422 },
       );
     }
-    entries.push({ id, input, output, cache: parseNumber(raw?.cache) });
+    entries.push({ id, input, output, cache, perCall });
   }
 
   try {

@@ -238,7 +238,7 @@ export async function login(username: string, password: string): Promise<Session
   if (!response.ok || body.success === false || !body.data?.access_token) {
     // The status must be preserved. new-api answers 429 when it is rate limiting
     // sign-ins, and reporting that as 401 tells the user their password is wrong
-    // when it is not — which is exactly what this did before.
+    // when it is not â€” which is exactly what this did before.
     const status = response.status === 200 ? 401 : response.status;
     throw new GatewayError(
       body.message || body.error?.message || "Incorrect username or password.",
@@ -524,8 +524,8 @@ export async function listChannels(accessToken: string): Promise<GatewayChannel[
  * Edits a channel's routing fields.
  *
  * `models`, `group`, `priority` and `weight` only. Status is refused by this
- * route (the gateway rejects it in the body), and the key is never sent, so
- * an edit cannot drop it. For status use `setChannelStatus`.
+ * route (the gateway rejects it in the body), and the key is never sent, so an
+ * edit cannot drop it. For status use `setChannelStatus`.
  */
 export async function updateChannel(
   accessToken: string,
@@ -537,31 +537,6 @@ export async function updateChannel(
     token: accessToken,
     body: JSON.stringify({ id, ...patch }),
   });
-}
-
-/** Manually enables (1) or disables (2) a channel. */
-export async function setChannelStatus(
-  accessToken: string,
-  id: number,
-  status: number,
-): Promise<void> {
-  await call(`/api/channel/${id}/status`, {
-    method: "POST",
-    token: accessToken,
-    body: JSON.stringify({ status }),
-  });
-}
-
-/** Exercises a channel against its upstream. Throws when the gateway reports failure. */
-export async function testChannel(
-  accessToken: string,
-  id: number,
-): Promise<{ success: boolean; timeMs: number; message: string }> {
-  const data = await call<{ success?: boolean; time?: number }>(
-    `/api/channel/test/${id}`,
-    { token: accessToken },
-  );
-  return { success: data.success !== false, timeMs: (data.time ?? 0) * 1000, message: "" };
 }
 
 /** The gateway's raw option map. Values of JSON options are JSON strings. */
@@ -605,192 +580,4 @@ export async function listAdminLogs(
     { token: accessToken },
   );
   return { items: data.items ?? [], total: data.total ?? 0 };
-}
-
-/* --- redemption codes (mã nạp) ------------------------------------------ */
-
-export type GatewayRedemption = {
-  id: number;
-  key: string;
-  name: string;
-  /** 1 unused, 2 disabled, 3 used. */
-  status: number;
-  /** Credit value, in quota units (500000 = $1). */
-  quota: number;
-  created_time: number;
-  redeemed_time: number;
-  expired_time: number;
-};
-
-export async function listRedemptions(
-  accessToken: string,
-  pageSize = 100,
-): Promise<{ items: GatewayRedemption[]; total: number }> {
-  const data = await call<{ items: GatewayRedemption[]; total: number }>(
-    `/api/redemption/?p=0&page_size=${pageSize}`,
-    { token: accessToken },
-  );
-  return { items: data.items ?? [], total: data.total ?? 0 };
-}
-
-/** Creates `count` codes of `quota` units each. Returns their plaintext keys. */
-export async function createRedemptions(
-  accessToken: string,
-  input: { name: string; quota: number; count: number; expiredTime: number },
-): Promise<string[]> {
-  const data = await call<string[]>("/api/redemption/", {
-    method: "POST",
-    token: accessToken,
-    body: JSON.stringify({
-      name: input.name,
-      quota: input.quota,
-      count: input.count,
-      expired_time: input.expiredTime,
-    }),
-  });
-  return Array.isArray(data) ? data : [];
-}
-
-export async function deleteRedemption(accessToken: string, id: number): Promise<void> {
-  await call(`/api/redemption/${encodeURIComponent(String(id))}`, {
-    method: "DELETE",
-    token: accessToken,
-  });
-}
-
-/* --- accounts ------------------------------------------------------------ */
-
-export type GatewayAdminUser = {
-  id: number;
-  username: string;
-  displayName: string;
-  email: string | null;
-  role: number;
-  status: number;
-  quota: number;
-  usedQuota: number;
-  requestCount: number;
-  group: string;
-};
-
-export async function listAdminUsers(
-  accessToken: string,
-  keyword = "",
-  pageSize = 100,
-): Promise<{ items: GatewayAdminUser[]; total: number }> {
-  const path = keyword
-    ? `/api/user/search?keyword=${encodeURIComponent(keyword)}&p=0&page_size=${pageSize}`
-    : `/api/user/?p=0&page_size=${pageSize}`;
-  const data = await call<{ items: Array<Record<string, unknown>>; total: number }>(path, {
-    token: accessToken,
-  });
-  return {
-    total: data.total ?? 0,
-    items: (data.items ?? []).map((raw) => ({
-      id: Number(raw.id),
-      username: String(raw.username ?? ""),
-      displayName: String(raw.display_name ?? raw.username ?? ""),
-      email: (raw.email as string) || null,
-      role: Number(raw.role ?? 0),
-      status: Number(raw.status ?? 0),
-      quota: Number(raw.quota ?? 0),
-      usedQuota: Number(raw.used_quota ?? 0),
-      requestCount: Number(raw.request_count ?? 0),
-      group: String(raw.group ?? "default"),
-    })),
-  };
-}
-
-/**
- * Runs one management action on an account.
- *
- * `action` is new-api's own vocabulary: enable, disable, delete, promote,
- * demote. `value` is the quota delta (in quota units) for `add_quota`.
- */
-export async function manageUser(
-  accessToken: string,
-  id: number,
-  action: "enable" | "disable" | "promote" | "demote" | "delete" | "add_quota",
-  value = 0,
-): Promise<void> {
-  await call("/api/user/manage", {
-    method: "POST",
-    token: accessToken,
-    body: JSON.stringify({ id, action, value }),
-  });
-}
-
-/* --- model metadata ------------------------------------------------------ */
-
-export type GatewayModelMeta = {
-  /** 0 for a channel model that has no metadata row yet. */
-  id: number;
-  modelName: string;
-  description: string;
-  tags: string;
-  vendorId: number;
-  /** 1 visible, 0 hidden. */
-  status: number;
-  /** 0 exact, 1 prefix, 2 contains, 3 suffix. */
-  nameRule: number;
-  squareState: string;
-};
-
-export async function listModelMeta(
-  accessToken: string,
-  pageSize = 200,
-): Promise<{ items: GatewayModelMeta[]; total: number }> {
-  const data = await call<{ items: Array<Record<string, unknown>>; total: number }>(
-    `/api/models/?p=0&page_size=${pageSize}&include_channel_models=true`,
-    { token: accessToken },
-  );
-  return {
-    total: data.total ?? 0,
-    items: (data.items ?? []).map((raw) => ({
-      id: Number(raw.id ?? 0),
-      modelName: String(raw.model_name ?? ""),
-      description: String(raw.description ?? ""),
-      tags: String(raw.tags ?? ""),
-      vendorId: Number(raw.vendor_id ?? 0),
-      status: Number(raw.status ?? 0),
-      nameRule: Number(raw.name_rule ?? 0),
-      squareState: String(raw.square_state ?? ""),
-    })),
-  };
-}
-
-/** Creates metadata (no id) or updates it (id > 0). */
-export async function saveModelMeta(
-  accessToken: string,
-  input: {
-    id: number;
-    modelName: string;
-    description: string;
-    tags: string;
-    vendorId: number;
-    status: number;
-    nameRule: number;
-  },
-): Promise<void> {
-  await call("/api/models/", {
-    method: input.id > 0 ? "PUT" : "POST",
-    token: accessToken,
-    body: JSON.stringify({
-      ...(input.id > 0 ? { id: input.id } : {}),
-      model_name: input.modelName,
-      description: input.description,
-      tags: input.tags,
-      vendor_id: input.vendorId,
-      status: input.status,
-      name_rule: input.nameRule,
-      sync_official: 1,
-    }),
-  });
-}
-
-export async function deleteModelMeta(accessToken: string, id: number): Promise<void> {
-  await call(`/api/models/${encodeURIComponent(String(id))}`, {
-    method: "DELETE",
-    token: accessToken,
-  });
 }

@@ -3,31 +3,23 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  BarChart3,
-  Boxes,
-  LayoutDashboard,
-  Percent,
-  Server,
-  Tags,
-  Ticket,
-  Users,
-} from "lucide-react";
+import { BarChart3, LayoutDashboard, Percent } from "lucide-react";
 import { UserButton } from "@/components/UserButton";
 import { Icon } from "@/lib/icons";
 
+/**
+ * The admin chrome.
+ *
+ * Two screens only: upstream cost and margin, and the revenue/cost rollup.
+ * Everything else the console already does better, so this does not try to
+ * duplicate it — see the note in the sidebar footer.
+ */
 const nav = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard },
-  { label: "Channels", href: "/admin/channels", icon: Server },
-  { label: "Pricing", href: "/admin/pricing", icon: Tags },
   { label: "Margin", href: "/admin/margin", icon: Percent },
   { label: "Statistics", href: "/admin/stats", icon: BarChart3 },
-  { label: "Redemptions", href: "/admin/redemptions", icon: Ticket },
-  { label: "Accounts", href: "/admin/users", icon: Users },
-  { label: "Models", href: "/admin/models", icon: Boxes },
 ];
 
-/** A compact admin chrome: a slim rail, a thin top bar, no page filler. */
 export function AdminShell({ children }: { children: ReactNode }) {
   const path = usePathname() ?? "/admin";
   const isOn = (href: string) =>
@@ -43,6 +35,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <span className="dash-crumb">Admin</span>
           </Link>
           <div className="dash-account">
+            <a className="dash-tab" href="https://api.aigiare.site/console">
+              Gateway console
+            </a>
             <Link className="dash-tab" href="/dashboard">
               Dashboard
             </Link>
@@ -70,6 +65,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 );
               })}
             </nav>
+            <p className="note" style={{ marginTop: 16, fontSize: 12, lineHeight: 1.5 }}>
+              Users, channels, keys and the rest live in the{" "}
+              <a className="link" href="https://api.aigiare.site/console">
+                gateway console
+              </a>
+              .
+            </p>
           </aside>
           <main className="dash-main">{children}</main>
         </div>

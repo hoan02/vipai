@@ -4,15 +4,18 @@ import { usd } from "@/lib/money";
 import type { AdminStats } from "@/server/admin";
 
 const sections = [
-  { href: "/admin/channels", title: "Channels", text: "Upstreams, models, groups, priority and weight." },
-  { href: "/admin/pricing", title: "Pricing", text: "What customers pay, per model." },
   { href: "/admin/margin", title: "Margin", text: "Upstream cost and markup; reprice from cost." },
   { href: "/admin/stats", title: "Statistics", text: "Revenue, cost and margin by model." },
-  { href: "/admin/redemptions", title: "Redemptions", text: "Credit codes to sell top-ups." },
-  { href: "/admin/users", title: "Accounts", text: "Enable, disable and adjust credit." },
-  { href: "/admin/models", title: "Models", text: "Descriptions, tags and visibility." },
 ];
 
+/**
+ * The admin landing page.
+ *
+ * Deliberately thin. The gateway console already owns users, channels, keys,
+ * redemptions and pricing, and does all of it better than a reimplementation
+ * would. Only the two things it cannot know live here: what we pay upstream,
+ * and therefore what the margin is.
+ */
 export function OverviewView({
   stats,
   channels,
@@ -24,11 +27,14 @@ export function OverviewView({
 }) {
   return (
     <>
-      <PageHead title="Admin" sub="Gateway operations: routing, pricing, margin and accounts." />
+      <PageHead
+        title="Admin"
+        sub="The two things the gateway console cannot tell you: upstream cost, and the margin it leaves."
+      />
 
       <div className="stats four" style={{ marginTop: 20 }}>
-        <Stat label="Channels" value={channels.toLocaleString()} />
-        <Stat label="Models" value={models.toLocaleString()} />
+        <Stat label="Channels" value={channels.toLocaleString()} hint="managed in the console" />
+        <Stat label="Models" value={models.toLocaleString()} hint="managed in the console" />
         <Stat label="Revenue (recent)" value={usd(stats.revenueUsd)} />
         <Stat label="Margin (recent)" value={usd(stats.marginUsd)} />
       </div>
@@ -56,6 +62,16 @@ export function OverviewView({
             </p>
           </Link>
         ))}
+        <a
+          href="https://api.aigiare.site/console"
+          className="panel"
+          style={{ padding: 18, textDecoration: "none", display: "block" }}
+        >
+          <b style={{ fontSize: 15 }}>Gateway console ↗</b>
+          <p className="note" style={{ marginTop: 6 }}>
+            Users, channels, API keys, redemptions, pricing, logs and settings.
+          </p>
+        </a>
       </div>
     </>
   );

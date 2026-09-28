@@ -478,3 +478,109 @@ export async function clearSession(): Promise<void> {
   const store = await cookies();
   store.delete(SESSION_COOKIE);
 }
+
+/* ---------------------------------------------------------------------- *
+ * Admin surface
+ *
+ * These routes need `AdminAuth` (channels) or `RootAuth` (options) at the
+ * gateway, so only the root account can drive them. They are reached from
+ * this app's own /api/admin/* handlers; the browser never holds the token.
+ * ---------------------------------------------------------------------- */
+
+export type GatewayChannel = {
+  id: number;
+  name: string;
+  type: number;
+  status: number;
+  /** Comma-separated group list, as new-api stores it. */
+  group: string;
+  models: string[];
+  priority: number;
+  weight: number;
+};
+
+/** Every channel, with keys omitted by the gateway. */
+export async function listChannels(accessToken: string): Promise<GatewayChannel[]> {
+  const data = await call<{ items: Array<Record<string, unknown>> }>(
+    "/api/channel/?p=0&page_size=500",
+    { token: accessToken },
+  );
+  return (data.items ?? []).map((raw) => ({
+    id: Number(raw.id),
+    name: String(raw.name ?? ""),
+    type: Number(raw.type ?? 0),
+    status: Number(raw.status ?? 0),
+    group: String(raw.group ?? ""),
+    models: String(raw.models ?? "")
+      .split(",")
+      .map((model) => model.trim())
+      .filter(Boolean),
+    priority: Number(raw.priority ?? 0),
+    weight: Number(raw.weight ?? 0),
+  }));
+}
+
+/**
+ * Edits a channel's routing fields.
+ *
+ * `models`, `group`, `priority` and `weight` only. Status is refused by this
+ * route (the gateway rejects it in the body), and the key is never sent, so
+ * an edit cannot drop it. For status use `setChannelStatus`.
+ */
+export async function updateChannel(
+  accessToken: string,
+  id: number,
+  patch: { models?: string; group?: string; priority?: number; weight?: number },
+): Promise<void> {
+  await call("/api/channel/", {
+    method: "PUT",
+    token: accessToken,
+    body: JSON.stringify({ id, ...patch }),
+  });
+}
+
+/** Manually enables (1) or disables (2) a channel. */
+export async function setChannelStatus(
+  accessToken: string,
+  id: number,
+  status: number,
+): Promise<void> {
+  await call(`/api/channel/${id}/status`, {
+    method: "POST",
+    token: accessToken,
+    body: JSON.stringify({ status }),
+  });
+}
+
+/** Exercises a channel against its upstream. Throws when the gateway reports failure. */
+export async function testChannel(
+  accessToken: string,
+  id: number,
+): Promise<{ success: boolean; timeMs: number; message: string }> {
+  const data = await call<{ success?: boolean; time?: number }>(
+    `/api/channel/test/${id}`,
+    { token: accessToken },
+  );
+  return { success: data.success !== false, timeMs: (data.time ?? 0) * 1000, message: "" };
+}
+
+/** The gateway's raw option map. Values of JSON options are JSON strings. */
+export async function getOptions(accessToken: string): Promise<Map<string, string>> {
+  const data = await call<Array<{ key: string; value: string }>>("/api/option/", {
+    token: accessToken,
+  });
+  return new Map((data ?? []).map((option) => [option.key, option.value]));
+}
+
+/** Writes one option. `value` is the raw string the gateway stores. */
+export async function setOption(
+  accessToken: string,
+  key: string,
+  value: string,
+): Promise<void> {
+  await call("/api/option/", {
+    method: "PUT",
+    token: accessToken,
+    body: JSON.stringify({ key, value }),
+  });
+}

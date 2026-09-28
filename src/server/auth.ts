@@ -9,6 +9,8 @@ export type Account = {
   username: string;
   email: string | null;
   name: string | null;
+  /** new-api role: 1 user, 10 admin, 100 root. */
+  role: number;
 };
 
 function toAccount(user: GatewayUser): Account {
@@ -17,6 +19,7 @@ function toAccount(user: GatewayUser): Account {
     username: user.username,
     email: user.email,
     name: user.displayName || user.username,
+    role: user.role,
   };
 }
 
@@ -32,6 +35,8 @@ export type ClientUser = {
   username: string;
   email: string | null;
   name: string;
+  /** new-api role: 1 user, 10 admin, 100 root. Drives the Admin nav item. */
+  role: number;
 };
 
 export function toClientUser(user: GatewayUser): ClientUser {
@@ -41,6 +46,7 @@ export function toClientUser(user: GatewayUser): ClientUser {
     username: account.username,
     email: account.email,
     name: account.name ?? account.username,
+    role: account.role,
   };
 }
 

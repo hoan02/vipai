@@ -28,10 +28,9 @@ export function UserButton() {
     return null;
   }
 
-  const user = session.user as Record<string, string | undefined>;
-  const email: string = user.email || "";
-  const name: string = user.name || user.username || email;
-  const initial: string = (name[0] || "U").toUpperCase();
+  const email = session.user.email ?? "";
+  const name = session.user.name || session.user.username || email;
+  const initial = (name[0] || "U").toUpperCase();
 
   const handleSignOut = async () => {
     try {
@@ -58,7 +57,7 @@ export function UserButton() {
         <div className="absolute right-0 mt-2 w-56 rounded-xl bg-[#14171f] border border-white/10 shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
           <div className="px-4 py-2 border-b border-white/5">
             <p className="text-sm font-medium text-white truncate">{name}</p>
-            <p className="text-xs text-white/50 truncate">{user.email}</p>
+            <p className="text-xs text-white/50 truncate">{email}</p>
           </div>
 
           <div className="py-1">

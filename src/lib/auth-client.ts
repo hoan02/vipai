@@ -22,6 +22,8 @@ export type SessionUser = {
   username: string;
   email: string | null;
   name: string;
+  /** new-api role: 1 user, 10 admin, 100 root. */
+  role: number;
 };
 
 type State = {

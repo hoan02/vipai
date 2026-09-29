@@ -58,6 +58,11 @@ const BLOCK_SELECTOR = "h1,h2,h3,h4,p,li,td,th,dt,dd,caption,figcaption,summary"
 
 const norm = (s: string) => (s || "").replace(/\s+/g, " ").trim();
 
+/** Fills the `{n}` a dynamic phrase is keyed on, so a figure that comes from
+ *  live data (e.g. the top discount) can still be translated: the dictionary
+ *  holds "up to {n}% off", the element carries the value in `data-i18n-n`. */
+const fill = (text: string, n: string | null) => (n === null ? text : text.replace(/\{n\}/g, n));
+
 function directTextNodes(el: Element): Text[] {
   const nodes: Text[] = [];
   for (let n = el.firstChild; n; n = n.nextSibling) {
@@ -77,8 +82,8 @@ export function setLocale(locale: Locale) {
   window.dispatchEvent(new CustomEvent<Locale>(LOCALE_EVENT, { detail: locale }));
 }
 
-type InlineEntry = { el: Element; key: string; nodes: Text[] };
-type BlockEntry = { el: Element; key: string; html: string };
+type InlineEntry = { el: Element; key: string; nodes: Text[]; n: string | null };
+type BlockEntry = { el: Element; key: string; html: string; n: string | null };
 
 export function I18n() {
   const pathname = usePathname();
@@ -101,10 +106,10 @@ export function I18n() {
           const key = el.getAttribute("data-i18n") || (vi[currentText] ? currentText : en[currentText] || "");
           if (!key || !vi[key]) return;
           el.setAttribute("data-i18n", key);
-          entry = { el, key, nodes };
+          entry = { el, key, nodes, n: el.getAttribute("data-i18n-n") };
           inlineCache.set(el, entry);
         }
-        const text = locale === "vi" ? vi[entry.key] : entry.key;
+        const text = fill(locale === "vi" ? vi[entry.key] : entry.key, entry.n);
         entry.nodes[0].nodeValue = text;
         for (let i = 1; i < entry.nodes.length; i++) entry.nodes[i].nodeValue = "";
         handled.add(el);
@@ -125,10 +130,10 @@ export function I18n() {
           if (!key || !vi[key]) return;
           el.setAttribute("data-i18n", key);
           const initialHtml = el.innerHTML;
-          entry = { el, key, html: en[currentText] ? (en[currentText] || initialHtml) : initialHtml };
+          entry = { el, key, html: en[currentText] ? (en[currentText] || initialHtml) : initialHtml, n: el.getAttribute("data-i18n-n") };
           blockCache.set(el, entry);
         }
-        el.innerHTML = locale === "vi" ? vi[entry.key] : entry.html;
+        el.innerHTML = fill(locale === "vi" ? vi[entry.key] : entry.html, entry.n);
       });
 
       document.documentElement.lang = locale;

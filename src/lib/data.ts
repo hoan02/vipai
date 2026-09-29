@@ -275,7 +275,7 @@ export const faqs = [
     a: "Yes — both formats. The OpenAI-compatible endpoint works with official OpenAI SDKs and Codex by changing the base URL. Claude Code connects through the Anthropic-compatible endpoint with two environment variables.",
   },
   {
-    q: "How can prices be up to 90% off list?",
+    q: "How can prices be up to {n}% off list?",
     a: "Volume. We commit to enterprise-scale usage with vetted providers and pass the difference through. Discounts vary per model and move with upstream costs — the pricing table above is live.",
   },
   {

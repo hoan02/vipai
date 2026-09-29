@@ -26,6 +26,9 @@ export const dynamic = "force-dynamic";
 
 export default async function Page() {
   const models = await getPublicModels();
+  // Every "up to N% off" claim on the page reads this, so no copy can promise
+  // more than the gateway actually bills.
+  const maxOff = models.reduce((max, m) => Math.max(max, m.discPct), 0);
 
   return (
     <>
@@ -33,19 +36,19 @@ export default async function Page() {
       <SiteMotion />
       <LaunchBanner />
       <Nav />
-      <Hero />
+      <Hero maxOff={maxOff} />
       <Pricing models={models} />
       <StatBar />
       <BuyHook />
       <QuickStart />
-      <Features />
+      <Features maxOff={maxOff} />
       <Duo />
       <Tier />
       <LiveDiscounts models={models} />
       <Leaderboard />
       <TelegramCta />
-      <CtaSection />
-      <Faq />
+      <CtaSection maxOff={maxOff} />
+      <Faq maxOff={maxOff} />
       <Finale />
       <Footer />
       <TopUpModal />

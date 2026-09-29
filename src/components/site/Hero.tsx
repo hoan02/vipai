@@ -259,7 +259,7 @@ function CapStrip() {
   );
 }
 
-export function Hero() {
+export function Hero({ maxOff }: { maxOff: number }) {
   return (
     <div className="hero-wrap" id="top">
       <div className="art-bg" aria-hidden="true" />
@@ -278,7 +278,9 @@ export function Hero() {
           </div>
           <h1 className="t-stagger-line t-stagger-line--2">
             <span className="grad">Every frontier model</span> <br />
-            <span className="line2">one key, up to 90% off list</span>
+            <span className="line2" data-i18n="one key, up to {n}% off list" data-i18n-n={String(maxOff)}>
+              one key, up to {maxOff}% off list
+            </span>
           </h1>
 
           <div className="cta t-stagger-line t-stagger-line--3">

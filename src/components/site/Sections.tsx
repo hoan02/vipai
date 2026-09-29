@@ -54,7 +54,7 @@ export function BuyHook() {
   );
 }
 
-export function Features() {
+export function Features({ maxOff }: { maxOff: number }) {
   return (
     <section className="section" id="features" aria-label="Running in production">
       <div className="sec-head">
@@ -71,7 +71,7 @@ export function Features() {
             Price
           </span>
           <span className="mc-num">
-            90%<small>off</small>
+            {maxOff}%<small>off</small>
           </span>
           <p className="mc-attr">
             6,000+ providers compete on price in real time under continuous quality monitoring, so every request gets the
@@ -369,12 +369,15 @@ export function Leaderboard() {
   );
 }
 
-export function CtaSection() {
+export function CtaSection({ maxOff }: { maxOff: number }) {
   return (
     <section className="buy" id="buy" aria-label="Cut your AI spend">
       <div className="buy-inner ai-reveal">
         <h2 className="buy-title">
-          Cut Your AI Spend <span className="grad">up to 90%</span>
+          Cut Your AI Spend{" "}
+          <span className="grad" data-i18n="up to {n}%" data-i18n-n={String(maxOff)}>
+            up to {maxOff}%
+          </span>
         </h2>
         <p className="buy-sub">
           Top up in the dashboard and usage is drawn down per request — so the budget you set goes further.

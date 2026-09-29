@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { useLocale } from "@/components/site/I18n";
 import { Icon } from "@/lib/icons";
 import { PICK_MODEL_EVENT, modelKey, type Model, type PickModelDetail } from "@/lib/data";
 
@@ -51,12 +50,9 @@ export function Pricing({ models }: { models: Model[] }) {
   );
 
   // The headline claim follows the catalogue instead of a hand-typed number, so
-  // it can never promise a discount the gateway does not actually bill.
-  const locale = useLocale();
+  // it can never promise a discount the gateway does not actually bill. The
+  // `{n}` lets the i18n pass translate it with the live figure.
   const maxOff = useMemo(() => models.reduce((max, m) => Math.max(max, m.discPct), 0), [models]);
-  const heading =
-    (locale === "en" ? "Live pricing" : "Giá trực tiếp") +
-    (maxOff > 0 ? (locale === "en" ? ` · up to ${maxOff}% off` : ` · giảm tới ${maxOff}%`) : "");
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -283,7 +279,13 @@ export function Pricing({ models }: { models: Model[] }) {
   return (
     <section className="section pricing" id="pricing" aria-label="Live pricing" ref={sectionRef}>
       <div className="sec-head">
-        <h2 className="sec-title">{heading}</h2>
+        <h2
+          className="sec-title"
+          data-i18n={maxOff > 0 ? "Live pricing · up to {n}% off" : undefined}
+          data-i18n-n={maxOff > 0 ? String(maxOff) : undefined}
+        >
+          {maxOff > 0 ? `Live pricing · up to ${maxOff}% off` : "Live pricing"}
+        </h2>
         <p className="sec-sub">
           Prices update in real time and move with upstream costs. Each request is billed at the discount in effect when
           it&apos;s made. All prices in USD per 1M tokens.

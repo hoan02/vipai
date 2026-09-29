@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Icon } from "@/lib/icons";
 import { faqs } from "@/lib/data";
 
-export function Faq() {
+export function Faq({ maxOff }: { maxOff: number }) {
   const [open, setOpen] = useState<number | null>(null);
 
   return (
@@ -25,11 +25,13 @@ export function Faq() {
               <button
                 className="faq-q"
                 type="button"
+                data-i18n={f.q.includes("{n}") ? f.q : undefined}
+                data-i18n-n={f.q.includes("{n}") ? String(maxOff) : undefined}
                 aria-expanded={isOpen}
                 aria-controls={`faqA${i}`}
                 onClick={() => setOpen(isOpen ? null : i)}
               >
-                {f.q}
+                {f.q.replace("{n}", String(maxOff))}
                 <Icon name="ic-chevron" />
               </button>
               <div className="faq-a" id={`faqA${i}`} role="region" aria-hidden={!isOpen}>

@@ -107,7 +107,7 @@ for `k3s`. Both are what the workflow's steps call.
 | Framework | Next.js 16 App Router (`src/app/`), React 19 |
 | Language | TypeScript |
 | Styling | Plain CSS — tokens + design system in `globals.css`, route-scoped stylesheets per section |
-| Icons | `lucide-react`; product/brand marks use the inline sprite |
+| Icons | `lucide-react`; provider marks use the inline sprite, the VipAI logo is the `brandMark` image (`/assets/logo.webp`) |
 | Fonts | `next/font/google` — Geist + JetBrains Mono |
 | Auth client | `src/lib/auth-client.ts` — a store over this app's `/api/session` routes |
 | Data | fetch only; no ORM, no database driver |

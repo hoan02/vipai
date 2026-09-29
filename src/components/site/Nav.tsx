@@ -7,8 +7,7 @@ import { openAuthModal } from "@/lib/auth-modal";
 import { UserButton } from "@/components/UserButton";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Icon } from "@/lib/icons";
-import { languages } from "@/lib/data";
-import { TELEGRAM_URL } from "@/lib/site";
+import { brandMark, languages } from "@/lib/data";
 import { setLocale } from "@/components/site/I18n";
 
 const links = [
@@ -46,7 +45,7 @@ export function Nav() {
     <nav className="nav-pill" aria-label="Primary">
       <div className="nav-in">
         <a className="brand" href="/">
-          <Icon name="ic-vipai" className="logo" viewBox="0 0 24 24" />
+          <Icon name={brandMark} className="logo" width={32} height={22} />
           <span className="brand-name">VipAI</span>
         </a>
 
@@ -73,17 +72,6 @@ export function Nav() {
 
         <div className="actions">
           <ThemeToggle className="icon-btn" />
-          <a
-            className="icon-btn"
-            href={TELEGRAM_URL}
-            target="_blank"
-            rel="noreferrer noopener"
-            aria-label="Chat on Telegram"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M21.9 4.3 19 19.1c-.2 1-.8 1.2-1.6.8l-4.4-3.3-2.1 2c-.2.2-.4.4-.9.4l.3-4.5 8.2-7.4c.4-.3-.1-.5-.6-.2L6.8 13.1l-4.3-1.4c-.9-.3-.9-.9.2-1.3L20.6 3c.8-.3 1.5.2 1.3 1.3z" />
-            </svg>
-          </a>
           <div className="lang-wrap" ref={wrapRef}>
             <button
               className="icon-btn"

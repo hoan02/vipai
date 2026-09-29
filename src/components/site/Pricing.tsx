@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Icon } from "@/lib/icons";
-import { PICK_MODEL_EVENT, modelKey, type Model, type PickModelDetail } from "@/lib/data";
+import { PICK_MODEL_EVENT, brandMark, modelKey, type Model, type PickModelDetail } from "@/lib/data";
 
 function ModelMark({ model, size }: { model: Model; size: number }) {
   return (
@@ -19,7 +19,7 @@ function vendorChips(models: Model[]): VendorChip[] {
   for (const m of models) {
     if (!seen.has(m.vendor)) seen.set(m.vendor, { name: m.vendor, icon: m.vendorIcon, color: m.vendorColor });
   }
-  return [{ name: "Featured", icon: "ic-vipai", color: "var(--ink)" }, ...seen.values()];
+  return [{ name: "Featured", icon: brandMark, color: "var(--ink)" }, ...seen.values()];
 }
 
 const EXPAND_MS = 620;

@@ -14,10 +14,16 @@ export const vendorMarks: Record<string, { icon: string; color: string }> = {
   Google: { icon: "ic-gemini", color: "#4285f4" },
   DeepSeek: { icon: "ic-deepseek", color: "#4d6bfe" },
   "智谱": { icon: "ic-glm", color: "#7a52c7" },
+  xAI: { icon: "ic-xai", color: "var(--ink)" },
+  Moonshot: { icon: "ic-moonshot", color: "var(--ink)" },
 };
 
+/** The VipAI brand mark. Rendered through `Icon` (which turns a URL into an
+ *  <img>), and the fallback for a vendor the sheet has no logo for. */
+export const brandMark = "/assets/logo.webp";
+
 /** Fallback mark for a vendor the sheet has no logo for. */
-export const vendorUnknown = { icon: "ic-vipai", color: "#6b7280" };
+export const vendorUnknown = { icon: brandMark, color: "#6b7280" };
 
 /** The gateway names one vendor in its own language; the site brands it. */
 export const vendorLabel: Record<string, string> = { "智谱": "GLM" };

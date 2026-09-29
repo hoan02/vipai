@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { BarChart3, Layers, LayoutDashboard } from "lucide-react";
 import { UserButton } from "@/components/UserButton";
 import { Icon } from "@/lib/icons";
+import { brandMark } from "@/lib/data";
 
 /**
  * The admin chrome.
@@ -29,7 +30,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     <div className="dash admin">
       <aside className="dash-side">
         <Link className="dash-brand" href="/">
-          <Icon name="ic-vipai" viewBox="0 0 24 24" width={18} height={18} />
+          <Icon name={brandMark} width={26} height={18} />
           VipAI
           <span className="dash-crumb">Admin</span>
         </Link>

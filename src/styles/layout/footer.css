@@ -9,7 +9,7 @@
 .foot-top{ display:grid; grid-template-columns:minmax(240px,.95fr) 2.05fr; gap:clamp(14px,1.6vw,22px); align-items:stretch; }
 .fc-brand{ display:flex; flex-direction:column; gap:18px; padding:clamp(22px,2.4vw,30px); color:#fff; background:linear-gradient(180deg,rgba(16,13,10,.74),rgba(16,13,10,.34) 46%,rgba(16,13,10,.8)),url("/assets/foot-sky.jpg") center 38%/cover no-repeat,#14110e; }
 .fc-brand .b{ display:inline-flex; align-items:center; gap:9px; font-weight:var(--fw-bold); font-size:1.125rem; letter-spacing:-.02em; color:#fff; }
-.fc-brand .b svg{ width:21px; height:22px; }
+.fc-brand .b svg, .fc-brand .b img{ height:22px; width:auto; }
 .foot-tag{ margin-top:auto; max-width:300px; font-size:16px; line-height:1.6; color:rgba(255,255,255,.82); }
 .fc-touch{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
 .fc-k{ display:inline-flex; align-items:center; font-family:var(--font-mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.55); }

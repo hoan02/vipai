@@ -28,8 +28,9 @@ export const metadata: Metadata = {
   description:
     "VipAI is an AI API gateway for developers: one key for GPT, Claude, Gemini and other leading models.",
   icons: {
-    icon: [{ url: "/vipai.svg", type: "image/svg+xml" }],
-    shortcut: ["/vipai.svg"],
+    icon: [{ url: "/favicon.png", type: "image/png", sizes: "64x64" }],
+    shortcut: ["/favicon.png"],
+    apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
   },
 };
 

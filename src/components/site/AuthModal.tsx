@@ -6,13 +6,19 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type FocusEvent as ReactFocusEvent,
+  type FocusEventHandler as ReactFocusEventHandler,
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type KeyboardEventHandler as ReactKeyboardEventHandler,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { signIn, signUp } from "@/lib/auth-client";
 import { Icon } from "@/lib/icons";
+import { brandMark } from "@/lib/data";
+import { TELEGRAM_URL } from "@/lib/site";
 import { refreshTranslations, useT } from "@/components/site/I18n";
 import type { AuthMode } from "@/lib/auth-modal";
 
@@ -128,6 +134,15 @@ function EyeGlyph({ off }: { off: boolean }) {
   );
 }
 
+function CapsGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" {...stroke} aria-hidden="true">
+      <path d="M12 4.5 5 11.5h3.75V16h6.5v-4.5H19L12 4.5Z" />
+      <path d="M8.75 19h6.5" />
+    </svg>
+  );
+}
+
 function GoogleGlyph() {
   return (
     <svg viewBox="0 0 24 24" width={16} height={16} aria-hidden="true">
@@ -165,6 +180,10 @@ type FieldProps = {
   style?: CSSProperties;
   inputRef?: React.Ref<HTMLInputElement>;
   endAdorn?: ReactNode;
+  maxLength?: number;
+  onKeyDown?: ReactKeyboardEventHandler<HTMLInputElement>;
+  onKeyUp?: ReactKeyboardEventHandler<HTMLInputElement>;
+  onBlur?: ReactFocusEventHandler<HTMLInputElement>;
 };
 
 function Field({
@@ -179,6 +198,10 @@ function Field({
   style,
   inputRef,
   endAdorn,
+  maxLength,
+  onKeyDown,
+  onKeyUp,
+  onBlur,
 }: FieldProps) {
   return (
     <div className={`am-field${value ? " filled" : ""}${className ? ` ${className}` : ""}`} style={style}>
@@ -193,6 +216,10 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         autoComplete={autoComplete}
+        maxLength={maxLength}
+        onKeyDown={onKeyDown}
+        onKeyUp={onKeyUp}
+        onBlur={onBlur}
       />
       {endAdorn}
     </div>
@@ -218,6 +245,9 @@ export function AuthModal() {
      above on the way back, so the swap reads as travel, not a blink. */
   const [dir, setDir] = useState(1);
   const [formH, setFormH] = useState<number | null>(null);
+  /* Caps Lock is the classic silent sign-in failure, so the password field
+     mirrors the modifier state onto a hint instead of letting the request fail. */
+  const [caps, setCaps] = useState(false);
 
   const cardRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -256,6 +286,7 @@ export function AuthModal() {
     setPassword("");
     setFormH(null);
     setDir(1);
+    setCaps(false);
     setPhase("open");
     redirectRef.current =
       redirect ?? safeRedirect(new URLSearchParams(window.location.search).get("redirect_url"));
@@ -337,9 +368,12 @@ export function AuthModal() {
     if (!live) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const focusFirst = window.setTimeout(() => emailRef.current?.focus(), 90);
+    /* No autofocus on touch devices: opening the soft keyboard before the
+       visitor has chosen a field shoves the card around and feels abrupt. */
+    const coarse = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
+    const focusFirst = coarse ? 0 : window.setTimeout(() => emailRef.current?.focus(), 90);
     return () => {
-      window.clearTimeout(focusFirst);
+      if (focusFirst) window.clearTimeout(focusFirst);
       document.body.style.overflow = previous;
     };
   }, [live]);
@@ -386,7 +420,7 @@ export function AuthModal() {
     const next = el.offsetHeight;
     el.style.height = pinned;
     if (next > 0) setFormH(next);
-  }, [live, mode, status, error]);
+  }, [live, mode, status, error, caps]);
 
   /* Success: hold the check-draw for a beat, then hand off to the router —
      the page the visitor was bounced from, or the dashboard by default. */
@@ -410,6 +444,7 @@ export function AuthModal() {
     setStatus("idle");
     setError(null);
     setReveal(false);
+    setCaps(false);
   };
 
   const submit = async (e: FormEvent) => {
@@ -467,6 +502,19 @@ export function AuthModal() {
 
   const row = (i: number) => ({ "--i": i } as CSSProperties);
 
+  const syncCaps = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+    const on = e.getModifierState("CapsLock");
+    setCaps((prev) => (prev === on ? prev : on));
+  };
+
+  /* Keep the hint while focus stays inside the field (the reveal toggle is a
+     sibling button), and drop it once focus really leaves. */
+  const blurCaps = (e: ReactFocusEvent<HTMLInputElement>) => {
+    const next = e.relatedTarget as Node | null;
+    if (next && e.currentTarget.parentElement?.contains(next)) return;
+    setCaps(false);
+  };
+
   /* Social sign-in leaves the page for the provider, so there is no local
      pending state to restore afterwards: the callback sets the session cookie
      and the user lands back here already signed in. */
@@ -510,16 +558,10 @@ export function AuthModal() {
       <div className="am-scrim" onMouseDown={dismiss} />
 
       <div className="am-card" ref={cardRef}>
-        <div className="am-glow" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-
         <div className="am-scroll" inert={done}>
           <header className="am-hd">
             <span className="am-mark">
-              <Icon name="ic-vipai" viewBox="0 0 24 24" width={20} height={20} />
+              <Icon name={brandMark} width={28} height={20} />
             </span>
             <span className="am-hd-txt">
               <b>VipAI</b>
@@ -580,13 +622,39 @@ export function AuthModal() {
                 {t(copy.sub)}
               </p>
 
+              {/* Social first: the fastest path in sits above the form, and the
+                  divider reads "or" down into username + password. */}
+              <button
+                className="am-social am-row"
+                style={row(3)}
+                type="button"
+                onClick={signInWithGoogle}
+                disabled={status !== "idle"}
+              >
+                <GoogleGlyph />
+                <span>{t("Tiếp tục với Google")}</span>
+              </button>
+
+              <div className="am-alt-row am-row" style={row(4)}>
+                <span className="am-alt-line" aria-hidden="true" />
+                <span className="am-alt-txt">{t("hoặc")}</span>
+                <span className="am-alt-line" aria-hidden="true" />
+              </div>
+
               {field("am-username", t("Tên đăng nhập"), email, setEmail, {
                 type: "text",
                 autoComplete: "username",
                 icon: <UserGlyph />,
                 inputRef: emailRef,
+                maxLength: USERNAME_MAX,
                 className: "am-row",
-                style: row(3),
+                style: row(5),
+                endAdorn:
+                  email.length >= USERNAME_MAX - 5 ? (
+                    <span className="am-count" aria-hidden="true">
+                      {email.length}/{USERNAME_MAX}
+                    </span>
+                  ) : undefined,
               })}
 
               {field("am-password", t("Mật khẩu"), password, setPassword, {
@@ -594,7 +662,10 @@ export function AuthModal() {
                 autoComplete: mode === "signin" ? "current-password" : "new-password",
                 icon: <LockGlyph />,
                 className: "am-row",
-                style: row(mode === "signup" ? 5 : 4),
+                style: row(6),
+                onKeyDown: syncCaps,
+                onKeyUp: syncCaps,
+                onBlur: blurCaps,
                 endAdorn: (
                   <button
                     className="am-eye"
@@ -610,8 +681,30 @@ export function AuthModal() {
                 ),
               })}
 
+              {caps && (
+                <p className="am-caps" role="status">
+                  <CapsGlyph />
+                  <span>{t("Caps Lock đang bật")}</span>
+                </p>
+              )}
+
+              {/* There is no self-service reset on this instance, so a locked-out
+                  visitor is routed to the support group instead. */}
+              {mode === "signin" && (
+                <div className="am-forgot">
+                  <a
+                    href={TELEGRAM_URL}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    aria-label={t("Quên mật khẩu? Nhắn hỗ trợ trên Telegram.")}
+                  >
+                    {t("Quên mật khẩu?")}
+                  </a>
+                </div>
+              )}
+
               {mode === "signup" && (
-                <div className="am-meter am-row" style={row(6)}>
+                <div className="am-meter am-row" style={row(7)}>
                   <div className="am-meter-bars" aria-hidden="true">
                     {[1, 2, 3, 4].map((n) => (
                       <i key={n} className={strength >= n ? "on" : ""} style={{ "--i": n } as CSSProperties} />
@@ -626,7 +719,7 @@ export function AuthModal() {
 
               <button
                 className="am-submit am-row"
-                style={row(mode === "signup" ? 7 : 5)}
+                style={row(8)}
                 type="submit"
                 disabled={status !== "idle"}
               >
@@ -641,23 +734,6 @@ export function AuthModal() {
                     <Icon name="ic-arrow" className="am-arrow" viewBox="0 0 24 24" width={15} height={15} />
                   </>
                 )}
-              </button>
-
-              <div className="am-alt-row am-row" style={row(mode === "signup" ? 8 : 6)}>
-                <span className="am-alt-line" aria-hidden="true" />
-                <span className="am-alt-txt">{t("hoặc")}</span>
-                <span className="am-alt-line" aria-hidden="true" />
-              </div>
-
-              <button
-                className="am-social am-row"
-                style={row(mode === "signup" ? 9 : 7)}
-                type="button"
-                onClick={signInWithGoogle}
-                disabled={status !== "idle"}
-              >
-                <GoogleGlyph />
-                <span>{t("Tiếp tục với Google")}</span>
               </button>
             </form>
 

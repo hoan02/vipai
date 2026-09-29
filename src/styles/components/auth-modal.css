@@ -31,9 +31,6 @@
 @keyframes am-panel-in{ from{ opacity:0; transform:translateY(var(--am-py,12px)) } to{ opacity:1; transform:none } }
 @keyframes am-note-in{ from{ opacity:0; transform:translateY(-9px) } to{ opacity:1; transform:none } }
 @keyframes am-edge{ 0%{ transform:scaleX(0); opacity:0 } 10%{ opacity:1 } 64%{ transform:scaleX(1); opacity:1 } 100%{ transform:scaleX(1); opacity:0 } }
-@keyframes am-drift-a{ 0%,to{ transform:translate3d(0,0,0) scale(1) } 50%{ transform:translate3d(10%,8%,0) scale(1.18) } }
-@keyframes am-drift-b{ 0%,to{ transform:translate3d(0,0,0) scale(1.1) } 50%{ transform:translate3d(-9%,10%,0) scale(.92) } }
-@keyframes am-drift-c{ 0%,to{ transform:translate3d(0,0,0) scale(.9); opacity:.5 } 50%{ transform:translate3d(6%,-6%,0) scale(1.06); opacity:.9 } }
 @keyframes am-spin{ to{ transform:rotate(1turn) } }
 @keyframes am-shake{
   0%,to{ transform:translateX(0) }
@@ -81,11 +78,6 @@
   background:linear-gradient(90deg,transparent,var(--brand-ruby) 18%,var(--amber) 52%,var(--brand-ruby) 84%,transparent);
   animation:am-edge .95s cubic-bezier(.22,1,.36,1) 130ms both;
 }
-.am-glow{ position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
-.am-glow span{ position:absolute; display:block; border-radius:50%; filter:blur(48px); }
-.am-glow span:nth-child(1){ width:250px; height:220px; top:-100px; left:-70px; background:color-mix(in srgb,var(--brand-ruby) 46%,transparent); animation:am-drift-a 11s ease-in-out infinite; }
-.am-glow span:nth-child(2){ width:230px; height:210px; right:-80px; bottom:-110px; background:color-mix(in srgb,#4d6bfe 24%,transparent); animation:am-drift-b 13s ease-in-out infinite; }
-.am-glow span:nth-child(3){ width:200px; height:180px; left:38%; top:26%; background:color-mix(in srgb,var(--amber) 26%,transparent); animation:am-drift-c 9s ease-in-out infinite; }
 .am-scroll{ position:relative; z-index:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
 
 /* ---------- header ---------- */
@@ -98,15 +90,7 @@
   position:relative; flex:none; display:grid; place-items:center; width:38px; height:38px;
   background:var(--surface); border:1px solid color-mix(in srgb,var(--ink) 12%,transparent); color:var(--amber-deep);
 }
-.am-mark svg{ position:relative; z-index:1; }
-/* one conic arc, masked into a ring, turning behind the mark */
-.am-mark::after{
-  content:""; position:absolute; inset:-6px;
-  background:conic-gradient(from 0turn,var(--amber) 0turn,var(--brand-ruby) .32turn,transparent .52turn,transparent 1turn);
-  -webkit-mask:radial-gradient(circle at 50% 50%,transparent 56%,#000 60%);
-  mask:radial-gradient(circle at 50% 50%,transparent 56%,#000 60%);
-  animation:am-spin 6s linear infinite; opacity:.6;
-}
+.am-mark svg, .am-mark img{ display:block; height:20px; width:auto; }
 .am-hd-txt{ display:grid; gap:2px; min-width:0; }
 .am-hd-txt b{ font-size:15.5px; font-weight:var(--fw-bold); letter-spacing:-.02em; line-height:1.1; }
 .am-hd-txt small{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:.18em; text-transform:uppercase; white-space:nowrap; color:color-mix(in srgb,var(--ink) 40%,transparent); }
@@ -163,6 +147,31 @@
 .am-note.err{ color:#9f1239; background:color-mix(in srgb,#f43f5e 10%,transparent); border-color:color-mix(in srgb,#f43f5e 30%,transparent); }
 .am-note-ic{ flex:none; display:grid; place-items:center; width:15px; height:15px; margin-top:1px; }
 .am-note-ic svg{ width:15px; height:15px; display:block; }
+
+/* Caps Lock hint: an advisory line under the password field, not an error. */
+.am-caps{
+  display:flex; align-items:center; gap:7px; margin:-3px 2px 0;
+  font-size:11.5px; line-height:1.4;
+  color:color-mix(in srgb,var(--amber-deep) 88%,transparent);
+  animation:am-note-in .24s ease-out both;
+}
+.am-caps svg{ flex:none; width:13px; height:13px; display:block; }
+
+/* Username character counter, shown only as the 20-char cap approaches. */
+.am-count{
+  flex:none; margin-right:12px;
+  font-family:var(--font-mono); font-size:11px; letter-spacing:.06em;
+  color:color-mix(in srgb,var(--ink) 40%,transparent);
+}
+
+/* No self-service reset here, so this routes to the support group. */
+.am-forgot{ display:flex; justify-content:flex-end; margin:-2px 2px 0; }
+.am-forgot a{
+  font-size:12px; font-weight:var(--fw-semibold); color:var(--amber-deep);
+  text-decoration:none; border-bottom:1px solid transparent;
+  transition:color var(--transition-fast), border-color var(--transition-fast);
+}
+.am-forgot a:hover{ color:var(--brand-ruby); border-bottom-color:var(--brand-ruby); }
 
 .am-pair{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
 
@@ -248,7 +257,7 @@
 .am-spin{ width:15px; height:15px; border-radius:50%; border:2px solid rgba(255,255,255,.34); border-top-color:#fff; animation:am-spin .68s linear infinite; }
 
 /* ---------- social ---------- */
-.am-alt-row{ display:flex; align-items:center; gap:12px; margin:16px 0 12px; }
+.am-alt-row{ display:flex; align-items:center; gap:12px; margin:4px 0 2px; }
 .am-alt-line{ flex:1; height:1px; background:color-mix(in srgb,var(--ink) 12%,transparent); }
 .am-alt-txt{ font-family:var(--font-mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:color-mix(in srgb,var(--ink) 34%,transparent); }
 .am-social{

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signout } from "@/lib/auth-client";
+import { TELEGRAM_URL } from "@/lib/site";
+import { useT } from "@/components/site/I18n";
 import { LogOut, LayoutDashboard, Shield, ShieldCheck, UserRound, type LucideIcon } from "lucide-react";
 
 const items: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] = [
@@ -12,8 +14,17 @@ const items: { href: string; label: string; icon: LucideIcon; exact?: boolean }[
   { href: "/dashboard/security", label: "Security", icon: ShieldCheck },
 ];
 
+function TelegramIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M21.9 4.3 19 19.1c-.2 1-.8 1.2-1.6.8l-4.4-3.3-2.1 2c-.2.2-.4.4-.9.4l.3-4.5 8.2-7.4c.4-.3-.1-.5-.6-.2L6.8 13.1l-4.3-1.4c-.9-.3-.9-.9.2-1.3L20.6 3c.8-.3 1.5.2 1.3 1.3z" />
+    </svg>
+  );
+}
+
 export function UserButton() {
   const { data: session, isPending } = useSession();
+  const t = useT();
   const pathname = usePathname() ?? "";
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -110,6 +121,17 @@ export function UserButton() {
                 <span>Admin</span>
               </Link>
             ) : null}
+            <a
+              href={TELEGRAM_URL}
+              role="menuitem"
+              target="_blank"
+              rel="noreferrer noopener"
+              onClick={() => setOpen(false)}
+              className="ub-item"
+            >
+              <TelegramIcon />
+              <span>{t("Nhóm hỗ trợ")}</span>
+            </a>
           </div>
 
           <div className="ub-foot">

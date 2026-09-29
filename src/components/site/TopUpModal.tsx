@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Icon } from "@/lib/icons";
 import { topupAmounts } from "@/lib/data";
+import { getSession } from "@/lib/auth-client";
+import { openAuthModal } from "@/lib/auth-modal";
 
 export function TopUpModal() {
   const [open, setOpen] = useState(false);
@@ -10,13 +12,19 @@ export function TopUpModal() {
   const [custom, setCustom] = useState("50");
 
   useEffect(() => {
-    const onClick = (e: MouseEvent) => {
+    const onClick = async (e: MouseEvent) => {
       const target = (e.target as HTMLElement)?.closest("[data-topup]");
-      if (target) {
-        setOpen(true);
-        setAmount(50);
-        setCustom("50");
+      if (!target) return;
+      // Topping up needs an account, so a signed-out visitor is sent to sign in
+      // first instead of being shown a checkout they cannot complete.
+      const { user } = await getSession();
+      if (!user) {
+        openAuthModal("signin");
+        return;
       }
+      setOpen(true);
+      setAmount(50);
+      setCustom("50");
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);

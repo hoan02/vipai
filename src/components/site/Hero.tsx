@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Icon } from "@/lib/icons";
-import { protocols } from "@/lib/data";
+import { brandMark, protocols } from "@/lib/data";
 import { TELEGRAM_URL } from "@/lib/site";
 
 function copyText(text: string) {
@@ -129,7 +129,7 @@ function RouteDiagram() {
       <div className="route-node hub" style={{ left: "50%", top: "50%" }}>
         <span className="hub-core">
           <span className="hub-pulse" aria-hidden="true" />
-          <Icon name="ic-vipai" className="lg" viewBox="0 0 24 24" />
+          <Icon name={brandMark} className="lg" width={40} height={28} />
         </span>
         <ul className="hub-caps">
           <li>
@@ -245,7 +245,7 @@ function CapStrip() {
           </span>
           <span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <Icon name="ic-vipai" width={19} height={19} style={{ color: "var(--amber-deep)" }} />
+            <Icon name={brandMark} width={19} height={14} />
           </span>
           <span>
             <Icon name="ic-bolt" />

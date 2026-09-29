@@ -67,6 +67,8 @@
 .lm-pill[data-v="Google"] .lg{ color:color-mix(in srgb, var(--p-gemini) 94%, var(--ink)); }
 .lm-pill[data-v="DeepSeek"] .lg{ color:var(--p-deepseek); }
 .lm-pill[data-v="GLM"] .lg{ color:var(--p-glm); }
+.lm-pill[data-v="xAI"] .lg,
+.lm-pill[data-v="Moonshot"] .lg{ color:var(--ink); }
 .lm-pill.is-on .lg{ color:#fff; }
 
 /* The badge and the selected pill were both --nav-ink, so on a selected row the

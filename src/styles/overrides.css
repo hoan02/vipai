@@ -79,32 +79,69 @@
    ============================================================ */
 .btn-solid:hover{ background:#9a3412; }
 @keyframes launch-banner-in{ 0%{ transform:translateY(-100%); opacity:0; } to{ transform:translateY(0); opacity:1; } }
-.launch-banner.is-entering{ animation:launch-banner-in .52s cubic-bezier(.2,0,0,1) 80ms both; }
-/* The wipe used to live in the base rule as
-   `linear-gradient(90deg,#000 0,#000 -1px,transparent 0px)`. A negative stop is
-   clamped to 0, so that gradient resolves to "opaque at 0, transparent from 0"
-   — the whole link, text and arrow, is masked out. Nothing animates
-   --lb-reveal-in/--lb-reveal-out in this port (the static build drove them from
-   JS), so the banner rendered as an empty bar until the lb-mask-off fallback
-   fired at 4s. The mask now only exists inside the keyframes' `from`, and ends
-   fully opaque, so the base state is always visible: if the animation never
-   runs, or is disabled, the text shows. */
+/* The entrance is a lit fuse rather than a fade: a burning front crosses
+   the banner and the copy unmasks behind it, the way a firecracker's fuse
+   eats along its length before the bang. The front's position lives in
+   `--lb-burn`; the same keyframe list is attached to the banner (which the
+   ember canvas in LaunchBanner.tsx reads back every frame) and to the link
+   (whose mask follows it), so the fire and the reveal stay welded. The burn
+   curve is baked into the stops and the animation runs `linear`, which is
+   what keeps the two copies identical frame for frame. */
+@property --lb-burn{ syntax:"<percentage>"; inherits:false; initial-value:114%; }
+@keyframes lb-burn-travel{
+  0%{ --lb-burn:-12%; }
+  14%{ --lb-burn:3%; }
+  42%{ --lb-burn:46%; }
+  72%{ --lb-burn:84%; }
+  100%{ --lb-burn:114%; }
+}
+.launch-banner.is-entering{
+  animation:
+    launch-banner-in .52s cubic-bezier(.2,0,0,1) 80ms both,
+    lb-burn-travel 1.25s linear .42s both;
+}
+/* The mask is expressed against the front: opaque well behind it, a half-lit
+   ember band right at it (so a glyph flares as the flame passes over), gone
+   just past it. The old wipe lived in the keyframes because a negative stop
+   clamps to 0 and blanked the whole link; here the fallback is the property's
+   initial value (114%), which reveals everything — if the animation never runs
+   or is unsupported, the copy shows instead of an empty bar. */
 .launch-banner.is-stars .launch-banner-link{
-  animation:lb-mask-reveal .85s cubic-bezier(.2,0,0,1) .45s both;
+  animation:lb-burn-travel 1.25s linear .42s both;
+  -webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(var(--lb-burn) - 2.4%),rgba(0,0,0,.34) calc(var(--lb-burn) + .2%),transparent calc(var(--lb-burn) + 1.6%));
+  mask-image:linear-gradient(90deg,#000 0,#000 calc(var(--lb-burn) - 2.4%),rgba(0,0,0,.34) calc(var(--lb-burn) + .2%),transparent calc(var(--lb-burn) + 1.6%));
 }
-@keyframes lb-mask-reveal{
-  from{
-    -webkit-mask-image:linear-gradient(90deg,#000 0,#000 0%,transparent 0%);
-    mask-image:linear-gradient(90deg,#000 0,#000 0%,transparent 0%);
-  }
-  to{
-    -webkit-mask-image:linear-gradient(90deg,#000 0,#000 100%,transparent 100%);
-    mask-image:linear-gradient(90deg,#000 0,#000 100%,transparent 100%);
-  }
+/* The dismiss button sits outside the masked link, so it gets its own late
+   fade instead of popping in ahead of the flame. */
+.launch-banner.is-entering .launch-banner-close{ animation:lb-close-in .3s ease 1.42s both; }
+@keyframes lb-close-in{ from{ opacity:0; } to{ opacity:1; } }
+/* Exit: the fuse is lit again, but now it eats the banner. The front erodes
+   the whole strip — background, copy, stars — so the page underneath shows
+   through, and the ember layer (re-lit by LaunchBanner) burns along the same
+   edge. The erosion stops trail the flame by 26px/6px so the mask cannot slice
+   the glow in half, and they resolve to "all there" at -12% and "all gone" at
+   114%, which is what the keyframes sweep between. The strip stops taking
+   clicks as soon as it starts going, so the burnt-away half is inert. */
+@keyframes lb-burn-out{ from{ --lb-burn:-12%; } to{ --lb-burn:114%; } }
+.launch-banner.is-exiting{
+  animation:lb-burn-out .85s cubic-bezier(.42,0,.58,1) both;
+  pointer-events:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,transparent calc(var(--lb-burn) - 26px),rgba(0,0,0,.55) calc(var(--lb-burn) - 6px),#000 calc(var(--lb-burn) + 6px));
+  mask-image:linear-gradient(90deg,transparent 0,transparent calc(var(--lb-burn) - 26px),rgba(0,0,0,.55) calc(var(--lb-burn) - 6px),#000 calc(var(--lb-burn) + 6px));
 }
+/* The link carries the entrance front; on the way out the parent mask is the
+   only thing that should be shaping anything. */
+.launch-banner.is-exiting .launch-banner-link{ animation:none; -webkit-mask-image:none; mask-image:none; }
+.launch-banner.is-exiting .launch-banner-close{ animation:lb-close-out .22s ease both; }
+@keyframes lb-close-out{ to{ opacity:0; } }
 html.launch-banner-off .launch-banner{ display:none; }
-.launch-banner .lb-stars{ z-index:2; }
+.launch-banner .lb-stars, .launch-banner .lb-fuse{ z-index:2; }
 .launch-banner-close{ z-index:3; }
+@media (prefers-reduced-motion: reduce){
+  .launch-banner.is-entering .launch-banner-close{ animation:none; }
+  .launch-banner.is-exiting{ animation:none; -webkit-mask-image:none; mask-image:none; }
+  .launch-banner.is-exiting .launch-banner-close{ animation:none; opacity:1; }
+}
 
 .hero.t-stagger .t-stagger-line{ animation:tLineIn .72s var(--stagger-ease) both; }
 .hero.t-stagger .t-stagger-line--2{ animation-delay:calc(var(--stagger-stagger) * 1); }

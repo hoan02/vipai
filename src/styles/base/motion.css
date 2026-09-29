@@ -21,6 +21,11 @@
 
 .lb-stars{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; opacity:.5; }
 
+/* Ember layer for the banner's fuse-burn entrance and exit (see overrides.css
+   and the fuse effect in LaunchBanner.tsx). Full strength — the fire is the
+   point. */
+.lb-fuse{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+
 .route-canvas{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 
 .t-stagger-line{ animation:heroLine .72s var(--stagger-ease) both; }
@@ -30,7 +35,7 @@
 @keyframes heroLine{ from{ opacity:0; transform:translateY(14px); filter:blur(3px); } to{ opacity:1; transform:none; filter:blur(0); } }
 
 @media (prefers-reduced-motion: reduce){
-  .hero-flow,.hero-ascii,.hero-glow,.lb-stars,.route-canvas{ display:none !important; }
+  .hero-flow,.hero-ascii,.hero-glow,.lb-stars,.lb-fuse,.route-canvas{ display:none !important; }
   .t-stagger-line{ opacity:1 !important; transform:none !important; filter:none !important; animation:none !important; }
 }
 

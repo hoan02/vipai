@@ -51,9 +51,16 @@ npm run dev                    # http://localhost:3000
 routes by Host header, and a server-side call carries the service name as its
 host, so going through it would fall through to this app and answer with HTML.
 
-Both settings the app reads — `BACKEND_API_URL` and `SESSION_SECRET` — are read
-at runtime. There is no `NEXT_PUBLIC_*` variable: the browser never calls the
-gateway directly, so nothing about it belongs in the client bundle.
+All three settings the app reads — `BACKEND_API_URL`, `SESSION_SECRET` and
+`NEW_API_SERVICE_TOKEN` — are read at runtime. There is no `NEXT_PUBLIC_*`
+variable: the browser never calls the gateway directly, so nothing about it
+belongs in the client bundle.
+
+`NEW_API_SERVICE_TOKEN` is a root access token used for one read: the per-model
+presentation (display name, context, featured flag and the provider list price
+behind the discount), which the gateway keeps in its own `vipai.meta` option.
+Without it, or before that option is written, a model shows under its own id with
+no discount — the gateway is the only source.
 
 `npm run check:backend-url` asserts which backend URLs the validator accepts and
 which it refuses.
@@ -174,3 +181,9 @@ agr-fe/
   `home/pricing-expand.css`) intentionally tune rules declared above them, so a
   new file must be placed to preserve that order — not alphabetically.
 - Motion is disabled automatically under `prefers-reduced-motion`.
+- **The pricing table is fed by the gateway.** `src/server/pricing.ts` builds
+  every row, price and discount from the gateway: the public `/api/pricing` for
+  the models and what they cost, and the `vipai.meta` option (read with
+  `NEW_API_SERVICE_TOKEN`) for the display name, context window, featured flag
+  and the provider list price the discount is measured against. `src/lib/data.ts`
+  now holds only the vendor marks and the static marketing copy.

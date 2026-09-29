@@ -8,14 +8,29 @@ import { PageHead } from "@/components/dashboard/kit";
 import { usd } from "@/lib/money";
 import type { MarginConfig, ModelPrice } from "@/server/admin";
 
-type CostRow = { id: string; costIn: string; costOut: string; margin: string };
+type CostRow = {
+  id: string;
+  name: string;
+  ctx: string;
+  featured: boolean;
+  costIn: string;
+  costOut: string;
+  margin: string;
+  listIn: string;
+  listOut: string;
+};
 
 function toCostRows(costs: MarginConfig[]): CostRow[] {
   return costs.map((cost) => ({
     id: cost.id,
+    name: cost.name,
+    ctx: cost.ctx,
+    featured: cost.featured,
     costIn: cost.in > 0 ? String(cost.in) : "",
     costOut: cost.out > 0 ? String(cost.out) : "",
     margin: cost.margin > 0 ? String(Math.round(cost.margin * 10000) / 100) : "",
+    listIn: cost.listIn > 0 ? String(cost.listIn) : "",
+    listOut: cost.listOut > 0 ? String(cost.listOut) : "",
   }));
 }
 
@@ -39,6 +54,24 @@ function costCell(
   );
 }
 
+function textCell(
+  value: string,
+  onChange: (value: string) => void,
+  label: string,
+  width = 170,
+): React.ReactNode {
+  return (
+    <input
+      className="field"
+      type="text"
+      style={{ width }}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label={label}
+    />
+  );
+}
+
 export function MarginView({
   initialPrices,
   initialCosts,
@@ -53,8 +86,11 @@ export function MarginView({
   const [notice, setNotice] = useState<string | null>(null);
   const helper = useColumnHelper<CostRow>();
 
-  const setCell = (id: string, field: "costIn" | "costOut" | "margin", value: string) =>
+  const setCell = (id: string, field: "name" | "ctx" | "costIn" | "costOut" | "margin" | "listIn" | "listOut", value: string) =>
     setCostRows((current) => current.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
+
+  const setFeatured = (id: string, featured: boolean) =>
+    setCostRows((current) => current.map((row) => (row.id === id ? { ...row, featured } : row)));
 
   const save = async (apply: boolean) => {
     const models = costRows.map((row) => ({
@@ -62,6 +98,11 @@ export function MarginView({
       in: Number(row.costIn) || 0,
       out: Number(row.costOut) || 0,
       margin: (Number(row.margin) || 0) / 100,
+      name: row.name.trim(),
+      ctx: row.ctx.trim(),
+      featured: row.featured,
+      listIn: Number(row.listIn) || 0,
+      listOut: Number(row.listOut) || 0,
     }));
     setSaving(true);
     setError(null);
@@ -72,7 +113,7 @@ export function MarginView({
       setError(result.message);
       return;
     }
-    setNotice(apply ? "Saved costs and repriced retail." : "Saved costs and margins.");
+    setNotice(apply ? "Saved, repriced retail, and wrote model metadata." : "Saved cost, margin and model metadata.");
     if (apply) router.refresh();
   };
 
@@ -80,6 +121,28 @@ export function MarginView({
 
   const columns: Column<CostRow>[] = [
     helper.accessor("id", { header: "Model" }),
+    helper.display({
+      id: "name",
+      header: "Name",
+      cell: ({ row }) => textCell(row.original.name, (v) => setCell(row.original.id, "name", v), `Name for ${row.original.id}`),
+    }),
+    helper.display({
+      id: "ctx",
+      header: "Context",
+      cell: ({ row }) => textCell(row.original.ctx, (v) => setCell(row.original.id, "ctx", v), `Context for ${row.original.id}`, 80),
+    }),
+    helper.display({
+      id: "featured",
+      header: "Featured",
+      cell: ({ row }) => (
+        <input
+          type="checkbox"
+          checked={row.original.featured}
+          onChange={(e) => setFeatured(row.original.id, e.target.checked)}
+          aria-label={`Featured for ${row.original.id}`}
+        />
+      ),
+    }),
     helper.display({
       id: "costIn",
       header: "Cost in",
@@ -100,6 +163,20 @@ export function MarginView({
       meta: { align: "right" },
       cell: ({ row }) =>
         costCell(row.original.margin, (v) => setCell(row.original.id, "margin", v), `Margin for ${row.original.id}`, 90),
+    }),
+    helper.display({
+      id: "listIn",
+      header: "List in",
+      meta: { align: "right" },
+      cell: ({ row }) =>
+        costCell(row.original.listIn, (v) => setCell(row.original.id, "listIn", v), `List price in for ${row.original.id}`),
+    }),
+    helper.display({
+      id: "listOut",
+      header: "List out",
+      meta: { align: "right" },
+      cell: ({ row }) =>
+        costCell(row.original.listOut, (v) => setCell(row.original.id, "listOut", v), `List price out for ${row.original.id}`),
     }),
     helper.accessor((row) => priceById.get(row.id)?.input ?? 0, {
       id: "retailIn",
@@ -136,8 +213,8 @@ export function MarginView({
   return (
     <>
       <PageHead
-        title="Margin"
-        sub="Upstream cost per 1M tokens, markup over cost, and the resulting retail price."
+        title="Models"
+        sub="Per model: display name, context, featured, upstream cost and markup, and the provider list price the public discount is measured against."
         side={
           <span style={{ display: "inline-flex", gap: 8 }}>
             <button

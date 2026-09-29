@@ -3,20 +3,20 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, LayoutDashboard, Percent } from "lucide-react";
+import { BarChart3, Layers, LayoutDashboard } from "lucide-react";
 import { UserButton } from "@/components/UserButton";
 import { Icon } from "@/lib/icons";
 
 /**
  * The admin chrome.
  *
- * Two screens only: upstream cost and margin, and the revenue/cost rollup.
- * Everything else the console already does better, so this does not try to
- * duplicate it — see the note in the sidebar footer.
+ * Two screens only: per-model settings, and the revenue/cost rollup. Everything
+ * else the console already does better, so this does not try to duplicate it —
+ * see the note in the sidebar footer.
  */
 const nav = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard },
-  { label: "Margin", href: "/admin/margin", icon: Percent },
+  { label: "Models", href: "/admin/margin", icon: Layers },
   { label: "Statistics", href: "/admin/stats", icon: BarChart3 },
 ];
 

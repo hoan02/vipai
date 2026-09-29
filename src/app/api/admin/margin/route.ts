@@ -12,9 +12,10 @@ function parseNumber(value: unknown): number | null {
 /**
  * Saves upstream cost and margin per model.
  *
- * Body: `{ models: [{ id, in, out, margin }], apply?: boolean }`, costs in USD
- * per 1M tokens and margin a fraction (0.2 = +20%). With `apply`, retail is set
- * to `cost × (1 + margin)` and pushed to the gateway's ratios.
+ * Body: `{ models: [{ id, in, out, margin, name, ctx, featured, listIn, listOut }],
+ * apply?: boolean }`, costs and list prices in USD per 1M tokens and margin a
+ * fraction (0.2 = +20%). With `apply`, retail is set to `cost × (1 + margin)`
+ * and pushed to the gateway's ratios.
  */
 export async function PUT(request: Request) {
   let token = "";
@@ -45,13 +46,30 @@ export async function PUT(request: Request) {
     const costIn = parseNumber(raw?.in);
     const costOut = parseNumber(raw?.out);
     const margin = parseNumber(raw?.margin);
-    if (!id || costIn === null || costOut === null || margin === null || costIn < 0 || costOut < 0 || margin < 0) {
+    const listIn = parseNumber(raw?.listIn);
+    const listOut = parseNumber(raw?.listOut);
+    const name = typeof raw?.name === "string" ? raw.name.trim() : "";
+    const ctx = typeof raw?.ctx === "string" ? raw.ctx.trim() : "";
+    const featured = raw?.featured === true;
+    if (
+      !id ||
+      costIn === null ||
+      costOut === null ||
+      margin === null ||
+      listIn === null ||
+      listOut === null ||
+      costIn < 0 ||
+      costOut < 0 ||
+      margin < 0 ||
+      listIn < 0 ||
+      listOut < 0
+    ) {
       return NextResponse.json(
-        { error: "invalid_margin", message: `Model ${id || "(unnamed)"} needs non-negative cost and margin.` },
+        { error: "invalid_margin", message: `Model ${id || "(unnamed)"} needs non-negative cost, margin and list price.` },
         { status: 422 },
       );
     }
-    entries.push({ id, in: costIn, out: costOut, margin });
+    entries.push({ id, in: costIn, out: costOut, margin, name, ctx, featured, listIn, listOut });
   }
 
   try {

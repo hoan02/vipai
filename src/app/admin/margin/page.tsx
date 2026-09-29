@@ -22,9 +22,20 @@ export default async function AdminMarginPage() {
   const priceRows: ModelPrice[] = models.map(
     (id) => prices.get(id) ?? { id, input: 0, output: 0, cache: null, perCall: null },
   );
-  const costRows: MarginConfig[] = models.map(
-    (id) => costs.get(id) ?? { id, in: 0, out: 0, margin: 0 },
-  );
+  const costRows: MarginConfig[] = models.map((id) => {
+    const cost = costs.get(id);
+    return {
+      id,
+      in: cost?.in ?? 0,
+      out: cost?.out ?? 0,
+      margin: cost?.margin ?? 0,
+      name: cost?.name ?? "",
+      ctx: cost?.ctx ?? "",
+      featured: cost?.featured ?? false,
+      listIn: cost?.listIn ?? 0,
+      listOut: cost?.listOut ?? 0,
+    };
+  });
 
   return <MarginView initialPrices={priceRows} initialCosts={costRows} />;
 }

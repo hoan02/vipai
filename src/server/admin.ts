@@ -10,6 +10,7 @@ import {
   QUOTA_PER_USD,
   type GatewayUser,
 } from "./gateway";
+import { invalidateModelMeta, META_OPTION, type ModelMeta } from "./model-meta";
 
 /**
  * The admin surface.
@@ -165,6 +166,16 @@ export type MarginConfig = {
   out: number;
   /** Markup over cost, as a fraction (0.2 = +20%). */
   margin: number;
+  /** Display name for the pricing table. */
+  name: string;
+  /** Context window, e.g. "1M". */
+  ctx: string;
+  /** Shown in the featured cards at the top of the pricing table. */
+  featured: boolean;
+  /** Provider list price, USD per 1M input tokens — the discount baseline. */
+  listIn: number;
+  /** Provider list price, USD per 1M output tokens. */
+  listOut: number;
 };
 
 const COST_OPTION = "vipai.cost";
@@ -189,20 +200,52 @@ function costMap(raw: string | undefined): CostMap {
   }
 }
 
+type MetaMap = Record<string, ModelMeta>;
+
+/** The `vipai.meta` map: display name, context, featured flag and list price. */
+function metaMap(raw: string | undefined): MetaMap {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw) as MetaMap;
+    const out: MetaMap = {};
+    for (const [id, value] of Object.entries(parsed)) {
+      if (value && typeof value === "object") out[id] = value;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 export async function getMarginConfigs(accessToken: string): Promise<Map<string, MarginConfig>> {
   const options = await getOptions(accessToken);
+  const costs = costMap(options.get(COST_OPTION));
+  const metas = metaMap(options.get(META_OPTION));
   const map = new Map<string, MarginConfig>();
-  for (const [id, value] of Object.entries(costMap(options.get(COST_OPTION)))) {
-    map.set(id, { id, ...value });
+  for (const id of new Set([...Object.keys(costs), ...Object.keys(metas)])) {
+    const cost = costs[id] ?? { in: 0, out: 0, margin: 0 };
+    const meta = metas[id] ?? {};
+    map.set(id, {
+      id,
+      ...cost,
+      name: meta.name ?? "",
+      ctx: meta.ctx ?? "",
+      featured: meta.featured === true,
+      listIn: meta.listIn ?? 0,
+      listOut: meta.listOut ?? 0,
+    });
   }
   return map;
 }
 
 /**
- * Saves cost and margin, and optionally reprices.
+ * Saves per-model cost, margin and presentation, and optionally reprices.
  *
- * With `apply`, retail is set to `cost × (1 + margin)` through the same ratio
- * path as the pricing tab, so the public table and the bill both follow.
+ * Cost and margin land in `vipai.cost`; the name, context window, featured flag
+ * and provider list price land in `vipai.meta`, which is what the public table
+ * reads (see model-meta.ts). With `apply`, retail is set to `cost × (1 + margin)`
+ * through the same ratio path as the pricing tab, so the public table and the
+ * bill both follow.
  */
 export async function setMarginConfigs(
   accessToken: string,
@@ -211,12 +254,22 @@ export async function setMarginConfigs(
 ): Promise<void> {
   const options = await getOptions(accessToken);
   const costs = costMap(options.get(COST_OPTION));
+  const metas = metaMap(options.get(META_OPTION));
 
   for (const entry of entries) {
     costs[entry.id] = { in: entry.in, out: entry.out, margin: entry.margin };
+    const meta: ModelMeta = metas[entry.id] ?? {};
+    meta.name = entry.name || undefined;
+    meta.ctx = entry.ctx || undefined;
+    meta.featured = entry.featured || undefined;
+    meta.listIn = entry.listIn > 0 ? entry.listIn : undefined;
+    meta.listOut = entry.listOut > 0 ? entry.listOut : undefined;
+    metas[entry.id] = meta;
   }
 
   await setOption(accessToken, COST_OPTION, JSON.stringify(costs));
+  await setOption(accessToken, META_OPTION, JSON.stringify(metas));
+  invalidateModelMeta();
 
   if (apply) {
     const prices: ModelPrice[] = entries

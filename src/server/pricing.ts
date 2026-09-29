@@ -1,17 +1,18 @@
 import "server-only";
 
 import { BACKEND_URL } from "./http";
-import { modelMeta, vendorLabel, vendorMarks, vendorUnknown, type Model } from "@/lib/data";
+import { getModelMeta } from "./model-meta";
+import { vendorLabel, vendorMarks, vendorUnknown, type Model } from "@/lib/data";
 
 /**
  * The public model list, priced from the gateway.
  *
  * `GET /api/pricing` is a public route that reports exactly what a request
  * costs, and it carries the model's vendor too, so the marketing table and the
- * bill can never disagree. Everything priced comes from here; `lib/data.ts`
- * only supplies the presentation the endpoint does not carry (a prettier name,
- * the context window, the provider list price that the discount is measured
- * against).
+ * bill can never disagree. Everything priced comes from here; the display name,
+ * context window, featured flag and the provider list price the discount is
+ * measured against come from the gateway's `vipai.meta` option (see
+ * model-meta.ts).
  *
  * A model is shown when it has a real token price. new-api answers 37.5 for a
  * model with no configured ratio — its unset fallback, $75 / 1M — and bills a
@@ -51,10 +52,8 @@ function usd(value: number): string {
 }
 
 /** The discount against the provider's published price, as text and a number. */
-function discount(listPrice: string | null, now: number): { text: string; pct: number } {
-  if (!listPrice) return { text: "", pct: 0 };
-  const list = Number.parseFloat(listPrice.replace(/[^0-9.]/g, ""));
-  if (!Number.isFinite(list) || list <= 0 || now <= 0) return { text: "", pct: 0 };
+function discount(list: number | null | undefined, now: number): { text: string; pct: number } {
+  if (!list || list <= 0 || now <= 0) return { text: "", pct: 0 };
   const pct = Math.round((1 - now / list) * 100);
   return pct > 0 ? { text: `${pct}% off`, pct } : { text: "", pct: 0 };
 }
@@ -78,6 +77,7 @@ export async function getPublicModels(): Promise<Model[]> {
 
   const rows = Array.isArray(body.data) ? body.data : [];
   const vendors = new Map<number, VendorRow>((body.vendors ?? []).map((row) => [row.id, row]));
+  const meta = await getModelMeta();
 
   const models: Model[] = [];
   for (const row of rows) {
@@ -85,32 +85,32 @@ export async function getPublicModels(): Promise<Model[]> {
     if (row.quota_type !== 0 || row.model_price > 0) continue;
     if (!(row.model_ratio > 0) || row.model_ratio === UNSET_MODEL_RATIO) continue;
 
-    const meta = modelMeta[row.model_name];
+    const info = meta.get(row.model_name);
     const vendorName = (row.vendor_id !== undefined ? vendors.get(row.vendor_id)?.name : undefined) ?? "";
     const mark = vendorMarks[vendorName] ?? vendorUnknown;
 
     const input = row.model_ratio * USD_PER_RATIO_POINT;
     const output = input * (row.completion_ratio || 1);
     const cache = row.cache_ratio ? input * row.cache_ratio : null;
-    const disc = discount(meta?.listIn ?? null, input);
+    const disc = discount(info?.listIn, input);
 
     models.push({
       id: row.model_name,
-      name: meta?.name ?? row.model_name,
+      name: info?.name ?? row.model_name,
       vendor: vendorLabel[vendorName] ?? vendorName,
       vendorIcon: mark.icon,
       vendorColor: mark.color,
-      ctx: meta?.ctx ?? null,
+      ctx: info?.ctx ?? null,
       cache: cache === null ? "—" : usd(cache),
-      listIn: meta?.listIn ?? null,
-      listOut: meta?.listOut ?? null,
+      listIn: info?.listIn ? usd(info.listIn) : null,
+      listOut: info?.listOut ? usd(info.listOut) : null,
       inNow: usd(input),
       outNow: usd(output),
       disc: disc.text,
       discPct: disc.pct,
       endpoints: row.supported_endpoint_types ?? [],
       groups: row.enable_groups ?? [],
-      featured: meta?.featured,
+      featured: info?.featured,
     });
   }
 

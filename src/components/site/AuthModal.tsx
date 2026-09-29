@@ -57,6 +57,9 @@ const COPY = {
 } as const;
 
 const STRENGTH = ["", "Yếu", "Trung bình", "Khá", "Mạnh"];
+/* The gateway's user model validates `max=20` on the username, so anything
+   longer comes back as a raw Go validation error. Catch it here instead. */
+const USERNAME_MAX = 20;
 const EXIT_MS = 240;
 const DONE_MS = 1150;
 const FOCUSABLE =
@@ -409,6 +412,10 @@ export function AuthModal() {
 
     if (!email.trim()) {
       setError(t("Vui lòng nhập tên đăng nhập."));
+      return;
+    }
+    if (email.trim().length > USERNAME_MAX) {
+      setError(t("Tên đăng nhập tối đa 20 ký tự."));
       return;
     }
     if (mode === "signup" && password.length < 8) {

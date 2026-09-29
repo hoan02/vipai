@@ -4,8 +4,9 @@ import { toClientUser } from "@/server/auth";
 
 export const dynamic = "force-dynamic";
 
-/** The gateway enforces this minimum; checking here gives a specific message. */
+/** The gateway enforces these; checking here gives a specific message. */
 const PASSWORD_MIN = 8;
+const USERNAME_MAX = 20;
 
 /**
  * Creates an account and signs it in.
@@ -28,6 +29,15 @@ export async function POST(request: Request) {
   if (!username) {
     return NextResponse.json(
       { error: "invalid_username", message: "Choose a username." },
+      { status: 422 },
+    );
+  }
+  if (username.length > USERNAME_MAX) {
+    return NextResponse.json(
+      {
+        error: "invalid_username",
+        message: `Usernames can be at most ${USERNAME_MAX} characters.`,
+      },
       { status: 422 },
     );
   }

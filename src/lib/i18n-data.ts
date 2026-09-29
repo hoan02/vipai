@@ -438,6 +438,7 @@ export const vi: Record<string, string> = {
   "Incorrect email or password.": "Email hoặc mật khẩu không đúng.",
   "Please enter a valid email address.": "Vui lòng nhập email hợp lệ.",
   "Password must be at least 8 characters.": "Mật khẩu cần ít nhất 8 ký tự.",
+  "Username must be at most 20 characters.": "Tên đăng nhập tối đa 20 ký tự.",
   "Could not create the account. Please try again.": "Không thể tạo tài khoản. Vui lòng thử lại.",
   "Signed in": "Đăng nhập thành công",
   "Account created": "Tạo tài khoản thành công",

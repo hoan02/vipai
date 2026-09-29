@@ -1,0 +1,42 @@
+/* ============================================================
+   Toasts (sonner).
+
+   Sonner injects its own stylesheet at runtime; every colour is a
+   CSS variable it reads off the toaster element. The `style` prop in
+   src/components/ui/toaster.tsx sets those variables inline (highest
+   specificity, so it always wins over the injected sheet), and this
+   file only carries the type and the icon sizing that the site's
+   design system owns.
+
+   Corners are square (--corner: 0) like every other surface; the
+   toaster is teleported to <body>, outside the `.dash` scope, so it
+   leans on the global tokens rather than the dashboard's --d-* pair.
+   ============================================================ */
+
+.vip-toaster {
+  font-family: var(--font-sans);
+}
+
+.vip-toaster [data-title] {
+  font-weight: var(--fw-semibold);
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+
+.vip-toaster [data-description] {
+  font-size: 12.8px;
+  line-height: 1.45;
+  opacity: 0.82;
+}
+
+.vip-toaster [data-icon] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vip-toaster [data-sonner-toast] {
+    transition: none;
+  }
+}

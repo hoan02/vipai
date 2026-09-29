@@ -5,6 +5,7 @@ import "./globals.css";
 import "./site-pages.css";
 import { I18n } from "@/components/site/I18n";
 import { AuthModal } from "@/components/site/AuthModal";
+import { Toaster } from "@/components/ui/toaster";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <I18n />
         {children}
         <AuthModal />
+        <Toaster />
       </body>
     </html>
   );

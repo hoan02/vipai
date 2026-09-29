@@ -46,9 +46,15 @@ const USD_PER_RATIO_POINT = 2;
 /** new-api's ratio for a model whose price was never configured. */
 const UNSET_MODEL_RATIO = 37.5;
 
+/**
+ * Money, with a fixed shape so a price never renders as a bare `$3` or `$2.9`.
+ * Two decimals down to a tenth of a cent, four below that for the free and
+ * cache-only lanes.
+ */
 function usd(value: number): string {
-  const text = value >= 1 ? value.toFixed(2) : value.toFixed(4);
-  return `$${text.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "")}`;
+  if (!(value > 0)) return "$0.00";
+  if (value >= 0.1) return `$${value.toFixed(2)}`;
+  return `$${value.toFixed(4).replace(/0+$/, "").replace(/\.$/, "")}`;
 }
 
 /** The discount against the provider's published price, as text and a number. */

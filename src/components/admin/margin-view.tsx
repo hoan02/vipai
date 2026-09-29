@@ -84,6 +84,9 @@ export function MarginView({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importing, setImporting] = useState(false);
   const helper = useColumnHelper<CostRow>();
 
   const setCell = (id: string, field: "name" | "ctx" | "costIn" | "costOut" | "margin" | "listIn" | "listOut", value: string) =>
@@ -115,6 +118,21 @@ export function MarginView({
     }
     setNotice(apply ? "Saved, repriced retail, and wrote model metadata." : "Saved cost, margin and model metadata.");
     if (apply) router.refresh();
+  };
+
+  const runImport = async () => {
+    setImporting(true);
+    setError(null);
+    setNotice(null);
+    const result = await send<{ merged?: number }>("/api/admin/models/import", "PUT", { meta: importText });
+    setImporting(false);
+    if (result.message) {
+      setError(result.message);
+      return;
+    }
+    setNotice(`Merged ${result.data?.merged ?? 0} models into vipai.meta.`);
+    setImportText("");
+    router.refresh();
   };
 
   const priceById = new Map(initialPrices.map((price) => [price.id, price]));
@@ -247,6 +265,43 @@ export function MarginView({
           {notice}
         </div>
       ) : null}
+
+      <div className="panel" style={{ padding: 16, marginTop: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+          <div>
+            <b style={{ fontSize: 13.5 }}>Import vipai.meta</b>
+            <p className="note" style={{ marginTop: 3 }}>
+              Paste a map of <code>model id → {"{ name, ctx, featured, in, out }"}</code>. Merged into the gateway
+              option; models not in the paste are left alone.
+            </p>
+          </div>
+          <button className="btn btn-ghost btn-sm" type="button" onClick={() => setImportOpen((v) => !v)}>
+            {importOpen ? "Hide" : "Paste JSON"}
+          </button>
+        </div>
+        {importOpen ? (
+          <>
+            <textarea
+              className="field"
+              style={{ width: "100%", minHeight: 160, marginTop: 12, fontSize: 12.5, fontFamily: "monospace" }}
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              placeholder='{ "gpt-5.6-sol": { "name": "GPT-5.6 Sol", "ctx": "1M", "featured": true, "in": 5, "out": 30 } }'
+              spellCheck={false}
+            />
+            <div style={{ marginTop: 10 }}>
+              <button
+                className="btn btn-primary btn-sm"
+                type="button"
+                onClick={runImport}
+                disabled={importing || !importText.trim()}
+              >
+                {importing ? "Importing…" : "Import"}
+              </button>
+            </div>
+          </>
+        ) : null}
+      </div>
 
       <div className="panel" style={{ padding: 16, marginTop: 20 }}>
         <DataTable

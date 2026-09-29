@@ -239,6 +239,39 @@ export async function getMarginConfigs(accessToken: string): Promise<Map<string,
 }
 
 /**
+ * Merges a pasted `vipai.meta` map into the gateway option.
+ *
+ * The admin table edits one row at a time; this is the bulk path, for seeding
+ * the whole catalogue in one paste. Models not in the paste are left alone, so
+ * it also works to add a batch.
+ */
+export async function importModelMeta(accessToken: string, raw: string): Promise<number> {
+  let incoming: MetaMap;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("expected a JSON object of model id → { name, ctx, featured, in, out }");
+    }
+    incoming = parsed as MetaMap;
+  } catch (cause) {
+    throw new Error(`Could not read the JSON: ${(cause as Error).message}`);
+  }
+
+  const options = await getOptions(accessToken);
+  const metas = metaMap(options.get(META_OPTION));
+  let merged = 0;
+  for (const [id, value] of Object.entries(incoming)) {
+    if (!value || typeof value !== "object") continue;
+    metas[id] = value;
+    merged += 1;
+  }
+
+  await setOption(accessToken, META_OPTION, JSON.stringify(metas));
+  invalidateModelMeta();
+  return merged;
+}
+
+/**
  * Saves per-model cost, margin and presentation, and optionally reprices.
  *
  * Cost and margin land in `vipai.cost`; the name, context window, featured flag

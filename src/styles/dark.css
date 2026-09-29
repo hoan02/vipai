@@ -77,3 +77,189 @@
 /* ---------- Recharts ----------
    Grid and axis colours are set from JS (see models-charts.tsx) because
    Recharts writes SVG attributes and cannot read CSS variables. */
+
+/* ============================================================
+   Marketing site.
+   The public pages lean on glass panels (translucent white), a couple of
+   fixed light artworks and a set of pastel washes. None of those are
+   surfaces, so they are redrawn here rather than tokenised.
+   ============================================================ */
+
+/* ---- Artwork: dim it so it reads as a wash over the dark stage ---- */
+[data-theme="dark"] .art-bg {
+  opacity: 0.32;
+}
+[data-theme="dark"] .buy::before {
+  opacity: 0.26;
+}
+[data-theme="dark"] .buy::after {
+  background: linear-gradient(
+    180deg,
+    transparent,
+    color-mix(in srgb, var(--stage-bg) 72%, transparent) 68%,
+    var(--stage-bg)
+  );
+}
+[data-theme="dark"] .hero-flow .b1,
+[data-theme="dark"] .hero-flow .b2,
+[data-theme="dark"] .hero-flow .b3 {
+  opacity: 0.3;
+}
+
+/* ---- Glass panels ---- */
+[data-theme="dark"] .cap-pills li {
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  border-color: color-mix(in srgb, var(--ink) 16%, transparent);
+}
+[data-theme="dark"] .tr-av span {
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+  border-color: color-mix(in srgb, var(--ink) 18%, transparent);
+}
+[data-theme="dark"] .route-node.model,
+[data-theme="dark"] .route-node.src {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 82%, transparent),
+    color-mix(in srgb, var(--surface) 58%, transparent)
+  );
+  border-color: color-mix(in srgb, var(--ink) 20%, transparent);
+  color: var(--ink);
+}
+[data-theme="dark"] .route-node .nm,
+[data-theme="dark"] .n-gpt .lg {
+  color: var(--ink);
+}
+[data-theme="dark"] .hub-core {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 92%, transparent),
+    color-mix(in srgb, var(--surface) 70%, transparent)
+  );
+  border-color: color-mix(in srgb, var(--ink) 24%, transparent);
+}
+[data-theme="dark"] .hub-core .lg {
+  color: var(--ink);
+}
+[data-theme="dark"] .hub-caps li {
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  border-color: color-mix(in srgb, var(--ink) 20%, transparent);
+}
+[data-theme="dark"] .mc-card::after {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 22%, transparent),
+    color-mix(in srgb, var(--surface) 72%, transparent) 58%,
+    color-mix(in srgb, var(--surface) 92%, transparent)
+  );
+}
+[data-theme="dark"] .mc-tag {
+  background: color-mix(in srgb, var(--surface) 62%, transparent);
+}
+[data-theme="dark"] .tier-media,
+[data-theme="dark"] .tier-video {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ink) 10%, var(--surface)), var(--surface));
+}
+[data-theme="dark"] .tr-band {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--amber) 30%, transparent);
+}
+
+/* ============================================================
+   Docs.
+   The callouts and pills paint their text in fixed dark browns/greens on
+   pastel tints, which disappear on a dark page.
+   ============================================================ */
+[data-theme="dark"] .doc-callout p,
+[data-theme="dark"] .doc-callout li {
+  color: color-mix(in srgb, var(--ink) 84%, transparent);
+}
+[data-theme="dark"] .doc-callout strong,
+[data-theme="dark"] .doc-callout-title {
+  color: var(--ink);
+}
+[data-theme="dark"] .doc-callout a {
+  color: var(--amber-deep);
+  border-bottom-color: color-mix(in srgb, var(--amber-deep) 45%, transparent);
+}
+[data-theme="dark"] .doc-callout a:hover {
+  color: color-mix(in srgb, var(--amber-deep) 78%, #fff);
+}
+[data-theme="dark"] .doc-callout code {
+  background: color-mix(in srgb, var(--amber) 16%, transparent);
+  border-color: color-mix(in srgb, var(--amber) 30%, transparent);
+  color: var(--amber-deep);
+}
+[data-theme="dark"] .doc-callout.is-ok .doc-callout-glyph {
+  color: var(--ok);
+}
+[data-theme="dark"] .doc-callout.is-ok p,
+[data-theme="dark"] .doc-callout.is-ok li {
+  color: color-mix(in srgb, var(--ok) 70%, var(--ink));
+}
+[data-theme="dark"] .doc-callout.is-ok strong,
+[data-theme="dark"] .doc-callout.is-ok .doc-callout-title {
+  color: var(--ok);
+}
+[data-theme="dark"] .doc-callout.is-ok code {
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+  border-color: color-mix(in srgb, var(--ok) 30%, transparent);
+  color: var(--ok);
+}
+[data-theme="dark"] .doc-callout.is-plain code {
+  color: var(--amber-deep);
+}
+[data-theme="dark"] .doc-pill.is-ok {
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+}
+[data-theme="dark"] .doc-pill.is-no {
+  color: var(--amber-deep);
+  background: color-mix(in srgb, var(--amber) 16%, transparent);
+}
+[data-theme="dark"] .doc-method {
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+}
+[data-theme="dark"] .doc-method[data-method="POST"] {
+  color: var(--amber-deep);
+  background: color-mix(in srgb, var(--amber) 16%, transparent);
+}
+[data-theme="dark"] .doc-rail-item[aria-current="page"] {
+  color: var(--amber-deep);
+  background: color-mix(in srgb, var(--amber) 16%, transparent);
+}
+[data-theme="dark"] .doc-kv dt {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+[data-theme="dark"] .doc-body :not(pre) > code,
+[data-theme="dark"] .doc-table code,
+[data-theme="dark"] .doc-kv code {
+  color: var(--amber-deep);
+}
+[data-theme="dark"] .doc-ref {
+  color: var(--amber-deep);
+}
+[data-theme="dark"] .doc-ref:hover {
+  color: color-mix(in srgb, var(--amber-deep) 78%, #fff);
+  border-bottom-color: var(--amber-deep);
+}
+[data-theme="dark"] .doc-meta a:hover {
+  color: var(--amber-deep);
+}
+[data-theme="dark"] .doc-find-row em {
+  color: var(--amber-deep);
+  background: color-mix(in srgb, var(--amber) 18%, transparent);
+}
+
+/* ============================================================
+   Dashboard leftovers.
+   ============================================================ */
+[data-theme="dark"] .bal {
+  background: linear-gradient(
+    112deg,
+    color-mix(in srgb, var(--d-amber) 18%, var(--surface)) 0%,
+    color-mix(in srgb, var(--d-amber) 10%, var(--surface)) 26%,
+    var(--surface) 68%,
+    color-mix(in srgb, #93c5fd 14%, var(--surface)) 100%
+  );
+}
+

@@ -114,7 +114,7 @@ export const codeSnippets: Record<string, CodeSnippet> = {
 
 client = OpenAI(
     base_url="https://api.vipai.site/v1",
-    api_key="sk-vipai-...",
+    api_key="YOUR_API_KEY",
 )
 
 stream = client.chat.completions.create(
@@ -133,7 +133,7 @@ for chunk in stream:
 
 const client = new OpenAI({
   baseURL: "https://api.vipai.site/v1",
-  apiKey: "sk-vipai-...",
+  apiKey: "YOUR_API_KEY",
 });
 
 const stream = await client.chat.completions.create({
@@ -170,7 +170,7 @@ import (
 )
 
 func main() {
-    client := openai.NewClient("sk-vipai-...")
+    client := openai.NewClient("YOUR_API_KEY")
     client.BaseURL = "https://api.vipai.site/v1"
     // the rest of your code stays the same
     fmt.Println("ready")
@@ -186,7 +186,7 @@ public class Main {
   public static void main(String[] args) {
     OpenAIClient client = OpenAIOkHttpClient.builder()
         .baseUrl("https://api.vipai.site/v1")
-        .apiKey("sk-vipai-...")
+        .apiKey("YOUR_API_KEY")
         .build();
     // the rest of your code stays the same
     System.out.println("ready");
@@ -202,7 +202,7 @@ public class Main {
 async fn main() {
     let config = OpenAIConfig::new()
         .with_api_base("https://api.vipai.site/v1")
-        .with_api_key("sk-vipai-...");
+        .with_api_key("YOUR_API_KEY");
     let _client = Client::with_config(config);
     // the rest of your code stays the same
     println!("ready");
@@ -213,7 +213,7 @@ async fn main() {
     model: "GPT-5.6 Sol",
     code: `<?php
 // the rest of your code stays the same
-$client = OpenAI::client("sk-vipai-...");
+$client = OpenAI::client("YOUR_API_KEY");
 $client->baseUri = "https://api.vipai.site/v1";
 
 echo "ready";`,
@@ -224,7 +224,7 @@ echo "ready";`,
     code: `require "openai"
 
 client = OpenAI::Client.new(
-  access_token: "sk-vipai-...",
+  access_token: "YOUR_API_KEY",
   uri_base: "https://api.vipai.site/v1",
 )
 

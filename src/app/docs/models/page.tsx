@@ -157,7 +157,7 @@ export default function ModelsPage() {
 
 client = OpenAI(
     base_url="https://api.vipai.site/v1",
-    api_key="sk-vipai-xxxxxx",
+    api_key="YOUR_API_KEY",
 )
 
 for m in client.models.list():

@@ -70,8 +70,8 @@ export default function DocsOverviewPage() {
       <Steps>
         <Step id="step-key" title="Create a key">
           <p>
-            Sign in and open the API keys page in the dashboard. Keys start with <code>sk-vipai-</code> and
-            are shown once — store it in a password manager or environment variable, never in a repository.
+            Sign in and open the API keys page in the dashboard. Keys are 48-character strings and
+            are shown once — store the key in a password manager or environment variable, never in a repository.
           </p>
         </Step>
         <Step id="step-point" title="Point one tool at the router">
@@ -125,7 +125,7 @@ export default function DocsOverviewPage() {
               <code key="b">Authorization: Bearer</code>
             </>,
           ],
-          ["Key prefix", <code key="a">sk-vipai-</code>],
+          ["Key length", <code key="a">48 characters</code>],
           ["Server timeout", "600 s for completions, 300 s for image generation"],
         ]}
       />

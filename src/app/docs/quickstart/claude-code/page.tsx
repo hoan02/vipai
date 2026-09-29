@@ -69,21 +69,21 @@ claude --version`,
                 file: "~/.zshrc",
                 lang: "bash",
                 code: `export ANTHROPIC_BASE_URL="${base}"
-export ANTHROPIC_API_KEY="sk-vipai-xxxxxx"`,
+export ANTHROPIC_API_KEY="YOUR_API_KEY"`,
               },
               {
                 label: "PowerShell",
                 file: "$PROFILE",
                 lang: "powershell",
                 code: `$env:ANTHROPIC_BASE_URL = "${base}"
-$env:ANTHROPIC_API_KEY = "sk-vipai-xxxxxx"`,
+$env:ANTHROPIC_API_KEY = "YOUR_API_KEY"`,
               },
               {
                 label: ".env",
                 file: ".env",
                 lang: "env",
                 code: `ANTHROPIC_BASE_URL=${base}
-ANTHROPIC_API_KEY=sk-vipai-xxxxxx`,
+ANTHROPIC_API_KEY=YOUR_API_KEY`,
               },
             ]}
           />

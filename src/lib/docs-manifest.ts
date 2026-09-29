@@ -61,7 +61,7 @@ export const DOC_PAGES: DocPage[] = [
     minutes: 2,
     summary: "One key, four wire formats, and a router in front of every provider.",
     status: "live",
-    keywords: ["base url", "api key", "sk-vipai-", "auth", "first request", "quickstart", "protocol", "getting started"],
+    keywords: ["base url", "api key", "key length", "auth", "first request", "quickstart", "protocol", "getting started"],
     glyph: BookOpen,
   },
   {

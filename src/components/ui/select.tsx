@@ -49,7 +49,7 @@ type SelectProps = {
   disabled?: boolean;
   /** Renders the trigger full-width instead of hugging its content. */
   block?: boolean;
-  /** A leading icon inside the trigger, matching `.field.has-icon`. */
+  /** A leading icon inside the trigger. */
   icon?: ReactNode;
   className?: string;
   style?: CSSProperties;
@@ -256,7 +256,7 @@ export function Select({
         aria-controls={open ? listId : undefined}
         aria-label={label}
         disabled={disabled}
-        className={`field ui-select-trigger${icon ? " has-icon" : ""}${block ? " is-block" : ""}${
+        className={`field ui-select-trigger${block ? " is-block" : ""}${
           className ? ` ${className}` : ""
         }`}
         style={style}

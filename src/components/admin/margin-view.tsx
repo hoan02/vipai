@@ -300,6 +300,7 @@ export function MarginView({
           searchPlaceholder="Search model"
           pageSize={25}
           empty="No models on any channel"
+          fixedHeight
         />
       </div>
     </>

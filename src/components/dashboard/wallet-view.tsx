@@ -605,6 +605,7 @@ export function WalletView({
           rowKey={(r) => String(r.id)}
           searchable={false}
           pageSize={10}
+          fixedHeight
           empty="No purchases yet. Credits redeemed with a code appear here."
         />
       </div>

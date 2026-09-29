@@ -64,7 +64,7 @@ export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
       ) : null}
 
       <div className="panel" style={{ padding: 16, marginTop: 20 }}>
-        <div className="twrap">
+        <div className="twrap is-fixed">
           <table className="dtable compact">
             <thead>
               <tr>

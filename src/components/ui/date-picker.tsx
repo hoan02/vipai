@@ -32,7 +32,7 @@ type DatePickerProps = {
   min?: string;
   max?: string;
   disabled?: boolean;
-  /** A leading icon inside the trigger, matching `.field.has-icon`. */
+  /** A leading icon inside the trigger. */
   icon?: ReactNode;
   className?: string;
   style?: CSSProperties;
@@ -252,7 +252,7 @@ export function DatePicker({
         aria-expanded={open}
         aria-label={label}
         disabled={disabled}
-        className={`field ui-date-trigger${icon ? " has-icon" : ""}${className ? ` ${className}` : ""}`}
+        className={`field ui-date-trigger${className ? ` ${className}` : ""}`}
         style={style}
         onClick={() => (open ? close() : openCalendar())}
       >

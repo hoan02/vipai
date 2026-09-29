@@ -11,6 +11,8 @@
 //   node scripts/screenshots.mjs --scheme=dark
 //   node scripts/screenshots.mjs --routes=/,/docs --out=.shots
 //   BASE_URL=http://localhost:3000 node scripts/screenshots.mjs
+//   DASH_USER=me DASH_PASSWORD=secret node scripts/screenshots.mjs
+//     (with credentials the dashboard routes are captured too)
 //
 // Output goes to .shots/ by default (gitignored). Each run writes, per route
 // and scheme, a `<name>-<scheme>-top.png` (above the fold) and a
@@ -31,10 +33,28 @@ const SCHEMES = (arg("scheme", "light,dark") === "both" ? "light,dark" : arg("sc
   .split(",")
   .map((value) => value.trim())
   .filter((value) => value === "light" || value === "dark");
-const ROUTES = arg("routes", "/,/docs,/download")
+
+// Dashboard routes need a session. Provide credentials in the environment to
+// include them; without credentials only the public routes are captured.
+const USER = process.env.DASH_USER || "";
+const PASSWORD = process.env.DASH_PASSWORD || "";
+const PUBLIC_ROUTES = "/,/docs,/download".split(",");
+const DASH_ROUTES = [
+  "/dashboard",
+  "/dashboard/api-keys",
+  "/dashboard/models",
+  "/dashboard/usage-logs",
+  "/dashboard/usage-logs/audit",
+  "/dashboard/usage-logs/task",
+  "/dashboard/wallet",
+  "/dashboard/profile",
+  "/dashboard/security",
+];
+const ROUTES = arg("routes", "")
   .split(",")
   .map((value) => value.trim())
   .filter(Boolean);
+if (ROUTES.length === 0) ROUTES.push(...PUBLIC_ROUTES, ...(USER ? DASH_ROUTES : []));
 
 /** A human-ish file name for a route. */
 function routeName(route) {
@@ -102,6 +122,18 @@ for (const scheme of SCHEMES) {
     viewport: { width: 1440, height: 900 },
   });
   const page = await context.newPage();
+  if (USER && PASSWORD) {
+    await page.goto(BASE + "/", { waitUntil: "domcontentloaded", timeout: 60000 });
+    const status = await page.evaluate(async ([user, pass]) => {
+      const response = await fetch("/api/session/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: user, password: pass }),
+      });
+      return response.status;
+    }, [USER, PASSWORD]);
+    console.log(`login ${USER}: ${status}`);
+  }
   for (const route of ROUTES) {
     const name = routeName(route);
     await page.goto(BASE + route, { waitUntil: "domcontentloaded", timeout: 60000 });

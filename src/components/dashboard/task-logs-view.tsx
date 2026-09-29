@@ -142,7 +142,7 @@ export function TaskLogsView({ initial }: { initial: TaskPage }) {
       ) : null}
 
       <div className="panel" style={{ padding: 16, marginTop: 20 }}>
-        <div className="twrap">
+        <div className="twrap is-fixed">
           {section === "drawing" ? (
             <table className="dtable compact">
               <thead>

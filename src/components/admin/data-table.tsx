@@ -61,6 +61,7 @@ export function DataTable<T extends RowData>({
   empty = "No rows",
   toolbar,
   searchPlaceholder = "Search",
+  fixedHeight = false,
 }: {
   columns: Column<T>[];
   rows: T[];
@@ -70,6 +71,8 @@ export function DataTable<T extends RowData>({
   empty?: string;
   toolbar?: ReactNode;
   searchPlaceholder?: string;
+  /** Pin the header and scroll the body inside a fixed-height box. */
+  fixedHeight?: boolean;
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -111,7 +114,7 @@ export function DataTable<T extends RowData>({
         </div>
       )}
 
-      <div className="twrap">
+      <div className={fixedHeight ? "twrap is-fixed" : "twrap"}>
         <table className="dtable compact">
           <thead>
             {table.getHeaderGroups().map((group) => (

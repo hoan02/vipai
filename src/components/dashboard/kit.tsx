@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 export function PageHead({ title, sub, side }: { title: ReactNode; sub?: ReactNode; side?: ReactNode }) {
   return (
     <div className="ph">
-      <div>
+      <div className="ph-t">
         <h1>{title}</h1>
         {sub ? <p className="sub">{sub}</p> : null}
       </div>

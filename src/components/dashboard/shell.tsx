@@ -1,39 +1,41 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { UserButton } from "@/components/UserButton";
 import {
-  Activity,
   BarChart3,
   ChevronsUpDown,
+  ClipboardList,
   CreditCard,
+  FlaskConical,
   Gauge,
   KeyRound,
+  ListTodo,
   MessageSquare,
-  Receipt,
   ScrollText,
   Shield,
   User,
 } from "lucide-react";
 import { Icon } from "@/lib/icons";
-import { dashboardNav } from "@/lib/dashboard-data";
+import { dashboardNavGroups, type NavIcon } from "@/lib/dashboard-data";
 import { TopUpModal } from "@/components/site/TopUpModal";
 import { setLocale, getLocale, type Locale } from "@/components/site/I18n";
 
-const navIcons = {
-  credit: CreditCard,
-  receipt: Receipt,
-  key: KeyRound,
-  pulse: Activity,
-  scroll: ScrollText,
-  bars: BarChart3,
+const navIcons: Record<NavIcon, typeof Gauge> = {
   gauge: Gauge,
-  shield: Shield,
-  user: User,
+  flask: FlaskConical,
   chat: MessageSquare,
+  bars: BarChart3,
+  key: KeyRound,
+  scroll: ScrollText,
+  audit: ClipboardList,
+  tasks: ListTodo,
+  credit: CreditCard,
+  user: User,
+  shield: Shield,
 };
 
 const topTabs = [
@@ -52,8 +54,20 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     setLang(l);
     setLocale(l);
   };
-  const isOn = (href: string) =>
-    href === "/dashboard" ? path === "/dashboard" : path === href || path.startsWith(`${href}/`);
+
+  // Highlight exactly one link: the longest href that still matches the path.
+  // This keeps "Usage logs" quiet while "Audit logs" (/usage-logs/audit) is open.
+  const activeHref = useMemo(() => {
+    const items = dashboardNavGroups.flatMap((group) => group.items);
+    let best: string | null = null;
+    for (const item of items) {
+      const matched = item.exact
+        ? path === item.href
+        : path === item.href || path.startsWith(`${item.href}/`);
+      if (matched && (best === null || item.href.length > best.length)) best = item.href;
+    }
+    return best;
+  }, [path]);
 
   const { data: session } = useSession();
   const user = session?.user as Record<string, unknown> | undefined;
@@ -77,15 +91,24 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           <ChevronsUpDown size={15} />
         </button>
         <nav className="dash-nav" aria-label="Dashboard">
-          {dashboardNav.map((item) => {
-            const I = navIcons[item.icon];
-            return (
-              <Link key={item.href} href={item.href} className={isOn(item.href) ? "is-on" : undefined}>
-                <I aria-hidden="true" />
-                {item.label}
-              </Link>
-            );
-          })}
+          {dashboardNavGroups.map((group) => (
+            <div className="dash-nav-group" key={group.id}>
+              <span className="dash-nav-title">{group.title}</span>
+              {group.items.map((item) => {
+                const I = navIcons[item.icon];
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={item.href === activeHref ? "is-on" : undefined}
+                  >
+                    <I aria-hidden="true" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
       </aside>
 

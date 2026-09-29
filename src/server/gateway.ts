@@ -59,6 +59,12 @@ export type GatewayUser = {
   hasPassword: boolean;
   /** Preferred dashboard language, e.g. `vi`. Null when never chosen. */
   language: string | null;
+  /** Referral code others can sign up with. */
+  affCode: string;
+  /** How many people signed up with the referral code. */
+  affCount: number;
+  /** Unclaimed referral earnings, in quota units. */
+  affQuota: number;
 };
 
 export type GatewayToken = {
@@ -139,10 +145,10 @@ function subjectOf(accessToken: string): string | null {
  * permissions from that header, and omitting it makes admin routes behave as if
  * the caller were nobody.
  */
-async function call<T>(
+async function rawCall<T>(
   path: string,
   init: RequestInit & { token?: string; cookie?: string } = {},
-): Promise<T> {
+): Promise<Envelope<T> & RelayEnvelope & { url?: string }> {
   const { token, cookie, ...rest } = init;
 
   const headers = new Headers(rest.headers);
@@ -173,7 +179,7 @@ async function call<T>(
   }
 
   const text = await response.text();
-  let body: Envelope<T> & RelayEnvelope = {};
+  let body: Envelope<T> & RelayEnvelope & { url?: string } = {};
   try {
     body = text ? JSON.parse(text) : {};
   } catch {
@@ -207,6 +213,14 @@ async function call<T>(
     throw new GatewayError(body.message || "The gateway rejected the request.", 400);
   }
 
+  return body;
+}
+
+async function call<T>(
+  path: string,
+  init: RequestInit & { token?: string; cookie?: string } = {},
+): Promise<T> {
+  const body = await rawCall<T>(path, init);
   return (body.data ?? (body as unknown)) as T;
 }
 
@@ -355,6 +369,9 @@ export async function getUser(accessToken: string): Promise<GatewayUser> {
     group: string;
     has_password?: boolean;
     setting?: unknown;
+    aff_code?: string;
+    aff_count?: number;
+    aff_quota?: number;
   }>("/api/user/self", { token: accessToken });
 
   return {
@@ -369,6 +386,9 @@ export async function getUser(accessToken: string): Promise<GatewayUser> {
     group: data.group || "default",
     hasPassword: Boolean(data.has_password),
     language: languageOf(data.setting),
+    affCode: data.aff_code ?? "",
+    affCount: data.aff_count ?? 0,
+    affQuota: data.aff_quota ?? 0,
   };
 }
 
@@ -531,33 +551,149 @@ export async function listLogs(
  * fields the usage screen filters and renders (request id, stream flag, latency,
  * source ip, group), which the dashboard summary does not need.
  */
-export type PagedLogs = {
-  items: GatewayLog[];
+export type PagedResult<T> = {
+  items: T[];
+  /** Zero-based page index, so the client can page with `page + 1`. */
   page: number;
   pageSize: number;
   total: number;
 };
 
-export async function listLogsPaged(
-  accessToken: string,
-  options: { page?: number; pageSize?: number } = {},
-): Promise<PagedLogs> {
-  const page = Math.max(0, options.page ?? 0);
-  const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 20));
+/** Filters shared by the paged log endpoints. */
+export type LogQuery = {
+  page?: number;
+  pageSize?: number;
+  startTimestamp?: number;
+  endTimestamp?: number;
+  modelName?: string;
+  tokenName?: string;
+  group?: string;
+  username?: string;
+  requestId?: string;
+};
 
-  const data = await call<{
-    items: GatewayLog[];
-    page: number;
-    page_size: number;
-    total: number;
-  }>(`/api/log/self?p=${page}&page_size=${pageSize}`, { token: accessToken });
+function pagedParams(query: LogQuery): URLSearchParams {
+  const page = Math.max(0, query.page ?? 0);
+  const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 20));
+  // The gateway pages from 1; this app pages from 0, so the translation
+  // happens here and nowhere else.
+  const params = new URLSearchParams({ p: String(page + 1), page_size: String(pageSize) });
+  if (query.startTimestamp) params.set("start_timestamp", String(Math.floor(query.startTimestamp)));
+  if (query.endTimestamp) params.set("end_timestamp", String(Math.floor(query.endTimestamp)));
+  if (query.modelName) params.set("model_name", query.modelName);
+  if (query.tokenName) params.set("token_name", query.tokenName);
+  if (query.group) params.set("group", query.group);
+  if (query.username) params.set("username", query.username);
+  if (query.requestId) params.set("request_id", query.requestId);
+  return params;
+}
 
+function normalizePage<T>(
+  data: { items?: T[]; page?: number; page_size?: number; total?: number },
+  query: LogQuery,
+): PagedResult<T> {
+  const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 20));
   return {
     items: data.items ?? [],
-    page: data.page ?? page,
+    page: Math.max(0, query.page ?? 0),
     pageSize: data.page_size ?? pageSize,
     total: data.total ?? 0,
   };
+}
+
+export function listLogsPaged(
+  accessToken: string,
+  query: LogQuery = {},
+): Promise<PagedResult<GatewayLog>> {
+  return call<{ items?: GatewayLog[]; page?: number; page_size?: number; total?: number }>(
+    `/api/log/self?${pagedParams(query).toString()}`,
+    { token: accessToken },
+  ).then((data) => normalizePage(data, query));
+}
+
+/** One audit-log row: an authenticated action the account or its keys took. */
+export type GatewayAuditLog = {
+  id: number;
+  event_id: string;
+  created_at: number;
+  category: string;
+  action: string;
+  token_ref: string;
+  auth_method: string;
+  ip: string;
+  user_agent: string;
+  method: string;
+  route: string;
+  status: number;
+  success: boolean;
+  request_id: string;
+  content: string;
+};
+
+export function listAuditLogsPaged(
+  accessToken: string,
+  query: LogQuery = {},
+): Promise<PagedResult<GatewayAuditLog>> {
+  return call<{ items?: GatewayAuditLog[]; page?: number; page_size?: number; total?: number }>(
+    `/api/audit/self?${pagedParams(query).toString()}`,
+    { token: accessToken },
+  ).then((data) => normalizePage(data, query));
+}
+
+/** One asynchronous task the account submitted (video, music, image, etc.). */
+export type GatewayTask = {
+  id: number;
+  created_at: number;
+  task_id: string;
+  platform: string;
+  group: string;
+  quota: number;
+  action: string;
+  status: string;
+  fail_reason: string;
+  submit_time: number;
+  start_time: number;
+  finish_time: number;
+  progress: string;
+};
+
+export function listTaskLogsPaged(
+  accessToken: string,
+  query: LogQuery = {},
+): Promise<PagedResult<GatewayTask>> {
+  return call<{ items?: GatewayTask[]; page?: number; page_size?: number; total?: number }>(
+    `/api/task/self?${pagedParams(query).toString()}`,
+    { token: accessToken },
+  ).then((data) => normalizePage(data, query));
+}
+
+/** One Midjourney-style drawing task. */
+export type GatewayDrawingLog = {
+  id: number;
+  action: string;
+  mj_id: string;
+  prompt: string;
+  prompt_en: string;
+  description: string;
+  state: string;
+  submit_time: number;
+  start_time: number;
+  finish_time: number;
+  image_url: string;
+  status: string;
+  progress: string;
+  fail_reason: string;
+  quota: number;
+};
+
+export function listDrawingLogsPaged(
+  accessToken: string,
+  query: LogQuery = {},
+): Promise<PagedResult<GatewayDrawingLog>> {
+  return call<{ items?: GatewayDrawingLog[]; page?: number; page_size?: number; total?: number }>(
+    `/api/mj/self?${pagedParams(query).toString()}`,
+    { token: accessToken },
+  ).then((data) => normalizePage(data, query));
 }
 
 /** The account's own usage rollup: quota spent, requests per minute, tokens per minute. */
@@ -882,6 +1018,247 @@ export async function redeemCode(accessToken: string, key: string): Promise<numb
     body: JSON.stringify({ key }),
   });
   return typeof data === "number" ? data : 0;
+}
+
+/**
+ * Starts an online purchase.
+ *
+ * The epay handler answers `{message, data, url}` where a success carries the
+ * payment URL and its form parameters, and a failure carries a reason in `data`.
+ * The shared `call` helper would return the reason and drop the rest, so this
+ * reads the body whole. The caller must POST `params` to `url` (not just open
+ * it) — that is how these gateways expect the order to arrive.
+ */
+export async function requestEpayTopUp(
+  accessToken: string,
+  amount: number,
+  paymentMethod: string,
+): Promise<{ url: string; params: Record<string, unknown> }> {
+  const body = await rawCall<Record<string, unknown>>("/api/user/pay", {
+    method: "POST",
+    token: accessToken,
+    body: JSON.stringify({ amount, payment_method: paymentMethod }),
+  });
+  if (typeof body.url === "string" && body.url) {
+    const params =
+      body.data && typeof body.data === "object" ? (body.data as Record<string, unknown>) : {};
+    return { url: body.url, params };
+  }
+  const detail = typeof body.data === "string" ? body.data : body.message;
+  throw new GatewayError(detail || "Could not start the payment.", 400);
+}
+
+/* --- subscriptions ------------------------------------------------------- */
+
+/** A purchasable subscription plan, in the view's shape. */
+export type SubscriptionPlan = {
+  id: number;
+  title: string;
+  subtitle: string;
+  priceAmount: number;
+  currency: string;
+  /** `month`, `day`, `year`, `hour` or `custom`. */
+  durationUnit: string;
+  durationValue: number;
+  customSeconds: number;
+  /** Whether the wallet balance may be used instead of an online payment. */
+  allowBalancePay: boolean;
+  /** Included quota, in quota units. Zero means unlimited. */
+  totalAmount: number;
+  quotaResetPeriod: string;
+  upgradeGroup: string;
+  maxPurchasePerUser: number;
+};
+
+export type UserSubscription = {
+  id: number;
+  planId: number;
+  amountTotal: number;
+  amountUsed: number;
+  startTime: number;
+  endTime: number;
+  status: string;
+  upgradeGroup: string;
+};
+
+type RawPlan = {
+  id: number;
+  title: string;
+  subtitle?: string;
+  price_amount?: number;
+  currency?: string;
+  duration_unit?: string;
+  duration_value?: number;
+  custom_seconds?: number;
+  allow_balance_pay?: boolean | null;
+  total_amount?: number;
+  quota_reset_period?: string;
+  upgrade_group?: string;
+  max_purchase_per_user?: number;
+};
+
+function toPlan(raw: RawPlan): SubscriptionPlan {
+  return {
+    id: raw.id,
+    title: raw.title,
+    subtitle: raw.subtitle ?? "",
+    priceAmount: raw.price_amount ?? 0,
+    currency: raw.currency ?? "USD",
+    durationUnit: raw.duration_unit ?? "month",
+    durationValue: raw.duration_value ?? 1,
+    customSeconds: raw.custom_seconds ?? 0,
+    allowBalancePay: raw.allow_balance_pay !== false,
+    totalAmount: raw.total_amount ?? 0,
+    quotaResetPeriod: raw.quota_reset_period ?? "never",
+    upgradeGroup: raw.upgrade_group ?? "",
+    maxPurchasePerUser: raw.max_purchase_per_user ?? 0,
+  };
+}
+
+function toSubscription(raw: {
+  id: number;
+  plan_id: number;
+  amount_total: number;
+  amount_used: number;
+  start_time: number;
+  end_time: number;
+  status: string;
+  upgrade_group?: string;
+}): UserSubscription {
+  return {
+    id: raw.id,
+    planId: raw.plan_id,
+    amountTotal: raw.amount_total,
+    amountUsed: raw.amount_used,
+    startTime: raw.start_time,
+    endTime: raw.end_time,
+    status: raw.status,
+    upgradeGroup: raw.upgrade_group ?? "",
+  };
+}
+
+/** The plans the operator has enabled. Empty when payments are unconfigured. */
+export async function getSubscriptionPlans(
+  accessToken: string,
+): Promise<SubscriptionPlan[]> {
+  const data = await call<Array<{ plan: RawPlan }>>("/api/subscription/plans", {
+    token: accessToken,
+  });
+  return (data ?? []).map((row) => toPlan(row.plan));
+}
+
+export type SubscriptionSelf = {
+  billingPreference: string;
+  active: UserSubscription[];
+  all: UserSubscription[];
+};
+
+/** The account's active and historical subscriptions. */
+export async function getSubscriptionSelf(
+  accessToken: string,
+): Promise<SubscriptionSelf> {
+  const data = await call<{
+    billing_preference?: string;
+    subscriptions?: Parameters<typeof toSubscription>[0][];
+    all_subscriptions?: Array<{ subscription?: Parameters<typeof toSubscription>[0] }>;
+  }>("/api/subscription/self", { token: accessToken });
+
+  return {
+    billingPreference: data.billing_preference ?? "balance",
+    active: (data.subscriptions ?? []).map(toSubscription),
+    all: (data.all_subscriptions ?? [])
+      .map((row) => row.subscription)
+      .filter((row): row is Parameters<typeof toSubscription>[0] => Boolean(row))
+      .map(toSubscription),
+  };
+}
+
+/** Buys a plan with the wallet balance. */
+export async function purchaseSubscriptionWithBalance(
+  accessToken: string,
+  planId: number,
+): Promise<void> {
+  await call("/api/subscription/balance/pay", {
+    method: "POST",
+    token: accessToken,
+    body: JSON.stringify({ plan_id: planId }),
+  });
+}
+
+/**
+ * Moves affiliate earnings into the wallet balance.
+ *
+ * `quota` is in quota units; the account's own earnings are the only source, so
+ * the gateway rejects a request larger than the balance.
+ */
+export async function transferAffiliateQuota(
+  accessToken: string,
+  quota: number,
+): Promise<void> {
+  await call("/api/user/aff_transfer", {
+    method: "POST",
+    token: accessToken,
+    body: JSON.stringify({ quota }),
+  });
+}
+
+/* --- check-in ------------------------------------------------------------ */
+
+export type CheckinRecord = { date: string; quotaAwarded: number };
+
+export type CheckinStatus = {
+  enabled: boolean;
+  minQuota: number;
+  maxQuota: number;
+  totalQuota: number;
+  totalCheckins: number;
+  monthCount: number;
+  checkedInToday: boolean;
+  records: CheckinRecord[];
+};
+
+/** The account's check-in calendar and totals for a month (`YYYY-MM`). */
+export async function getCheckinStatus(
+  accessToken: string,
+  month?: string,
+): Promise<CheckinStatus> {
+  const query = month ? `?month=${encodeURIComponent(month)}` : "";
+  const data = await call<{
+    enabled?: boolean;
+    min_quota?: number;
+    max_quota?: number;
+    stats?: {
+      total_quota?: number;
+      total_checkins?: number;
+      checkin_count?: number;
+      checked_in_today?: boolean;
+      records?: Array<{ checkin_date: string; quota_awarded: number }>;
+    };
+  }>(`/api/user/checkin${query}`, { token: accessToken });
+
+  const stats = data.stats ?? {};
+  return {
+    enabled: data.enabled ?? true,
+    minQuota: data.min_quota ?? 0,
+    maxQuota: data.max_quota ?? 0,
+    totalQuota: stats.total_quota ?? 0,
+    totalCheckins: stats.total_checkins ?? 0,
+    monthCount: stats.checkin_count ?? 0,
+    checkedInToday: stats.checked_in_today ?? false,
+    records: (stats.records ?? []).map((row) => ({
+      date: row.checkin_date,
+      quotaAwarded: row.quota_awarded,
+    })),
+  };
+}
+
+/** Claims today's check-in reward. Returns the quota awarded. */
+export async function doCheckin(accessToken: string): Promise<number> {
+  const data = await call<{ quota_awarded?: number }>("/api/user/checkin", {
+    method: "POST",
+    token: accessToken,
+  });
+  return data.quota_awarded ?? 0;
 }
 
 /* --- sessions ------------------------------------------------------------ */

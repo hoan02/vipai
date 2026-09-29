@@ -1,5 +1,5 @@
 import { requireAccount } from "@/server/auth";
-import { getAffiliateCode, getUser } from "@/server/gateway";
+import { getAffiliateCode, getCheckinStatus, getUser } from "@/server/gateway";
 import { requireAccessToken } from "@/server/repositories";
 import { ProfileView } from "@/components/dashboard/profile-view";
 
@@ -9,9 +9,10 @@ export default async function ProfilePage() {
   await requireAccount();
   const token = await requireAccessToken();
 
-  const [user, affiliateCode] = await Promise.all([
+  const [user, affiliateCode, checkin] = await Promise.all([
     getUser(token),
     getAffiliateCode(token).catch(() => ""),
+    getCheckinStatus(token).catch(() => null),
   ]);
 
   return (
@@ -27,6 +28,7 @@ export default async function ProfilePage() {
         language: user.language,
         affiliateCode,
       }}
+      checkin={checkin}
     />
   );
 }

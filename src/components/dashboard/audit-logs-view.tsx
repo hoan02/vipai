@@ -1,13 +1,12 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { PageHead, Stat } from "@/components/dashboard/kit";
+import { PageHead, Pill, Stat } from "@/components/dashboard/kit";
 import { LogsFilterBar } from "@/components/dashboard/logs-filter";
 import { useLogPager } from "@/components/dashboard/use-log-page";
-import { usd } from "@/lib/money";
-import type { UsageLogPage } from "@/server/logs";
+import type { AuditLogPage } from "@/server/logs";
 
-const dayFmt = new Intl.DateTimeFormat("en-US", {
+const timeFmt = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
   hour: "2-digit",
@@ -15,16 +14,10 @@ const dayFmt = new Intl.DateTimeFormat("en-US", {
   second: "2-digit",
 });
 
-/**
- * The account's request log.
- *
- * Loaded through this app's own route rather than the gateway directly, so the
- * bearer token stays server-side. Paging is server-side too: the gateway caps a
- * page at 100 rows and an active account can have far more than one page.
- */
-export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
+/** The account's audit trail: authenticated actions taken with this account or its keys. */
+export function AuditLogsView({ initial }: { initial: AuditLogPage }) {
   const { data, filters, setFilters, page, loading, error, apply, reset, goto } =
-    useLogPager<UsageLogPage["items"][number]>("/api/usage-logs", initial);
+    useLogPager<AuditLogPage["items"][number]>("/api/usage-logs/audit", initial);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const pageCount = Math.max(1, Math.ceil(data.total / data.pageSize));
@@ -34,18 +27,14 @@ export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
   return (
     <>
       <PageHead
-        title="Usage logs"
-        sub="Every request this account has made, with the model, tokens and charge."
+        title="Audit logs"
+        sub="Security-relevant actions on this account and its API keys, newest first."
       />
 
       <div className="stats" style={{ marginTop: 20 }}>
-        <Stat label="Requests" value={data.total.toLocaleString()} />
-        <Stat
-          label="Spent (recent)"
-          value={usd(initial.stat.quotaUsd)}
-          hint="over the last window"
-        />
-        <Stat label="Rate" value={`${initial.stat.rpm} rpm · ${initial.stat.tpm} tpm`} />
+        <Stat label="Events" value={data.total.toLocaleString()} />
+        <Stat label="Page" value={`${data.page + 1} / ${pageCount}`} />
+        <Stat label="Page size" value={String(data.pageSize)} />
       </div>
 
       <LogsFilterBar
@@ -54,7 +43,7 @@ export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
         onApply={apply}
         onReset={reset}
         busy={loading}
-        show={{ model: true, group: true, source: true }}
+        show={{ source: true, sourceLabel: "Token ref" }}
       />
 
       {error ? (
@@ -69,19 +58,18 @@ export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
             <thead>
               <tr>
                 <th>Time</th>
-                <th>Model</th>
-                <th>Key</th>
-                <th>Group</th>
-                <th className="r">Tokens in</th>
-                <th className="r">Tokens out</th>
-                <th className="r">Cost</th>
-                <th className="r">Latency</th>
+                <th>Action</th>
+                <th>Category</th>
+                <th>Route</th>
+                <th className="r">Status</th>
+                <th>Result</th>
+                <th>IP</th>
               </tr>
             </thead>
             <tbody>
               {data.items.length === 0 ? (
                 <tr className="empty-row">
-                  <td colSpan={8}>No requests match these filters.</td>
+                  <td colSpan={7}>No audit events match these filters.</td>
                 </tr>
               ) : (
                 data.items.map((row) => (
@@ -90,23 +78,26 @@ export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
                       onClick={() => setExpanded(expanded === row.id ? null : row.id)}
                       style={{ cursor: "pointer" }}
                     >
-                      <td>{dayFmt.format(new Date(row.createdAt))}</td>
+                      <td>{timeFmt.format(new Date(row.createdAt))}</td>
+                      <td>{row.action || "—"}</td>
+                      <td>{row.category || "—"}</td>
                       <td>
                         <span className="cell-main">
-                          <span>{row.model}</span>
-                          {row.stream ? <small>streamed</small> : null}
+                          <span>{row.route || "—"}</span>
+                          {row.method ? <small>{row.method}</small> : null}
                         </span>
                       </td>
-                      <td>{row.source}</td>
-                      <td>{row.group}</td>
-                      <td className="r num">{row.promptTokens.toLocaleString()}</td>
-                      <td className="r num">{row.completionTokens.toLocaleString()}</td>
-                      <td className="r num">{usd(row.costUsd)}</td>
-                      <td className="r num">{row.seconds ? `${row.seconds.toFixed(1)}s` : "—"}</td>
+                      <td className="r num">{row.status}</td>
+                      <td>
+                        <Pill tone={row.success ? "ok" : "off"}>
+                          {row.success ? "Success" : "Failed"}
+                        </Pill>
+                      </td>
+                      <td>{row.ip || "—"}</td>
                     </tr>
                     {expanded === row.id ? (
                       <tr>
-                        <td colSpan={8} style={{ background: "var(--d-soft)", paddingTop: 0, paddingBottom: 10 }}>
+                        <td colSpan={7} style={{ background: "var(--d-soft)", paddingTop: 0, paddingBottom: 10 }}>
                           <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                             {row.requestId ? (
                               <span className="note">
@@ -114,11 +105,13 @@ export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
                                 <code style={{ fontFamily: "var(--font-mono)" }}>{row.requestId}</code>
                               </span>
                             ) : null}
-                            <span className="note">
-                              Tokens {row.promptTokens.toLocaleString()} in,{" "}
-                              {row.completionTokens.toLocaleString()} out
-                            </span>
-                            {row.ip ? <span className="note">From {row.ip}</span> : null}
+                            {row.tokenRef ? (
+                              <span className="note">
+                                Token{" "}
+                                <code style={{ fontFamily: "var(--font-mono)" }}>{row.tokenRef}</code>
+                              </span>
+                            ) : null}
+                            {row.content ? <span className="note">{row.content}</span> : null}
                           </div>
                         </td>
                       </tr>

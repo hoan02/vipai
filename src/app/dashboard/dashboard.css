@@ -49,7 +49,9 @@
 .dash-acct:hover{ background:#fff; }
 .dash-acct .av{ width:22px; height:22px; flex:none; display:grid; place-items:center; background:color-mix(in srgb, var(--d-amber) 16%, transparent); color:var(--d-amber-deep); font-size:11px; font-weight:700; }
 .dash-acct .em{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13.5px; font-weight:600; }
-.dash-nav{ display:flex; flex-direction:column; gap:2px; }
+.dash-nav{ display:flex; flex-direction:column; gap:16px; }
+.dash-nav-group{ display:flex; flex-direction:column; gap:2px; }
+.dash-nav-title{ padding:0 12px 6px; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--d-muted); }
 .dash-nav a{ position:relative; display:flex; align-items:center; gap:11px; padding:10px 12px; font-size:14.5px; color:var(--d-muted); text-decoration:none; transition:background-color .15s ease, color .15s ease; }
 .dash-nav a:hover{ background:color-mix(in srgb, var(--d-amber) 10%, transparent); color:var(--ink); }
 .dash-nav a.is-on{ background:#fff; color:var(--ink); font-weight:600; box-shadow:inset 3px 0 0 var(--d-amber-deep); }
@@ -223,6 +225,8 @@ select.field{ appearance:none; padding-right:30px; background-image:linear-gradi
   .dash-acct{ display:none; }
   .dash-side-note{ display:none; }
   .dash-nav{ flex-direction:row; overflow-x:auto; gap:4px; margin-left:auto; }
+  .dash-nav-group{ flex-direction:row; gap:4px; }
+  .dash-nav-title{ display:none; }
   .dash-nav a{ white-space:nowrap; padding:8px 11px; }
   .dash-nav a.is-on{ box-shadow:inset 0 -2px 0 var(--d-amber-deep); }
   .dash-body{ height:auto; }

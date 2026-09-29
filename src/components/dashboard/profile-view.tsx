@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy } from "lucide-react";
+import { Check, CheckCircle2, Copy } from "lucide-react";
 import { PageHead, Pill, SectionTitle } from "@/components/dashboard/kit";
 import { Select } from "@/components/ui/select";
 import { setLocale, type Locale } from "@/components/site/I18n";
+import { usd } from "@/lib/money";
 
 export type ProfileData = {
   id: number;
@@ -17,6 +18,16 @@ export type ProfileData = {
   hasPassword: boolean;
   language: string | null;
   affiliateCode: string;
+};
+
+/** The subset of the check-in status the profile card renders. */
+export type CheckinData = {
+  enabled: boolean;
+  totalQuota: number;
+  totalCheckins: number;
+  monthCount: number;
+  checkedInToday: boolean;
+  records: Array<{ date: string; quotaAwarded: number }>;
 };
 
 function copyText(text: string) {
@@ -37,13 +48,118 @@ function copyText(text: string) {
 }
 
 /**
+ * The daily check-in calendar.
+ *
+ * The gateway keeps one record per checked day; this lays them over the current
+ * month so the visitor can see what has been claimed. The reward is randomised
+ * by the gateway, so only the resulting totals are shown.
+ */
+function CheckinCard({ initial }: { initial: CheckinData }) {
+  const router = useRouter();
+  const [status, setStatus] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  if (!status.enabled) {
+    return <p className="note">Daily check-in is not enabled on this instance.</p>;
+  }
+
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const checked = new Set(status.records.map((record) => record.date));
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const iso = (day: number) => `${month}-${String(day).padStart(2, "0")}`;
+
+  const claim = async () => {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const response = await fetch("/api/profile/checkin", { method: "POST" });
+      const payload = (await response.json().catch(() => null)) as
+        | { awardedUsd?: number; message?: string }
+        | null;
+      if (!response.ok) {
+        setError(payload?.message || "Could not check in.");
+        return;
+      }
+      setStatus((current) => ({
+        ...current,
+        checkedInToday: true,
+        monthCount: current.monthCount + 1,
+        totalCheckins: current.totalCheckins + 1,
+        records: [...current.records, { date: iso(now.getDate()), quotaAwarded: 0 }],
+      }));
+      setNotice(`Checked in — ${usd(payload?.awardedUsd ?? 0)} added.`);
+      router.refresh();
+    } catch {
+      setError("Could not reach the server.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <p className="note" style={{ marginBottom: 12 }}>
+        {status.totalCheckins} check-ins all time · {status.monthCount} this month · total{" "}
+        {usd(status.totalQuota / 500_000)} earned.
+      </p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+        {Array.from({ length: daysInMonth }, (_, index) => {
+          const day = index + 1;
+          const on = checked.has(iso(day));
+          const today = day === now.getDate();
+          return (
+            <span
+              key={day}
+              className={`chip${on ? " is-on" : ""}`}
+              title={on ? `Checked in on ${iso(day)}` : iso(day)}
+              style={today ? { borderColor: "var(--d-amber-deep)" } : undefined}
+            >
+              {on ? <CheckCircle2 size={13} aria-hidden="true" /> : null}
+              {day}
+            </span>
+          );
+        })}
+      </div>
+      <button
+        className="btn btn-primary btn-sm"
+        type="button"
+        disabled={busy || status.checkedInToday}
+        onClick={claim}
+      >
+        {status.checkedInToday ? "Checked in today" : busy ? "Checking in…" : "Check in"}
+      </button>
+      {error ? (
+        <p className="note" style={{ marginTop: 10, color: "#b91c1c" }} role="alert">
+          {error}
+        </p>
+      ) : null}
+      {notice ? (
+        <p className="note" style={{ marginTop: 10, color: "#0e6b45" }} role="status">
+          {notice}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+/**
  * The account profile: who you are, and the credentials that identify you.
  *
  * Editing the display name, username and language is one call; changing the
  * password is a separate one because the gateway requires the current password
  * to authorise it.
  */
-export function ProfileView({ initial }: { initial: ProfileData }) {
+export function ProfileView({
+  initial,
+  checkin,
+}: {
+  initial: ProfileData;
+  checkin: CheckinData | null;
+}) {
   const router = useRouter();
   const [profile, setProfile] = useState(initial);
 
@@ -293,6 +409,15 @@ export function ProfileView({ initial }: { initial: ProfileData }) {
           {busy ? "Working…" : "Change password"}
         </button>
       </div>
+
+      {checkin ? (
+        <>
+          <SectionTitle hint="Claim a reward once a day">Daily check-in</SectionTitle>
+          <div className="panel" style={{ padding: 18 }}>
+            <CheckinCard initial={checkin} />
+          </div>
+        </>
+      ) : null}
 
       {profile.affiliateCode ? (
         <>

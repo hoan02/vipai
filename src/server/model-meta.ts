@@ -36,7 +36,7 @@ const OK_TTL_MS = 5 * 60 * 1000;
 const RETRY_TTL_MS = 60 * 1000;
 
 /** Parses the `vipai.meta` option: `{ "<model>": { name, ctx, featured, in, out } }`. */
-function parse(raw: string | undefined): Map<string, ModelMeta> {
+export function parseMeta(raw: string | undefined): Map<string, ModelMeta> {
   const map = new Map<string, ModelMeta>();
   if (!raw) return map;
   try {
@@ -60,6 +60,24 @@ function parse(raw: string | undefined): Map<string, ModelMeta> {
 }
 
 /**
+ * The stored shape: the display fields plus `in`/`out` for the list price. One
+ * place converts both ways, so a reader and a writer cannot drift on the names.
+ */
+export function serializeMeta(metas: Map<string, ModelMeta>): string {
+  const out: Record<string, Record<string, unknown>> = {};
+  for (const [id, meta] of metas) {
+    const entry: Record<string, unknown> = {};
+    if (meta.name) entry.name = meta.name;
+    if (meta.ctx) entry.ctx = meta.ctx;
+    if (meta.featured) entry.featured = true;
+    if (meta.listIn && meta.listIn > 0) entry.in = meta.listIn;
+    if (meta.listOut && meta.listOut > 0) entry.out = meta.listOut;
+    if (Object.keys(entry).length > 0) out[id] = entry;
+  }
+  return JSON.stringify(out);
+}
+
+/**
  * The gateway's per-model metadata. Memoised in-process, since the page is
  * rendered on demand and every render would otherwise read the whole option map.
  */
@@ -76,7 +94,7 @@ export async function getModelMeta(): Promise<Map<string, ModelMeta>> {
 
   try {
     const options = await getOptions(token);
-    const value = parse(options.get(META_OPTION));
+    const value = parseMeta(options.get(META_OPTION));
     cache = { at: now, ttl: OK_TTL_MS, value };
     return value;
   } catch {

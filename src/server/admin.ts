@@ -10,7 +10,7 @@ import {
   QUOTA_PER_USD,
   type GatewayUser,
 } from "./gateway";
-import { invalidateModelMeta, META_OPTION, type ModelMeta } from "./model-meta";
+import { invalidateModelMeta, META_OPTION, parseMeta, serializeMeta, type ModelMeta } from "./model-meta";
 
 /**
  * The admin surface.
@@ -200,31 +200,14 @@ function costMap(raw: string | undefined): CostMap {
   }
 }
 
-type MetaMap = Record<string, ModelMeta>;
-
-/** The `vipai.meta` map: display name, context, featured flag and list price. */
-function metaMap(raw: string | undefined): MetaMap {
-  if (!raw) return {};
-  try {
-    const parsed = JSON.parse(raw) as MetaMap;
-    const out: MetaMap = {};
-    for (const [id, value] of Object.entries(parsed)) {
-      if (value && typeof value === "object") out[id] = value;
-    }
-    return out;
-  } catch {
-    return {};
-  }
-}
-
 export async function getMarginConfigs(accessToken: string): Promise<Map<string, MarginConfig>> {
   const options = await getOptions(accessToken);
   const costs = costMap(options.get(COST_OPTION));
-  const metas = metaMap(options.get(META_OPTION));
+  const metas = parseMeta(options.get(META_OPTION));
   const map = new Map<string, MarginConfig>();
-  for (const id of new Set([...Object.keys(costs), ...Object.keys(metas)])) {
+  for (const id of new Set([...Object.keys(costs), ...metas.keys()])) {
     const cost = costs[id] ?? { in: 0, out: 0, margin: 0 };
-    const meta = metas[id] ?? {};
+    const meta = metas.get(id) ?? {};
     map.set(id, {
       id,
       ...cost,
@@ -239,36 +222,56 @@ export async function getMarginConfigs(accessToken: string): Promise<Map<string,
 }
 
 /**
- * Merges a pasted `vipai.meta` map into the gateway option.
- *
- * The admin table edits one row at a time; this is the bulk path, for seeding
- * the whole catalogue in one paste. Models not in the paste are left alone, so
- * it also works to add a batch.
+ * Merges a pasted map into the gateway options: the presentation (`name`, `ctx`,
+ * `featured`, and the list price as `in`/`out`) and, when an entry carries them,
+ * the upstream `costIn`/`costOut`/`margin`. Models not in the paste are left
+ * alone, so it works both to seed the catalogue and to add a batch.
  */
-export async function importModelMeta(accessToken: string, raw: string): Promise<number> {
-  let incoming: MetaMap;
+export async function importModelData(
+  accessToken: string,
+  raw: string,
+): Promise<{ meta: number; cost: number }> {
+  let incoming: Record<string, Record<string, unknown>>;
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error("expected a JSON object of model id → { name, ctx, featured, in, out }");
+      throw new Error("expected a JSON object of model id → { name, ctx, featured, in, out, costIn, costOut, margin }");
     }
-    incoming = parsed as MetaMap;
+    incoming = parsed as Record<string, Record<string, unknown>>;
   } catch (cause) {
     throw new Error(`Could not read the JSON: ${(cause as Error).message}`);
   }
 
   const options = await getOptions(accessToken);
-  const metas = metaMap(options.get(META_OPTION));
-  let merged = 0;
-  for (const [id, value] of Object.entries(incoming)) {
-    if (!value || typeof value !== "object") continue;
-    metas[id] = value;
-    merged += 1;
+  const metas = parseMeta(options.get(META_OPTION));
+  const costs = costMap(options.get(COST_OPTION));
+  let meta = 0;
+  let cost = 0;
+
+  for (const [id, parsedMeta] of parseMeta(raw)) {
+    metas.set(id, { ...metas.get(id), ...parsedMeta });
+    meta += 1;
   }
 
-  await setOption(accessToken, META_OPTION, JSON.stringify(metas));
+  for (const [id, value] of Object.entries(incoming)) {
+    if (!value || typeof value !== "object") continue;
+    const costIn = Number(value.costIn);
+    const costOut = Number(value.costOut);
+    const margin = Number(value.margin);
+    if (![costIn, costOut, margin].some(Number.isFinite)) continue;
+    const previous = costs[id] ?? { in: 0, out: 0, margin: 0 };
+    costs[id] = {
+      in: Number.isFinite(costIn) ? costIn : previous.in,
+      out: Number.isFinite(costOut) ? costOut : previous.out,
+      margin: Number.isFinite(margin) ? margin : previous.margin,
+    };
+    cost += 1;
+  }
+
+  await setOption(accessToken, META_OPTION, serializeMeta(metas));
+  if (cost > 0) await setOption(accessToken, COST_OPTION, JSON.stringify(costs));
   invalidateModelMeta();
-  return merged;
+  return { meta, cost };
 }
 
 /**
@@ -287,21 +290,21 @@ export async function setMarginConfigs(
 ): Promise<void> {
   const options = await getOptions(accessToken);
   const costs = costMap(options.get(COST_OPTION));
-  const metas = metaMap(options.get(META_OPTION));
+  const metas = parseMeta(options.get(META_OPTION));
 
   for (const entry of entries) {
     costs[entry.id] = { in: entry.in, out: entry.out, margin: entry.margin };
-    const meta: ModelMeta = metas[entry.id] ?? {};
+    const meta: ModelMeta = metas.get(entry.id) ?? {};
     meta.name = entry.name || undefined;
     meta.ctx = entry.ctx || undefined;
     meta.featured = entry.featured || undefined;
     meta.listIn = entry.listIn > 0 ? entry.listIn : undefined;
     meta.listOut = entry.listOut > 0 ? entry.listOut : undefined;
-    metas[entry.id] = meta;
+    metas.set(entry.id, meta);
   }
 
   await setOption(accessToken, COST_OPTION, JSON.stringify(costs));
-  await setOption(accessToken, META_OPTION, JSON.stringify(metas));
+  await setOption(accessToken, META_OPTION, serializeMeta(metas));
   invalidateModelMeta();
 
   if (apply) {

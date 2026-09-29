@@ -124,13 +124,15 @@ export function MarginView({
     setImporting(true);
     setError(null);
     setNotice(null);
-    const result = await send<{ merged?: number }>("/api/admin/models/import", "PUT", { meta: importText });
+    const result = await send<{ meta?: number; cost?: number }>("/api/admin/models/import", "PUT", { meta: importText });
     setImporting(false);
     if (result.message) {
       setError(result.message);
       return;
     }
-    setNotice(`Merged ${result.data?.merged ?? 0} models into vipai.meta.`);
+    const merged = result.data?.meta ?? 0;
+    const costs = result.data?.cost ?? 0;
+    setNotice(`Merged ${merged} models${costs > 0 ? ` and ${costs} cost rows` : ""}.`);
     setImportText("");
     router.refresh();
   };
@@ -269,10 +271,11 @@ export function MarginView({
       <div className="panel" style={{ padding: 16, marginTop: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <div>
-            <b style={{ fontSize: 13.5 }}>Import vipai.meta</b>
+            <b style={{ fontSize: 13.5 }}>Import model data</b>
             <p className="note" style={{ marginTop: 3 }}>
-              Paste a map of <code>model id → {"{ name, ctx, featured, in, out }"}</code>. Merged into the gateway
-              option; models not in the paste are left alone.
+              Paste a map of <code>model id → {"{ name, ctx, featured, in, out }"}</code>, plus optional{" "}
+              <code>costIn</code>, <code>costOut</code> and <code>margin</code>. Merged into the gateway options; models
+              not in the paste are left alone.
             </p>
           </div>
           <button className="btn btn-ghost btn-sm" type="button" onClick={() => setImportOpen((v) => !v)}>

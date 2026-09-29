@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { importModelMeta, requireRoot } from "@/server/admin";
+import { importModelData, requireRoot } from "@/server/admin";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Merges a pasted `vipai.meta` map into the gateway option.
+ * Merges a pasted map into the gateway options.
  *
- * Body: `{ meta: "<json>" }`, the same shape the admin Models page shows. Root
- * only, like the rest of the admin surface.
+ * Body: `{ meta: "<json>" }`, the shape the admin Models page shows: per model
+ * `name`, `ctx`, `featured`, the list price as `in`/`out`, and optionally
+ * `costIn`/`costOut`/`margin`. Root only, like the rest of the admin surface.
  */
 export async function PUT(request: Request) {
   let token = "";
@@ -36,8 +37,8 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const merged = await importModelMeta(token, body.meta);
-    return NextResponse.json({ ok: true, merged });
+    const { meta, cost } = await importModelData(token, body.meta);
+    return NextResponse.json({ ok: true, meta, cost });
   } catch (error) {
     return NextResponse.json(
       { error: "import_failed", message: (error as Error).message },

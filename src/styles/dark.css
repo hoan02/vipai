@@ -263,3 +263,13 @@
   );
 }
 
+/* ---------- Inverted surfaces ----------
+   The launch banner is the dark strip at the top in light mode, painted
+   with --ink so it inverts. In dark mode that would make it a bright bar,
+   so it is pinned dark instead. */
+[data-theme="dark"] .launch-banner {
+  background: #17140f;
+  color: var(--ink);
+}
+
+

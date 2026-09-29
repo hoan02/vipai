@@ -114,7 +114,7 @@
    therefore flipped to a light value here and those chip texts are moved
    to --stage-bg in dark.css.
    ============================================================ */
-[data-theme="dark"]{
+html[data-theme="dark"]{
   --stage-bg:#100e0d;
   --ink:#f3eee8;
   --nav-ink:#f0ebe4;

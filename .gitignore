@@ -26,3 +26,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .clerk/
+
+# headless screenshots (scripts/screenshots.mjs)
+/.shots/

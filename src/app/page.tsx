@@ -39,11 +39,11 @@ export default async function Page() {
       <Hero maxOff={maxOff} />
       <Pricing models={models} />
       <StatBar />
-      <BuyHook />
+      <BuyHook maxOff={maxOff} />
       <QuickStart />
       <Features maxOff={maxOff} />
       <Duo />
-      <Tier />
+      <Tier maxOff={maxOff} />
       <LiveDiscounts models={models} />
       <Leaderboard />
       <TelegramCta />

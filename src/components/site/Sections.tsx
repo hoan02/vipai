@@ -29,7 +29,7 @@ export function StatBar() {
   );
 }
 
-export function BuyHook() {
+export function BuyHook({ maxOff }: { maxOff: number }) {
   return (
     <section className="buy buy-hook" id="buyhook" aria-label="Pay less">
       <div className="buy-inner ai-reveal">
@@ -37,7 +37,7 @@ export function BuyHook() {
           <span>Pay Less for</span> <span className="grad">Every Token</span>
         </h2>
         <p className="buy-sub">
-          Pay only for what you use. Model rates start at just 10% of the official price — discounts applied
+          Pay only for what you use. Model rates start at just {100 - maxOff}% of the official price — discounts applied
           automatically, per model.
         </p>
         <div className="buy-actions">
@@ -223,7 +223,7 @@ export function Duo() {
   );
 }
 
-export function Tier() {
+export function Tier({ maxOff }: { maxOff: number }) {
   return (
     <section className="section" id="routing" aria-label="Production-grade routing" style={{ paddingTop: 0 }}>
       <div className="tier">
@@ -237,7 +237,9 @@ export function Tier() {
           <ul className="tier-specs">
             <li>
               <span className="ts-k">Price</span>
-              <span className="ts-v">Up to 92% off</span>
+              <span className="ts-v" data-i18n="Up to {n}% off" data-i18n-n={String(maxOff)}>
+                Up to {maxOff}% off
+              </span>
             </li>
             <li>
               <span className="ts-k">Latency</span>

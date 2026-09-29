@@ -68,6 +68,7 @@ export const vi: Record<string, string> = {
   "Top models": "Model hàng đầu",
   "Cut Your AI Spend": "Cắt chi phí AI",
   "up to {n}%": "tới {n}%",
+  "Up to {n}% off": "Giảm tới {n}%",
   "FAQ": "Câu hỏi thường gặp",
   "What is an LLM router?": "LLM router là gì?",
   "Is VipAI OpenAI-compatible?": "VipAI có tương thích OpenAI không?",

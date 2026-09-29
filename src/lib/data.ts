@@ -80,6 +80,34 @@ export const modelMeta: Record<string, ModelMeta> = {
   "claude-opus-4-7": { name: "Claude Opus 4.7", ctx: "1M", listIn: "$5.00", listOut: "$25.00" },
   "claude-opus-4-6": { name: "Claude Opus 4.6", ctx: "1M", listIn: "$5.00", listOut: "$25.00" },
   "claude-haiku-4-5-20251001": { name: "Claude Haiku 4.5", ctx: "200K", listIn: "$1.00", listOut: "$5.00" },
+
+  // Batch 2 — create each model's ratio in new-api first (see the price sheet);
+  // the row, its display name and its discount come from here once it is priced.
+  "gpt-6-sol": { name: "GPT-6 Sol", ctx: "1M", listIn: "$2.00", listOut: "$10.00" },
+  "gpt-6-luna": { name: "GPT-6 Luna", ctx: "1M", listIn: "$0.10", listOut: "$0.50" },
+  "claude-opus-5": { name: "Claude Opus 5", ctx: "1M", listIn: "$5.00", listOut: "$25.00" },
+  "claude-opus-5-5": { name: "Claude Opus 5.5", ctx: "1M", listIn: "$4.00", listOut: "$20.00" },
+  "claude-sonnet-4-6": { name: "Claude Sonnet 4.6", ctx: "1M", listIn: "$3.00", listOut: "$15.00" },
+  "claude-haiku-4-5": { name: "Claude Haiku 4.5", ctx: "200K", listIn: "$1.00", listOut: "$5.00" },
+  "claude-fable-5-1": { name: "Claude Fable 5.1", ctx: "1M", listIn: "$10.00", listOut: "$50.00" },
+  "gemini-3.5-flash": { name: "Gemini 3.5 Flash", ctx: "1M", listIn: "$1.50", listOut: "$9.00" },
+  "gemini-3.6-flash": { name: "Gemini 3.6 Flash", ctx: "1M", listIn: "$1.50", listOut: "$7.50" },
+  "gemini-3.7-flash": { name: "Gemini 3.7 Flash", ctx: "1M", listIn: "$1.50", listOut: "$7.50" },
+  "gemini-3.8-flash": { name: "Gemini 3.8 Flash", ctx: "1M", listIn: "$1.50", listOut: "$7.50" },
+  "gemini-3.5-flash-lite": { name: "Gemini 3.5 Flash-Lite", ctx: "1M", listIn: "$0.30", listOut: "$2.50" },
+  "gemini-3.1-flash-image": { name: "Gemini 3.1 Flash Image", ctx: "1M", listIn: "$1.50", listOut: "$9.00" },
+  "grok-4.6": { name: "Grok 4.6", ctx: "500K", listIn: "$2.00", listOut: "$6.00" },
+  "kimi-k3": { name: "Kimi K3", ctx: "1M", listIn: "$3.00", listOut: "$15.00" },
+  "kimi-k3[1M]": { name: "Kimi K3 (1M)", ctx: "1M", listIn: "$3.00", listOut: "$15.00" },
+  "glm-5.3": { name: "GLM-5.3", ctx: "1M", listIn: "$1.40", listOut: "$4.40" },
+  "glm-5.3-flash": { name: "GLM-5.3 Flash", ctx: "1M", listIn: "$0.70", listOut: "$2.20" },
+  "glm-5.3-flash-free": { name: "GLM-5.3 Flash (free)", ctx: "1M", listIn: "$0.70", listOut: "$2.20" },
+  "deepseek-v4-flash": { name: "DS DeepSeek V4 Flash", ctx: "1M", listIn: "$0.14", listOut: "$0.28" },
+  "deepseek-flash": { name: "DS DeepSeek Flash", ctx: "1M", listIn: "$0.15", listOut: "$0.60" },
+  "deepseek-v4-pro-260425": { name: "DS DeepSeek V4 Pro (0425)", ctx: "1M", listIn: "$0.435", listOut: "$0.87" },
+  "deepseek-v4-flash-vision-exp": { name: "DS DeepSeek V4 Flash Vision", ctx: "1M", listIn: "$0.22", listOut: "$0.66" },
+  "deepseek-flash-free": { name: "DS DeepSeek Flash (free)", ctx: "1M", listIn: "$0.15", listOut: "$0.60" },
+  "deepseek-v4-flash-free": { name: "DS DeepSeek V4 Flash (free)", ctx: "1M", listIn: "$0.14", listOut: "$0.28" },
 };
 
 /** The pricing table and the live-discount list spell some models slightly

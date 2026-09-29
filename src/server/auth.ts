@@ -11,6 +11,8 @@ export type Account = {
   name: string | null;
   /** new-api role: 1 user, 10 admin, 100 root. */
   role: number;
+  /** Serialized sidebar-module preferences, or null when never set. */
+  sidebarModules: string | null;
 };
 
 function toAccount(user: GatewayUser): Account {
@@ -20,6 +22,7 @@ function toAccount(user: GatewayUser): Account {
     email: user.email,
     name: user.displayName || user.username,
     role: user.role,
+    sidebarModules: user.sidebarModules,
   };
 }
 
@@ -37,6 +40,8 @@ export type ClientUser = {
   name: string;
   /** new-api role: 1 user, 10 admin, 100 root. Drives the Admin nav item. */
   role: number;
+  /** Serialized sidebar-module preferences; the nav filters against it. */
+  sidebarModules: string | null;
 };
 
 export function toClientUser(user: GatewayUser): ClientUser {
@@ -47,6 +52,7 @@ export function toClientUser(user: GatewayUser): ClientUser {
     email: account.email,
     name: account.name ?? account.username,
     role: account.role,
+    sidebarModules: account.sidebarModules,
   };
 }
 

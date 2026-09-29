@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Icon } from "@/lib/icons";
 import { dashboardNavGroups, type NavIcon } from "@/lib/dashboard-data";
+import { isHrefVisible, parseSidebarModules } from "@/lib/sidebar-modules";
 import { TopUpModal } from "@/components/site/TopUpModal";
 import { setLocale, getLocale, type Locale } from "@/components/site/I18n";
 
@@ -76,6 +77,18 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     (user?.name as string | undefined) || (user?.username as string | undefined) || email;
   const initial = (display.trim()[0] ?? "A").toUpperCase();
 
+  // The visitor's saved sidebar preferences narrow the default navigation; an
+  // account that never touched them keeps every entry (missing means visible).
+  const navGroups = useMemo(() => {
+    const config = parseSidebarModules(user?.sidebarModules as string | undefined);
+    return dashboardNavGroups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => isHrefVisible(config, item.href)),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [user?.sidebarModules]);
+
   return (
     <div className="dash">
       <aside className="dash-side">
@@ -91,7 +104,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           <ChevronsUpDown size={15} />
         </button>
         <nav className="dash-nav" aria-label="Dashboard">
-          {dashboardNavGroups.map((group) => (
+          {navGroups.map((group) => (
             <div className="dash-nav-group" key={group.id}>
               <span className="dash-nav-title">{group.title}</span>
               {group.items.map((item) => {

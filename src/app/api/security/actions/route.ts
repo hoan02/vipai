@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { requireAccount } from "@/server/auth";
 import {
+  beginPasskeyRegistration,
+  deleteAccount,
+  deletePasskey,
+  finishPasskeyRegistration,
   generateAccessToken,
+  regenerateBackupCodes,
   revokeAccessToken,
   revokeOtherSessions,
   revokeSession,
+  unbindOAuth,
 } from "@/server/gateway";
 import { requireAccessToken } from "@/server/repositories";
 
@@ -14,8 +20,8 @@ export const dynamic = "force-dynamic";
  * Security actions that are not 2FA.
  *
  * `action` selects the operation so the whole screen shares one route, which
- * keeps the security surface in one file rather than five near-identical ones.
- * Actions that the gateway guards return a scoped security proof, so the caller
+ * keeps the security surface in one file rather than many near-identical ones.
+ * Actions the gateway guards return a scoped security proof, so the caller
  * supplies its password once for those.
  */
 export async function POST(request: Request) {
@@ -69,12 +75,66 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true });
       }
 
+      case "regenerate-backup-codes": {
+        if (!password) {
+          return NextResponse.json({ error: "missing_password" }, { status: 422 });
+        }
+        const codes = await regenerateBackupCodes(token, password);
+        return NextResponse.json({ ok: true, backupCodes: codes });
+      }
+
+      case "passkey-register-begin": {
+        if (!password) {
+          return NextResponse.json({ error: "missing_password" }, { status: 422 });
+        }
+        const begin = await beginPasskeyRegistration(token, password);
+        return NextResponse.json({ ok: true, ...begin });
+      }
+
+      case "passkey-register-finish": {
+        const flowToken = typeof body.flowToken === "string" ? body.flowToken : "";
+        const credential =
+          body.credential && typeof body.credential === "object"
+            ? (body.credential as Record<string, unknown>)
+            : null;
+        if (!flowToken || !credential) {
+          return NextResponse.json({ error: "missing_credential" }, { status: 422 });
+        }
+        await finishPasskeyRegistration(token, flowToken, credential);
+        return NextResponse.json({ ok: true });
+      }
+
+      case "passkey-delete": {
+        if (!password) {
+          return NextResponse.json({ error: "missing_password" }, { status: 422 });
+        }
+        await deletePasskey(token, password);
+        return NextResponse.json({ ok: true });
+      }
+
+      case "unbind-oauth": {
+        const providerId = Number(body.providerId);
+        if (!password || !Number.isInteger(providerId)) {
+          return NextResponse.json({ error: "missing_fields" }, { status: 422 });
+        }
+        await unbindOAuth(token, providerId, password);
+        return NextResponse.json({ ok: true });
+      }
+
+      case "delete-account": {
+        if (!password) {
+          return NextResponse.json({ error: "missing_password" }, { status: 422 });
+        }
+        await deleteAccount(token, password);
+        return NextResponse.json({ ok: true });
+      }
+
       default:
         return NextResponse.json({ error: "unknown_action" }, { status: 422 });
     }
   } catch (error) {
     const message = (error as Error).message;
-    const status = /password|verif/i.test(message) ? 422 : 502;
+    const status = /password|verif|credential/i.test(message) ? 422 : 502;
     return NextResponse.json({ error: "action_failed", message }, { status });
   }
 }

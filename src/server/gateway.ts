@@ -65,6 +65,10 @@ export type GatewayUser = {
   affCount: number;
   /** Unclaimed referral earnings, in quota units. */
   affQuota: number;
+  /** Serialized sidebar-module preferences, or null when never set. */
+  sidebarModules: string | null;
+  /** The account's notification/privacy settings, as stored by the gateway. */
+  settings: Record<string, unknown>;
 };
 
 export type GatewayToken = {
@@ -389,7 +393,31 @@ export async function getUser(accessToken: string): Promise<GatewayUser> {
     affCode: data.aff_code ?? "",
     affCount: data.aff_count ?? 0,
     affQuota: data.aff_quota ?? 0,
+    sidebarModules: sidebarModulesOf(data.setting),
+    settings: parseSetting(data.setting),
   };
+}
+
+/**
+ * Parses the user's `setting` blob.
+ *
+ * It is a JSON string on the user row, not an object, and a malformed value is
+ * treated as empty rather than fatal.
+ */
+export function parseSetting(setting: unknown): Record<string, unknown> {
+  if (typeof setting !== "string" || setting.trim() === "") return {};
+  try {
+    const parsed = JSON.parse(setting) as unknown;
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Reads the serialized sidebar-module preferences out of the settings blob. */
+function sidebarModulesOf(setting: unknown): string | null {
+  const value = parseSetting(setting).sidebar_modules;
+  return typeof value === "string" && value.trim() ? value : null;
 }
 
 /** The account's API keys, newest first. */
@@ -1375,11 +1403,14 @@ export async function obtainSecurityProof(
   accessToken: string,
   scope: string,
   password: string,
+  context?: Record<string, unknown>,
 ): Promise<string> {
+  const body: Record<string, unknown> = { method: "password", scope, password };
+  if (context) body.context = context;
   const data = await call<{ proof_token: string }>("/api/verify", {
     method: "POST",
     token: accessToken,
-    body: JSON.stringify({ method: "password", scope, password }),
+    body: JSON.stringify(body),
   });
   return data.proof_token;
 }
@@ -1390,8 +1421,14 @@ export const SECURITY_SCOPES = {
   passwordChange: "account.password.change",
   twoFASetup: "2fa.setup",
   twoFADisable: "2fa.disable",
+  twoFABackupCodes: "2fa.backup_codes.regenerate",
   accessTokenGenerate: "access_token.generate",
   accessTokenRevoke: "access_token.revoke",
+  passkeyRegister: "passkey.register",
+  passkeyDelete: "passkey.delete",
+  accountBind: "account.binding.bind",
+  accountUnbind: "account.binding.unbind",
+  accountDelete: "account.delete",
 } as const;
 
 /**
@@ -1508,13 +1545,25 @@ export async function revokeAccessToken(
 
 /* --- two-factor authentication ------------------------------------------ */
 
-export type TwoFactorStatus = { enabled: boolean; locked: boolean };
+export type TwoFactorStatus = {
+  enabled: boolean;
+  locked: boolean;
+  /** How many unused backup codes remain; null when 2FA is off. */
+  backupCodesRemaining: number | null;
+};
 
 export async function getTwoFactorStatus(accessToken: string): Promise<TwoFactorStatus> {
-  const data = await call<{ enabled?: boolean; locked?: boolean }>("/api/user/2fa/status", {
-    token: accessToken,
-  });
-  return { enabled: Boolean(data.enabled), locked: Boolean(data.locked) };
+  const data = await call<{
+    enabled?: boolean;
+    locked?: boolean;
+    backup_codes_remaining?: number;
+  }>("/api/user/2fa/status", { token: accessToken });
+  return {
+    enabled: Boolean(data.enabled),
+    locked: Boolean(data.locked),
+    backupCodesRemaining:
+      typeof data.backup_codes_remaining === "number" ? data.backup_codes_remaining : null,
+  };
 }
 
 export type TwoFactorSetup = {
@@ -1584,13 +1633,189 @@ export async function disableTwoFactor(
   });
 }
 
+/** Replaces the two-factor backup codes, returning the new set. */
+export async function regenerateBackupCodes(
+  accessToken: string,
+  password: string,
+): Promise<string[]> {
+  const proof = await obtainSecurityProof(
+    accessToken,
+    SECURITY_SCOPES.twoFABackupCodes,
+    password,
+  );
+  const data = await call<{ backup_codes?: string[] }>("/api/user/2fa/backup_codes", {
+    method: "POST",
+    token: accessToken,
+    headers: { "X-Security-Proof": proof },
+  });
+  return data.backup_codes ?? [];
+}
+
+/* --- account deletion ---------------------------------------------------- */
+
+/** Permanently deletes the account. Requires the password. */
+export async function deleteAccount(accessToken: string, password: string): Promise<void> {
+  const proof = await obtainSecurityProof(
+    accessToken,
+    SECURITY_SCOPES.accountDelete,
+    password,
+  );
+  await call("/api/user/self", {
+    method: "DELETE",
+    token: accessToken,
+    headers: { "X-Security-Proof": proof },
+  });
+}
+
+/* --- profile settings ---------------------------------------------------- */
+
+/**
+ * The notification and privacy preferences, in the shape the form edits.
+ *
+ * These live in the user's `setting` blob, but the gateway's setting endpoint
+ * rebuilds that blob from this subset only, so `language` and `sidebar_modules`
+ * are re-applied afterwards to avoid dropping them.
+ */
+export type NotificationSettings = {
+  /** `email`, `webhook`, `bark` or `gotify`. */
+  notifyType: string;
+  quotaWarningThreshold: number;
+  notificationEmail: string;
+  webhookUrl: string;
+  webhookSecret: string;
+  barkUrl: string;
+  gotifyUrl: string;
+  gotifyToken: string;
+  gotifyPriority: number;
+  acceptUnsetModelRatioModel: boolean;
+  recordIpLog: boolean;
+  upstreamModelUpdateNotifyEnabled: boolean;
+};
+
+/** Persists notification/privacy preferences. */
+export async function updateNotificationSettings(
+  accessToken: string,
+  settings: NotificationSettings,
+): Promise<void> {
+  const user = await getUser(accessToken);
+
+  await call("/api/user/setting", {
+    method: "PUT",
+    token: accessToken,
+    body: JSON.stringify({
+      notify_type: settings.notifyType,
+      quota_warning_threshold: settings.quotaWarningThreshold,
+      notification_email: settings.notificationEmail,
+      webhook_url: settings.webhookUrl,
+      webhook_secret: settings.webhookSecret,
+      bark_url: settings.barkUrl,
+      gotify_url: settings.gotifyUrl,
+      gotify_token: settings.gotifyToken,
+      gotify_priority: settings.gotifyPriority,
+      accept_unset_model_ratio_model: settings.acceptUnsetModelRatioModel,
+      record_ip_log: settings.recordIpLog,
+      upstream_model_update_notify_enabled: settings.upstreamModelUpdateNotifyEnabled,
+    }),
+  });
+
+  // Restore the fields the setting endpoint does not carry.
+  if (user.language) {
+    await updateSelf(accessToken, { language: user.language }).catch(() => {});
+  }
+  if (user.sidebarModules) {
+    await updateSidebarModules(accessToken, user.sidebarModules).catch(() => {});
+  }
+}
+
+/** Stores the serialized sidebar-module preferences. */
+export async function updateSidebarModules(
+  accessToken: string,
+  modules: string,
+): Promise<void> {
+  await call("/api/user/self", {
+    method: "PUT",
+    token: accessToken,
+    body: JSON.stringify({ sidebar_modules: modules }),
+  });
+}
+
 /* --- passkey and OAuth bindings ----------------------------------------- */
 
-export type PasskeyStatus = { enabled: boolean };
+export type PasskeyStatus = {
+  enabled: boolean;
+  lastUsedAt: string | null;
+  backupEligible: boolean;
+  backupState: boolean;
+};
 
 export async function getPasskeyStatus(accessToken: string): Promise<PasskeyStatus> {
-  const data = await call<{ enabled?: boolean }>("/api/user/passkey", { token: accessToken });
-  return { enabled: Boolean(data.enabled) };
+  const data = await call<{
+    enabled?: boolean;
+    last_used_at?: string | null;
+    backup_eligible?: boolean;
+    backup_state?: boolean;
+  }>("/api/user/passkey", { token: accessToken });
+  return {
+    enabled: Boolean(data.enabled),
+    lastUsedAt: data.last_used_at ?? null,
+    backupEligible: Boolean(data.backup_eligible),
+    backupState: Boolean(data.backup_state),
+  };
+}
+
+/** The registration challenge to hand to `navigator.credentials.create`. */
+export type PasskeyRegistrationBegin = {
+  flowToken: string;
+  options: unknown;
+  rpIds: string[];
+};
+
+/** Begins passkey enrolment; requires the password to obtain a proof. */
+export async function beginPasskeyRegistration(
+  accessToken: string,
+  password: string,
+): Promise<PasskeyRegistrationBegin> {
+  const proof = await obtainSecurityProof(
+    accessToken,
+    SECURITY_SCOPES.passkeyRegister,
+    password,
+  );
+  const data = await call<{ flow_token?: string; options?: unknown; rp_ids?: string[] }>(
+    "/api/user/passkey/register/begin",
+    { method: "POST", token: accessToken, headers: { "X-Security-Proof": proof } },
+  );
+  return {
+    flowToken: data.flow_token || "",
+    options: data.options ?? null,
+    rpIds: data.rp_ids ?? [],
+  };
+}
+
+/** Completes passkey enrolment with the created credential. */
+export async function finishPasskeyRegistration(
+  accessToken: string,
+  flowToken: string,
+  credential: Record<string, unknown>,
+): Promise<void> {
+  await call("/api/user/passkey/register/finish", {
+    method: "POST",
+    token: accessToken,
+    body: JSON.stringify({ flow_token: flowToken, credential }),
+  });
+}
+
+/** Removes the registered passkey; requires the password. */
+export async function deletePasskey(accessToken: string, password: string): Promise<void> {
+  const proof = await obtainSecurityProof(
+    accessToken,
+    SECURITY_SCOPES.passkeyDelete,
+    password,
+  );
+  await call("/api/user/passkey", {
+    method: "DELETE",
+    token: accessToken,
+    headers: { "X-Security-Proof": proof },
+  });
 }
 
 export type OAuthBinding = { providerId: number; provider: string; externalId: string };
@@ -1605,6 +1830,25 @@ export async function listOAuthBindings(accessToken: string): Promise<OAuthBindi
     provider: row.provider,
     externalId: row.external_id,
   }));
+}
+
+/** Unlinks a custom OAuth provider; requires the password. */
+export async function unbindOAuth(
+  accessToken: string,
+  providerId: number,
+  password: string,
+): Promise<void> {
+  const proof = await obtainSecurityProof(
+    accessToken,
+    SECURITY_SCOPES.accountUnbind,
+    password,
+    { provider_id: providerId },
+  );
+  await call(`/api/user/oauth/bindings/${providerId}`, {
+    method: "DELETE",
+    token: accessToken,
+    headers: { "X-Security-Proof": proof },
+  });
 }
 
 /* --- relay (playground) -------------------------------------------------- */

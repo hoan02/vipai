@@ -24,6 +24,8 @@ export type SessionUser = {
   name: string;
   /** new-api role: 1 user, 10 admin, 100 root. */
   role: number;
+  /** Serialized sidebar-module preferences, or null when never set. */
+  sidebarModules: string | null;
 };
 
 type State = {

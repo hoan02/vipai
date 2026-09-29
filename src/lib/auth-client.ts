@@ -132,12 +132,31 @@ export const signIn = {
   /**
    * Social sign-in.
    *
-   * The gateway supports Google OAuth, but it is switched off in this instance
-   * (`google_oauth: false`), so offering it would only produce a dead redirect.
-   * It is kept as a method so the button can call it and report why.
+   * The provider is a custom OAuth provider on the gateway (Google, on this
+   * instance). The app cannot build the authorize URL itself — it holds no
+   * gateway credentials and the state token is minted by the gateway — so it
+   * asks its own server for the URL and leaves the page for the provider. The
+   * callback is handled at `/oauth/<provider>` and stores the session.
    */
-  social: async (_input: { provider: string }): Promise<never> => {
-    throw new Error("Social sign-in is not enabled on this instance.");
+  social: async ({ provider }: { provider: string }): Promise<void> => {
+    let response: Response;
+    try {
+      response = await fetch(`/api/session/social/${encodeURIComponent(provider)}`, {
+        cache: "no-store",
+      });
+    } catch {
+      throw new Error("Could not reach the server. Check your connection.");
+    }
+
+    const body = (await response.json().catch(() => null)) as
+      | { url?: string; message?: string }
+      | null;
+
+    if (!response.ok || !body?.url) {
+      throw new Error(body?.message || "Could not start sign-in. Please try again.");
+    }
+
+    window.location.assign(body.url);
   },
 };
 

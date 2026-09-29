@@ -359,6 +359,83 @@ export async function register(username: string, password: string, email: string
   });
 }
 
+/**
+ * Begins a custom-provider sign-in, returning the provider's authorize URL.
+ *
+ * Asks the gateway for a one-time state token and builds the URL with
+ * `redirectUri` — the public callback this app serves. It has to be that exact
+ * value: the gateway recomputes it from its own Server Address when it later
+ * exchanges the code, and Google rejects a mismatch.
+ */
+export async function startOAuth(provider: string, redirectUri: string): Promise<string> {
+  const status = await getStatus();
+  const config = status.customOauthProviders.find((item) => item.slug === provider);
+  if (!config) {
+    throw new GatewayError(`Sign-in with ${provider} is not configured.`, 404);
+  }
+  if (!config.clientId || !config.authorizationEndpoint) {
+    throw new GatewayError(`Sign-in with ${provider} is not fully configured.`, 502);
+  }
+
+  const data = await call<{ flow_token?: string }>("/api/oauth/state", {
+    method: "POST",
+    body: JSON.stringify({ provider, intent: "login" }),
+  });
+  const state = data?.flow_token;
+  if (!state) {
+    throw new GatewayError("The gateway did not return an OAuth state.", 502);
+  }
+
+  const authorize = new URL(config.authorizationEndpoint);
+  authorize.searchParams.set("client_id", config.clientId);
+  authorize.searchParams.set("redirect_uri", redirectUri);
+  authorize.searchParams.set("response_type", "code");
+  authorize.searchParams.set("state", state);
+  if (config.scopes) authorize.searchParams.set("scope", config.scopes);
+  return authorize.toString();
+}
+
+/**
+ * Completes a custom-provider callback and returns the session to persist.
+ *
+ * The gateway answers with the same login payload as `/api/user/login` plus a
+ * refresh cookie, so this mirrors `login`. It runs server-side: the browser
+ * never holds a gateway token, and the gateway's CORS would block the exchange
+ * from the site origin anyway.
+ */
+export async function completeOAuth(
+  provider: string,
+  code: string,
+  state: string,
+): Promise<Session> {
+  const headers: Record<string, string> = { accept: "application/json" };
+  const forwardedFor = await getForwardedFor();
+  if (forwardedFor) headers["x-forwarded-for"] = forwardedFor;
+
+  const params = new URLSearchParams({ code, state });
+  const response = await fetch(
+    url(`/api/oauth/${encodeURIComponent(provider)}?${params.toString()}`),
+    { method: "GET", headers, cache: "no-store" },
+  );
+
+  const text = await response.text();
+  let body: Envelope<LoginData> & RelayEnvelope = {};
+  try {
+    body = text ? JSON.parse(text) : {};
+  } catch {
+    throw new GatewayError("The gateway returned a non-JSON OAuth response.", 502);
+  }
+
+  if (!response.ok || body.success === false || !body.data?.access_token) {
+    throw new GatewayError(
+      body.message || body.error?.message || "OAuth sign-in failed.",
+      response.status === 200 ? 400 : response.status,
+    );
+  }
+
+  return sessionFrom(response, body.data);
+}
+
 /** The signed-in account. */
 export async function getUser(accessToken: string): Promise<GatewayUser> {
   const data = await call<{
@@ -810,9 +887,22 @@ export type GatewayFaq = { id?: number; question: string; answer: string };
  * block is present only when the gateway has it enabled, so the `*_enabled`
  * flags are read alongside it rather than inferred from an empty list.
  */
+/** A custom OAuth provider the gateway exposes for sign-in, e.g. Google. */
+export type GatewayOAuthProvider = {
+  name: string;
+  slug: string;
+  clientId: string;
+  /** The provider's authorize endpoint, ready to take query parameters. */
+  authorizationEndpoint: string;
+  /** Space-separated scopes, as the gateway stores them. */
+  scopes: string;
+};
+
 export type GatewayStatus = {
   version: string;
   systemName: string;
+  /** Custom OAuth providers offered on the sign-in dialog. */
+  customOauthProviders: GatewayOAuthProvider[];
   /** When true the console shows quota as money; quota is always the unit here. */
   displayInCurrency: boolean;
   quotaPerUnit: number;
@@ -838,6 +928,15 @@ export async function getStatus(): Promise<GatewayStatus> {
   return {
     version: asString(data.version),
     systemName: asString(data.system_name, "VipAI"),
+    customOauthProviders: asArray<Record<string, unknown>>(
+      data.custom_oauth_providers,
+    ).map((provider) => ({
+      name: asString(provider.name),
+      slug: asString(provider.slug),
+      clientId: asString(provider.client_id),
+      authorizationEndpoint: asString(provider.authorization_endpoint),
+      scopes: asString(provider.scopes),
+    })),
     displayInCurrency: Boolean(data.display_in_currency),
     quotaPerUnit: Number(data.quota_per_unit) || QUOTA_PER_USD,
     apiInfoEnabled: data.api_info_enabled !== false,

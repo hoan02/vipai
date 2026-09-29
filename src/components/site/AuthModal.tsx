@@ -303,11 +303,17 @@ export function AuthModal() {
     const intent = params.get("auth");
     if (intent !== "signin" && intent !== "signup") return;
     open(intent, safeRedirect(params.get("redirect_url")));
+    // A failed social callback lands here with a marker; reopen the dialog and
+    // say why rather than returning silently to a signed-out home page.
+    if (params.get("oauth_error")) {
+      setError(t("Không thể kết nối với Google. Vui lòng thử lại."));
+    }
     const url = new URL(window.location.href);
     url.searchParams.delete("auth");
     url.searchParams.delete("redirect_url");
+    url.searchParams.delete("oauth_error");
     window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [open]);
+  }, [open, t]);
 
   /* Exit animation, then unmount and hand focus back to the trigger. */
   useEffect(() => {

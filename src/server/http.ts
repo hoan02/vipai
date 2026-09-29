@@ -100,3 +100,21 @@ export async function getForwardedFor(): Promise<string> {
     return "";
   }
 }
+
+/**
+ * The public origin the browser used, taken from the proxy's forwarded headers.
+ *
+ * The tunnel terminates TLS and delivers plain HTTP to the cluster, so the URL
+ * this server sees is internal (`http://web:3000`). Redirect URIs, though, must
+ * be the public ones Google and the gateway both expect, so they are built from
+ * `x-forwarded-proto` and the original host.
+ */
+export function publicOrigin(request: Request): string {
+  const host =
+    request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
+    request.headers.get("host") ||
+    "";
+  const proto =
+    request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || "https";
+  return host ? `${proto}://${host}` : new URL(request.url).origin;
+}

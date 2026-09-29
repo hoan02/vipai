@@ -1,21 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useLocale } from "@/components/site/I18n";
 import { Icon } from "@/lib/icons";
-import { PICK_MODEL_EVENT, brandIcon, brands, modelKey, vendors, type Model, type PickModelDetail, type Vendor } from "@/lib/data";
+import { PICK_MODEL_EVENT, modelKey, type Model, type PickModelDetail } from "@/lib/data";
 
 function ModelMark({ model, size }: { model: Model; size: number }) {
   return (
-    <Icon name={brandIcon[model.vendor]} width={size} height={size} className="lg" style={{ color: brands[model.vendor] }} />
+    <Icon name={model.vendorIcon} width={size} height={size} className="lg" style={{ color: model.vendorColor }} />
   );
 }
 
-const filters: Vendor[] = [...vendors];
-const logoVendors: Vendor[] = filters.filter((v) => v !== "Featured");
+type VendorChip = { name: string; icon: string; color: string };
 
-function discountPct(d: string) {
-  const n = parseFloat(d.replace(/[^\d.]/g, ""));
-  return Number.isFinite(n) ? Math.abs(n) : 0;
+/** "Featured" plus every vendor the gateway currently prices, each with the
+ *  mark of one of its models, so the filters follow the catalogue. */
+function vendorChips(models: Model[]): VendorChip[] {
+  const seen = new Map<string, VendorChip>();
+  for (const m of models) {
+    if (!seen.has(m.vendor)) seen.set(m.vendor, { name: m.vendor, icon: m.vendorIcon, color: m.vendorColor });
+  }
+  return [{ name: "Featured", icon: "ic-vipai", color: "#14110f" }, ...seen.values()];
 }
 
 const EXPAND_MS = 620;
@@ -25,7 +30,7 @@ const JUMP_AFTER_EXPAND_MS = 660;
 const JUMP_FLASH_MS = 1800;
 
 export function Pricing({ models }: { models: Model[] }) {
-  const [vendor, setVendor] = useState<Vendor>("Featured");
+  const [vendor, setVendor] = useState<string>("Featured");
   const [expanded, setExpanded] = useState(false);
   const [query, setQuery] = useState("");
   const [pendingJump, setPendingJump] = useState<string | null>(null);
@@ -35,15 +40,23 @@ export function Pricing({ models }: { models: Model[] }) {
   const animating = useRef(false);
   const rowRefs = useRef(new Map<string, HTMLTableRowElement>());
 
+  const chips = useMemo(() => vendorChips(models), [models]);
+  const logoVendors = useMemo(() => chips.filter((c) => c.name !== "Featured"), [chips]);
+
   const featured = useMemo(() => models.filter((m) => m.featured), [models]);
 
   const liveBadge = useMemo(
-    () =>
-      featured
-        .filter((m) => m.disc)
-        .reduce<Model | null>((best, m) => (!best || discountPct(m.disc) > discountPct(best.disc) ? m : best), null),
+    () => featured.reduce<Model | null>((best, m) => (!best || m.discPct > best.discPct ? m : best), null),
     [featured]
   );
+
+  // The headline claim follows the catalogue instead of a hand-typed number, so
+  // it can never promise a discount the gateway does not actually bill.
+  const locale = useLocale();
+  const maxOff = useMemo(() => models.reduce((max, m) => Math.max(max, m.discPct), 0), [models]);
+  const heading =
+    (locale === "en" ? "Live pricing" : "Giá trực tiếp") +
+    (maxOff > 0 ? (locale === "en" ? ` · up to ${maxOff}% off` : ` · giảm tới ${maxOff}%`) : "");
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -248,10 +261,7 @@ export function Pricing({ models }: { models: Model[] }) {
   const jumpToModel = useCallback(
     (m: Model) => {
       setQuery("");
-      if (vendor !== m.vendor) {
-        const next = vendors.find((v) => v === m.vendor);
-        if (next) setVendor(next);
-      }
+      if (vendor !== m.vendor) setVendor(m.vendor);
       const go = () => setPendingJump(m.name);
       if (sectionRef.current?.classList.contains("show-all")) {
         go();
@@ -273,7 +283,7 @@ export function Pricing({ models }: { models: Model[] }) {
   return (
     <section className="section pricing" id="pricing" aria-label="Live pricing" ref={sectionRef}>
       <div className="sec-head">
-        <h2 className="sec-title">Live pricing · up to 90% off</h2>
+        <h2 className="sec-title">{heading}</h2>
         <p className="sec-sub">
           Prices update in real time and move with upstream costs. Each request is billed at the discount in effect when
           it&apos;s made. All prices in USD per 1M tokens.
@@ -288,7 +298,7 @@ export function Pricing({ models }: { models: Model[] }) {
         {featured.map((m) => (
           <article
             className="pf-card ai-lift"
-            key={m.name}
+            key={m.id}
             data-vendor={m.vendor}
             data-model={m.name}
             data-live-badge={m.name === liveBadge?.name ? "true" : undefined}
@@ -302,7 +312,7 @@ export function Pricing({ models }: { models: Model[] }) {
               <span className="pf-tx">
                 <b className="pf-name">{m.name}</b>
                 <small className="pf-sub">
-                  {m.vendor} · {m.ctx} context
+                  {m.ctx ? `${m.vendor} · ${m.ctx} context` : m.vendor}
                 </small>
               </span>
               {m.disc ? (
@@ -345,15 +355,15 @@ export function Pricing({ models }: { models: Model[] }) {
       <div className="price-all" id="priceAll" ref={allRef}>
         <div className="table-tools price-filters">
           <div className="filters pf-chips" role="group" aria-label="Filter models by vendor">
-            {filters.map((v) => (
+            {chips.map((c) => (
               <button
-                key={v}
-                className={`filter lf-chip${vendor === v ? " is-active" : ""}`}
+                key={c.name}
+                className={`filter lf-chip${vendor === c.name ? " is-active" : ""}`}
                 type="button"
-                aria-pressed={vendor === v}
-                onClick={() => setVendor(v)}
+                aria-pressed={vendor === c.name}
+                onClick={() => setVendor(c.name)}
               >
-                {v}
+                {c.name}
               </button>
             ))}
           </div>
@@ -401,14 +411,14 @@ export function Pricing({ models }: { models: Model[] }) {
                 <th scope="col" className="tr">
                   Output (VipAI)
                 </th>
+                <th scope="col">Cache (VipAI)</th>
                 <th scope="col">Provider</th>
-                <th scope="col">Uptime (SLA)</th>
               </tr>
             </thead>
             <tbody id="priceBody">
               {rows.map((m, i) => (
                 <tr
-                  key={m.name}
+                  key={m.id}
                   data-vendor={m.vendor}
                   data-model={m.name}
                   data-featured={m.featured ? "true" : "false"}
@@ -431,14 +441,9 @@ export function Pricing({ models }: { models: Model[] }) {
                       {m.name}
                     </span>
                   </td>
-                  <td className="pt-prov">{m.ctx}</td>
-                  <td>
-                    <span className="pt-off">{m.listIn}</span>
-                    <span className="pt-sub">Cache {m.cacheList}</span>
-                  </td>
-                  <td>
-                    <span className="pt-off">{m.listOut}</span>
-                  </td>
+                  <td className="pt-prov">{m.ctx ?? "—"}</td>
+                  <td>{m.listIn ? <span className="pt-off">{m.listIn}</span> : "—"}</td>
+                  <td>{m.listOut ? <span className="pt-off">{m.listOut}</span> : "—"}</td>
                   <td className="tr">
                     <span className="pt-now">{m.inNow}</span>
                     {m.disc ? (
@@ -446,16 +451,19 @@ export function Pricing({ models }: { models: Model[] }) {
                         {m.disc}
                       </span>
                     ) : null}
-                    <span className="pt-sub">Cache {m.cache}</span>
                   </td>
                   <td className="tr">{m.outNow}</td>
+                  <td className="pt-prov">{m.cache}</td>
                   <td className="pt-prov">{m.vendor}</td>
-                  <td className="pt-prov">—</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {rows.length === 0 ? (
+          {models.length === 0 ? (
+            <p className="pf-empty" id="priceEmpty">
+              Pricing is momentarily unavailable — refresh in a minute.
+            </p>
+          ) : rows.length === 0 ? (
             <p className="pf-empty" id="priceEmpty">
               No matching models. Try another vendor.
             </p>
@@ -466,9 +474,9 @@ export function Pricing({ models }: { models: Model[] }) {
       <div className="price-toggle-row">
         <button className="lf-chip pt-toggle" id="priceToggle" type="button" aria-expanded={expanded} aria-controls="priceAll" onClick={onToggle}>
           <span className="pt-logos" aria-hidden="true">
-            {logoVendors.map((v) => (
-              <span className="pl" key={v}>
-                <Icon name={brandIcon[v]} style={{ color: brands[v] }} />
+            {logoVendors.map((c) => (
+              <span className="pl" key={c.name}>
+                <Icon name={c.icon} style={{ color: c.color }} />
               </span>
             ))}
           </span>

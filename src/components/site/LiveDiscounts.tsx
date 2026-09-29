@@ -2,9 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/lib/icons";
-import { PICK_MODEL_EVENT, brandIcon, discountModels, modelKey, vendors, type PickModelDetail, type Vendor } from "@/lib/data";
-
-const filters: Vendor[] = [...vendors];
+import { PICK_MODEL_EVENT, modelKey, type Model, type PickModelDetail } from "@/lib/data";
 
 /* ---------------------------------------------------------------------------
    Chart geometry, copied from the original module (6298):
@@ -117,8 +115,8 @@ function historyFor(name: string, discount: number) {
   return raw;
 }
 
-export function LiveDiscounts() {
-  const [vendor, setVendor] = useState<Vendor>("Featured");
+export function LiveDiscounts({ models }: { models: Model[] }) {
+  const [vendor, setVendor] = useState<string>("Featured");
   const [query, setQuery] = useState("");
   const [active, setActive] = useState<string | null>(null);
   const [nowHour, setNowHour] = useState<number | null>(null);
@@ -140,13 +138,19 @@ export function LiveDiscounts() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // Only a model that carries a discount can be charted, and it renders the
+  // same live number the pricing table shows.
+  const discounted = useMemo(
+    () => models.filter((m) => m.discPct > 0).map((m) => ({ n: m.name, v: m.vendor, d: m.discPct, icon: m.vendorIcon })),
+    [models]
+  );
+  const filters = useMemo(() => ["Featured", ...new Set(discounted.map((m) => m.v))], [discounted]);
+
   const rows = useMemo(() => {
-    const base = discountModels.filter((m) =>
-      vendor === "Featured" ? ["OpenAI", "Anthropic", "Google"].includes(m.v) : m.v === vendor
-    );
+    const base = vendor === "Featured" ? discounted : discounted.filter((m) => m.v === vendor);
     const q = query.trim().toLowerCase();
     return q ? base.filter((m) => m.n.toLowerCase().includes(q)) : base;
-  }, [vendor, query]);
+  }, [vendor, query, discounted]);
 
   useEffect(() => {
     if (!rows.length) return;
@@ -159,9 +163,9 @@ export function LiveDiscounts() {
     const onPick = (e: Event) => {
       const detail = (e as CustomEvent<PickModelDetail>).detail;
       if (!detail) return;
-      const target = discountModels.find((m) => modelKey(m.n) === detail.key);
+      const target = discounted.find((m) => modelKey(m.n) === detail.key);
       if (!target) return;
-      setVendor((cur) => (rows.some((m) => m.n === target.n) ? cur : vendors.find((v) => v === target.v) ?? cur));
+      setVendor((cur) => (rows.some((m) => m.n === target.n) ? cur : filters.includes(target.v) ? target.v : cur));
       setActive(target.n);
       const raf = requestAnimationFrame(() => {
         document.getElementById("live")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -170,16 +174,16 @@ export function LiveDiscounts() {
     };
     document.addEventListener(PICK_MODEL_EVENT, onPick);
     return () => document.removeEventListener(PICK_MODEL_EVENT, onPick);
-  }, [rows]);
+  }, [rows, discounted, filters]);
 
   const histories = useMemo(() => {
     const map = new Map<string, { raw: number[]; axis: Axis }>();
-    discountModels.forEach((m) => {
+    discounted.forEach((m) => {
       const raw = historyFor(m.n, m.d);
       map.set(m.n, { raw, axis: axisFor(raw) });
     });
     return map;
-  }, []);
+  }, [discounted]);
 
   const hist = active ? histories.get(active) : undefined;
   const mode = hist ? hist.axis.mode : "compact";
@@ -364,7 +368,7 @@ export function LiveDiscounts() {
             >
               {/* Colour comes from the stylesheet via [data-v] so the selected
                   row can re-tint the mark for the dark fill. */}
-              <Icon name={brandIcon[m.v] ?? "ic-openai"} className="lg" />
+              <Icon name={m.icon} className="lg" />
               <span className="nm">{m.n}</span>
               <span className="disc">−{m.d}%</span>
             </button>

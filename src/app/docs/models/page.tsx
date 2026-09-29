@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Braces } from "lucide-react";
-import { models, type Model } from "@/lib/data";
+import { getPublicModels } from "@/server/pricing";
+import type { Model } from "@/lib/data";
 import { CodeBlock } from "@/components/docs/code-block";
 import { Callout } from "@/components/docs/callout";
 import { H2 } from "@/components/docs/section";
@@ -13,31 +13,9 @@ export const metadata: Metadata = {
     "Every VipAI model id, the protocol each family needs, and list price beside ours so the discount can be checked against the published rate card.",
 };
 
-/**
- * API ids for the priced catalogue. Taken from the model list the API page has
- * always documented — the display names in lib/data are for the pricing table,
- * the ids below are what goes in a request body.
- */
-const API_IDS: Record<string, string> = {
-  "GPT-5.6 Sol": "gpt-5.6-sol",
-  "GPT-5.6 Terra": "gpt-5.6-terra",
-  "GPT-5.6 Luna": "gpt-5.6-luna",
-  "GPT-5.5": "gpt-5.5",
-  "GPT-5.4": "gpt-5.4",
-  "GPT-5.4 mini": "gpt-5.4-mini",
-  "Claude Opus 5": "claude-opus-5",
-  "Claude Fable 5": "claude-fable-5",
-  "Claude Sonnet 5": "claude-sonnet-5",
-  "Claude Opus 4.8": "claude-opus-4-8",
-  "Claude Haiku 4.5": "claude-haiku-4-5",
-  "Gemini 3.1 Pro (Preview)": "gemini-3.1-pro-preview",
-  "Gemini 3.5 Flash": "gemini-3.5-flash",
-  "DS DeepSeek V4 Pro": "deepseek-v4-pro",
-  "GLM GLM-5.2": "glm-5.2",
-};
-
 /** Discount derived from the two published prices, not hand-typed. */
 function discount(m: Model): number | null {
+  if (!m.listIn) return null;
   const list = parseFloat(m.listIn.replace(/[$,]/g, ""));
   const now = parseFloat(m.inNow.replace(/[$,]/g, ""));
   if (!Number.isFinite(list) || list <= 0) return null;
@@ -60,7 +38,11 @@ const COMPLIMENTARY: Array<[string, string]> = [
   ["jev", "TypeSafe lane"],
 ];
 
-export default function ModelsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ModelsPage() {
+  const models = await getPublicModels();
+
   return (
     <>
       <p className="doc-lede">
@@ -100,14 +82,14 @@ export default function ModelsPage() {
         {models.map((m) => {
           const d = discount(m);
           return (
-            <DocRow key={m.name}>
+            <DocRow key={m.id}>
               <DocCell>
                 <b>{m.name}</b>
               </DocCell>
               <DocCell>
-                <code>{API_IDS[m.name] ?? m.name.toLowerCase().replace(/\s+/g, "-")}</code>
+                <code>{m.id}</code>
               </DocCell>
-              <DocCell mono>{m.ctx}</DocCell>
+              <DocCell mono>{m.ctx ?? "—"}</DocCell>
               <DocCell mono>{m.cache}</DocCell>
               <DocCell mono>{m.listIn}</DocCell>
               <DocCell mono>{m.inNow}</DocCell>

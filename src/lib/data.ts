@@ -1,54 +1,86 @@
-export const brands: Record<string, string> = {
-  OpenAI: "#0b0a08",
-  Anthropic: "#d97757",
-  Google: "#4285f4",
-  DeepSeek: "#4d6bfe",
-  GLM: "#7a52c7",
+/**
+ * Presentation metadata for the gateway's model catalogue.
+ *
+ * The model list and every price come from the gateway's public `/api/pricing`
+ * (see `src/server/pricing.ts`). This file only holds what that endpoint does
+ * not carry: the vendor mark, a marketing display name, the context window and
+ * the provider's published list price, which is what the discount is measured
+ * against. A model the gateway serves but this sheet does not know still shows
+ * up, under its own id and with no discount.
+ */
+
+/** new-api vendor name -> the sprite mark and brand colour. */
+export const vendorMarks: Record<string, { icon: string; color: string }> = {
+  OpenAI: { icon: "ic-openai", color: "#0b0a08" },
+  Anthropic: { icon: "ic-claude", color: "#d97757" },
+  Google: { icon: "ic-gemini", color: "#4285f4" },
+  DeepSeek: { icon: "ic-deepseek", color: "#4d6bfe" },
+  "智谱": { icon: "ic-glm", color: "#7a52c7" },
 };
 
-export const brandIcon: Record<string, string> = {
-  OpenAI: "ic-openai",
-  Anthropic: "ic-claude",
-  Google: "ic-gemini",
-  DeepSeek: "ic-deepseek",
-  GLM: "ic-glm",
-};
+/** Fallback mark for a vendor the sheet has no logo for. */
+export const vendorUnknown = { icon: "ic-vipai", color: "#6b7280" };
 
+/** The gateway names one vendor in its own language; the site brands it. */
+export const vendorLabel: Record<string, string> = { "智谱": "GLM" };
+
+/** One model as the pricing table needs it, priced from the gateway. */
 export type Model = {
-  /** new-api model id, as it appears in /api/pricing. */
+  /** new-api model id, as it appears in /api/pricing and in a request body. */
   id: string;
+  /** Display name; the id itself when the sheet has no prettier one. */
   name: string;
-  vendor: keyof typeof brands;
-  ctx: string;
-  cacheList: string;
-  listIn: string;
-  listOut: string;
+  vendor: string;
+  vendorIcon: string;
+  vendorColor: string;
+  /** Context window, or null when the sheet does not know it. */
+  ctx: string | null;
+  /** VipAI cache-read price per 1M tokens, or "—" when unset. */
   cache: string;
+  /** Provider list price per 1M tokens, or null when unknown. */
+  listIn: string | null;
+  listOut: string | null;
+  /** What VipAI charges per 1M tokens. */
   inNow: string;
   outNow: string;
+  /** "90% off", or "" when there is no list price to compare against. */
   disc: string;
+  /** The discount as a positive whole percent, 0 when none. */
+  discPct: number;
+  /** new-api endpoint types the model answers on. */
+  endpoints: string[];
+  /** Groups the model is enabled in. */
+  groups: string[];
   featured?: boolean;
 };
 
-export const models: Model[] = [
-  { id: "gpt-5.6-sol", name: "GPT-5.6 Sol", vendor: "OpenAI", ctx: "1M", cacheList: "$0.50", listIn: "$5.00", listOut: "$30.00", cache: "$0.053", inNow: "$0.53", outNow: "$3.18", disc: "90% off", featured: true },
-  { id: "claude-fable-5", name: "Claude Fable 5", vendor: "Anthropic", ctx: "1M", cacheList: "$1.00", listIn: "$10.00", listOut: "$50.00", cache: "$0.242", inNow: "$2.42", outNow: "$12.10", disc: "76% off", featured: true },
-  { id: "claude-sonnet-5", name: "Claude Sonnet 5", vendor: "Anthropic", ctx: "1M", cacheList: "$0.30", listIn: "$3.00", listOut: "$15.00", cache: "$0.050", inNow: "$0.50", outNow: "$2.52", disc: "-84%", featured: true },
-  { id: "claude-opus-4-8", name: "Claude Opus 4.8", vendor: "Anthropic", ctx: "1M", cacheList: "$0.50", listIn: "$5.00", listOut: "$25.00", cache: "$0.133", inNow: "$1.33", outNow: "$6.65", disc: "-74%", featured: true },
-  { id: "gpt-5.5", name: "GPT-5.5", vendor: "OpenAI", ctx: "1M", cacheList: "$0.50", listIn: "$5.00", listOut: "$30.00", cache: "$0.055", inNow: "$0.55", outNow: "$3.30", disc: "-89%", featured: true },
-  { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro (Preview)", vendor: "Google", ctx: "2M", cacheList: "$0.20", listIn: "$2.00", listOut: "$12.00", cache: "$0.029", inNow: "$0.29", outNow: "$1.73", disc: "-86%", featured: true },
-  { id: "gpt-5.6-terra", name: "GPT-5.6 Terra", vendor: "OpenAI", ctx: "1M", cacheList: "$0.25", listIn: "$2.50", listOut: "$15.00", cache: "$0.027", inNow: "$0.27", outNow: "$1.61", disc: "90% off" },
-  { id: "gpt-5.6-luna", name: "GPT-5.6 Luna", vendor: "OpenAI", ctx: "1M", cacheList: "$0.10", listIn: "$1.00", listOut: "$6.00", cache: "$0.011", inNow: "$0.11", outNow: "$0.64", disc: "90% off" },
-  { id: "gpt-5.4", name: "GPT-5.4", vendor: "OpenAI", ctx: "1M", cacheList: "$0.25", listIn: "$2.50", listOut: "$15.00", cache: "$0.027", inNow: "$0.27", outNow: "$1.62", disc: "90% off" },
-  { id: "gpt-5.4-mini", name: "GPT-5.4 mini", vendor: "OpenAI", ctx: "1M", cacheList: "$0.075", listIn: "$0.75", listOut: "$4.50", cache: "$0.009", inNow: "$0.09", outNow: "$0.51", disc: "-89%" },
-  { id: "deepseek-v4-pro", name: "DS DeepSeek V4 Pro", vendor: "DeepSeek", ctx: "1M", cacheList: "$0.0036", listIn: "$0.435", listOut: "$0.87", cache: "$0.0036", inNow: "$0.435", outNow: "$0.87", disc: "" },
-  { id: "glm-5.2", name: "GLM GLM-5.2", vendor: "GLM", ctx: "1M", cacheList: "$0.26", listIn: "$1.40", listOut: "$4.40", cache: "$0.26", inNow: "$1.40", outNow: "$4.40", disc: "" },
-];
+/** Marketing extras the gateway does not carry, keyed by new-api model id. */
+export type ModelMeta = {
+  name: string;
+  ctx?: string;
+  listIn?: string;
+  listOut?: string;
+  featured?: boolean;
+};
 
-export const vendors = ["Featured", "OpenAI", "Anthropic", "Google", "DeepSeek", "GLM"] as const;
-export type Vendor = (typeof vendors)[number];
-
-export type DiscountModel = { n: string; v: string; d: number };
+export const modelMeta: Record<string, ModelMeta> = {
+  "gpt-5.6-sol": { name: "GPT-5.6 Sol", ctx: "1M", listIn: "$5.00", listOut: "$30.00", featured: true },
+  "claude-fable-5": { name: "Claude Fable 5", ctx: "1M", listIn: "$10.00", listOut: "$50.00", featured: true },
+  "claude-sonnet-5": { name: "Claude Sonnet 5", ctx: "1M", listIn: "$3.00", listOut: "$15.00", featured: true },
+  "claude-opus-4-8": { name: "Claude Opus 4.8", ctx: "1M", listIn: "$5.00", listOut: "$25.00", featured: true },
+  "gpt-5.5": { name: "GPT-5.5", ctx: "1M", listIn: "$5.00", listOut: "$30.00", featured: true },
+  "gemini-3.1-pro-preview": { name: "Gemini 3.1 Pro (Preview)", ctx: "2M", listIn: "$2.00", listOut: "$12.00", featured: true },
+  "gpt-5.6-terra": { name: "GPT-5.6 Terra", ctx: "1M", listIn: "$2.50", listOut: "$15.00" },
+  "gpt-5.6-luna": { name: "GPT-5.6 Luna", ctx: "1M", listIn: "$1.00", listOut: "$6.00" },
+  "gpt-5.4": { name: "GPT-5.4", ctx: "1M", listIn: "$2.50", listOut: "$15.00" },
+  "gpt-5.4-mini": { name: "GPT-5.4 mini", ctx: "1M", listIn: "$0.75", listOut: "$4.50" },
+  "deepseek-v4-pro": { name: "DS DeepSeek V4 Pro", ctx: "1M", listIn: "$0.435", listOut: "$0.87" },
+  "glm-5.2": { name: "GLM GLM-5.2", ctx: "1M", listIn: "$1.40", listOut: "$4.40" },
+  // Surfaced by the live pricing feed once their ratio is configured:
+  "claude-opus-4-7": { name: "Claude Opus 4.7", ctx: "1M", listIn: "$5.00", listOut: "$25.00" },
+  "claude-opus-4-6": { name: "Claude Opus 4.6", ctx: "1M", listIn: "$5.00", listOut: "$25.00" },
+  "claude-haiku-4-5-20251001": { name: "Claude Haiku 4.5", ctx: "200K", listIn: "$1.00", listOut: "$5.00" },
+};
 
 /** The pricing table and the live-discount list spell some models slightly
  *  differently ("Gemini 3.1 Pro (Preview)" vs "Gemini 3.1 Pro Preview"), so
@@ -60,33 +92,6 @@ export function modelKey(name: string) {
 /** Fired by the pricing table so the live section can select the same model. */
 export const PICK_MODEL_EVENT = "vipai:pick-model";
 export type PickModelDetail = { key: string; vendor: string };
-
-export const discountModels: DiscountModel[] = [
-  { n: "GPT-5.6 Sol", v: "OpenAI", d: 90 },
-  { n: "GPT-5.6 Terra", v: "OpenAI", d: 90 },
-  { n: "GPT-5.6 Luna", v: "OpenAI", d: 90 },
-  { n: "GPT-5.5", v: "OpenAI", d: 89 },
-  { n: "GPT-5.4", v: "OpenAI", d: 90 },
-  { n: "GPT-5.4-Mini", v: "OpenAI", d: 88 },
-  { n: "GPT Image 2", v: "OpenAI", d: 72 },
-  { n: "Claude Opus 5", v: "Anthropic", d: 79 },
-  { n: "Claude Fable 5", v: "Anthropic", d: 76 },
-  { n: "Claude Opus 4.8", v: "Anthropic", d: 74 },
-  { n: "Claude Opus 4.7", v: "Anthropic", d: 71 },
-  { n: "Claude Opus 4.6", v: "Anthropic", d: 68 },
-  { n: "Claude Sonnet 5", v: "Anthropic", d: 84 },
-  { n: "Claude Sonnet 4.6", v: "Anthropic", d: 80 },
-  { n: "Claude Haiku 4.5", v: "Anthropic", d: 66 },
-  { n: "Gemini 3.8 Flash", v: "Google", d: 82 },
-  { n: "Gemini 3.7 Flash", v: "Google", d: 81 },
-  { n: "Gemini 3.6 Flash", v: "Google", d: 79 },
-  { n: "Gemini 3.5 Flash Lite", v: "Google", d: 77 },
-  { n: "Gemini 3.1 Pro Preview", v: "Google", d: 86 },
-  { n: "Gemini 3.5 Flash", v: "Google", d: 80 },
-  { n: "DeepSeek V4 Pro", v: "DeepSeek", d: 64 },
-  { n: "DeepSeek V4 Flash", v: "DeepSeek", d: 70 },
-  { n: "GLM-5.2", v: "GLM", d: 62 },
-];
 
 export const agents = [
   { n: "Codex Desktop", req: "9817.1K requests", tok: "1170.1B", delta: "↗ 30.2%" },

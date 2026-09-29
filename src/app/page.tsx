@@ -22,6 +22,8 @@ import {
   Footer,
 } from "@/components/site/Sections";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   const models = await getPublicModels();
 
@@ -39,7 +41,7 @@ export default async function Page() {
       <Features />
       <Duo />
       <Tier />
-      <LiveDiscounts />
+      <LiveDiscounts models={models} />
       <Leaderboard />
       <TelegramCta />
       <CtaSection />

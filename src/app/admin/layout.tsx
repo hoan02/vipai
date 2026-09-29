@@ -6,7 +6,7 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { requireRoot } from "@/server/admin";
 
 export const metadata: Metadata = {
-  title: "Admin — AiGiare",
+  title: "Admin — VipAI",
 };
 
 export const dynamic = "force-dynamic";

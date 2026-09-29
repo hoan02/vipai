@@ -43,7 +43,7 @@ export function SvgSprite() {
         <circle cx="9" cy="7.7" r=".7" fill="#00E5CC" />
         <circle cx="15.4" cy="7.7" r=".7" fill="#00E5CC" />
       </symbol>
-      <symbol id="ic-aigiare" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 20.2 12 4.6l7 15.6" /><path d="M7.9 14.4h8.2" /><circle cx="12" cy="4.6" r="2" fill="currentColor" stroke="none" /></symbol>
+      <symbol id="ic-vipai" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 20.2 12 4.6l7 15.6" /><path d="M7.9 14.4h8.2" /><circle cx="12" cy="4.6" r="2" fill="currentColor" stroke="none" /></symbol>
       <symbol id="ic-bolt" viewBox="0 0 24 24">
         <path fill="#f97316" d="M13 2 4.5 13.5h6L11 22l8.5-11.5h-6z" />
       </symbol>

@@ -153,7 +153,7 @@ export async function setModelPrices(
  * Cost and margin, per model.
  *
  * new-api knows what a customer pays, never what we pay, so the upstream cost
- * lives in our own option (`aigiare.cost`). `margin` is a fraction: 0.2 means
+ * lives in our own option (`vipai.cost`). `margin` is a fraction: 0.2 means
  * the retail price is 20% above cost. The gateway ignores this key; only the
  * admin page reads and writes it.
  */
@@ -167,7 +167,7 @@ export type MarginConfig = {
   margin: number;
 };
 
-const COST_OPTION = "aigiare.cost";
+const COST_OPTION = "vipai.cost";
 
 type CostMap = Record<string, { in: number; out: number; margin: number }>;
 
@@ -263,7 +263,7 @@ export type AdminStats = {
  * Revenue, cost and margin over recent usage.
  *
  * Revenue is the gateway's own charge (`quota / 500000`). Cost is token counts
- * times the upstream price from `aigiare.cost`. Both are computed over the most
+ * times the upstream price from `vipai.cost`. Both are computed over the most
  * recent page of logs, which is enough for a live picture; `sampled` and
  * `total` say how complete the window is.
  */

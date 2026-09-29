@@ -65,7 +65,7 @@ export async function getAccount(): Promise<Account | null> {
     if (!access) return null;
     return toAccount(await getUser(access.token));
   } catch (error) {
-    console.error("[aigiare] session lookup failed:", error);
+    console.error("[vipai] session lookup failed:", error);
     return null;
   }
 }

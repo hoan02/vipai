@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { vi } from "@/lib/i18n-data";
 
-const STORAGE_KEY = "aigiare.locale";
-export const LOCALE_EVENT = "aigiare:locale";
+const STORAGE_KEY = "vipai.locale";
+export const LOCALE_EVENT = "vipai:locale";
 export type Locale = "en" | "vi";
 
 const en: Record<string, string> = Object.fromEntries(

@@ -1,6 +1,6 @@
-# AiGiare — Next.js 16 app
+# VipAI — Next.js 16 app
 
-The AiGiare marketing, docs and dashboard front end:
+The VipAI marketing, docs and dashboard front end:
 **Next.js 16 App Router + TypeScript + plain CSS + `lucide-react`**, with
 the ported design system.
 
@@ -61,7 +61,7 @@ which it refuses.
 ## Deploy
 
 The image and compose definitions live in a separate private repository,
-`hoan02/aigiare-deploy`:
+`hoan02/vipai-deploy`:
 
 - `deploy/agr-fe/Dockerfile` — multi-stage, non-root, Next.js `standalone`
 - `deploy/docker-compose.web.yml` — this app, on the shared compose network
@@ -80,14 +80,14 @@ containerd, and restarts the `web` Deployment. There is no registry: the runner
 sits next to the cluster, so the image never leaves the node.
 
 The Dockerfile and `.dockerignore` are owned by the deployment, not this repo.
-The job copies them from `/opt/aigiare/agr-fe/` on the node into the checked-out
+The job copies them from `/opt/vipai/agr-fe/` on the node into the checked-out
 source before building — the same files the manual build uses. Point it elsewhere
 by setting the `DOCKERFILE_DIR` repository variable.
 
 Install the runner once per node from the deploy repository:
 
 ```bash
-deploy/vm/install-runner.sh https://github.com/hoan02/aigiare /path/to/token aigiare
+deploy/vm/install-runner.sh https://github.com/hoan02/vipai /path/to/token vipai
 ```
 
 It must run as `hoan`, who is in the `docker` group and holds passwordless sudo

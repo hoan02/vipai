@@ -108,7 +108,7 @@ export function TopUpModal() {
             <b>${(amount * 4.348).toFixed(1)}</b>
           </div>
         </div>
-        <p className="tu-terms">By purchasing you agree to AiGiare&apos;s Terms. Your USD balance stays in your account.</p>
+        <p className="tu-terms">By purchasing you agree to VipAI&apos;s Terms. Your USD balance stays in your account.</p>
         <div className="tu-actions">
           <button className="btn btn-ghost" type="button" onClick={() => setOpen(false)}>
             Cancel

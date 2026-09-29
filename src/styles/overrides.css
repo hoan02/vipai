@@ -16,7 +16,7 @@
 /* ============================================================
    Reference ground — coloured gradient page wash (cam → xanh)
    plus raised white cards. Replaces the earlier flat clean pass
-   with the reference's layered look, on AiGiare's warm palette.
+   with the reference's layered look, on VipAI's warm palette.
    ============================================================ */
 .stage{
   background:
@@ -75,7 +75,7 @@
 /* ============================================================
    Reference parity layer 2 — launch banner entrance, hero stagger,
    hub pulse, pricing/live structure, finale band, top-up modal.
-   Rules are scoped so existing AiGiare sections are untouched.
+   Rules are scoped so existing VipAI sections are untouched.
    ============================================================ */
 .btn-solid:hover{ background:#9a3412; }
 @keyframes launch-banner-in{ 0%{ transform:translateY(-100%); opacity:0; } to{ transform:translateY(0); opacity:1; } }

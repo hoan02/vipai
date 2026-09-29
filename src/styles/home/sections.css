@@ -82,10 +82,10 @@
   .price-table tbody tr.is-jumped>td{ animation:none; background-color:color-mix(in srgb, var(--ink) 7%, transparent); }
 }
 .price-table td.tr{ font-weight:var(--fw-bold); color:var(--ink); }
-/* the two AiGiare columns carry price + discount badge + cache line: let them
+/* the two VipAI columns carry price + discount badge + cache line: let them
    wrap instead of clipping the badge away */
 .price-table th.tr, .price-table td.tr{ white-space:normal; }
-/* When the table opens (See all model prices), the AiGiare Input/Output
+/* When the table opens (See all model prices), the VipAI Input/Output
    columns sweep a highlight to draw the eye, then settle back. Runs once.
    Three things this has to get right, and previously did not:
    1. The stagger is derived from each row's own index (--i), not from six

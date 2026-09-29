@@ -66,8 +66,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     <div className="dash">
       <aside className="dash-side">
         <Link className="dash-brand" href="/">
-          <Icon name="ic-aigiare" viewBox="0 0 24 24" width={20} height={20} />
-          AiGiare
+          <Icon name="ic-vipai" viewBox="0 0 24 24" width={20} height={20} />
+          VipAI
         </Link>
         <button className="dash-acct" type="button" aria-label="Switch organization">
           <span className="av" aria-hidden="true">

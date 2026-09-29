@@ -14,7 +14,7 @@ const CARDS = [
     href: "/docs/quickstart/claude-code",
     icon: BookOpen,
     title: "Connect a coding tool",
-    text: "Point Claude Code, Codex, Gemini CLI or any OpenAI-compatible client at AiGiare with two environment variables.",
+    text: "Point Claude Code, Codex, Gemini CLI or any OpenAI-compatible client at VipAI with two environment variables.",
   },
   {
     href: "/docs/api-integration",
@@ -70,7 +70,7 @@ export default function DocsOverviewPage() {
       <Steps>
         <Step id="step-key" title="Create a key">
           <p>
-            Sign in and open the API keys page in the dashboard. Keys start with <code>sk-aigiare-</code> and
+            Sign in and open the API keys page in the dashboard. Keys start with <code>sk-vipai-</code> and
             are shown once — store it in a password manager or environment variable, never in a repository.
           </p>
         </Step>
@@ -90,7 +90,7 @@ export default function DocsOverviewPage() {
                 file: "request.sh",
                 lang: "bash",
                 code: `curl ${apiBase}/v1/chat/completions \\
-  -H "Authorization: Bearer $AIGIARE_API_KEY" \\
+  -H "Authorization: Bearer $VIPAI_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "model": "gpt-5.6-sol",
@@ -125,7 +125,7 @@ export default function DocsOverviewPage() {
               <code key="b">Authorization: Bearer</code>
             </>,
           ],
-          ["Key prefix", <code key="a">sk-aigiare-</code>],
+          ["Key prefix", <code key="a">sk-vipai-</code>],
           ["Server timeout", "600 s for completions, 300 s for image generation"],
         ]}
       />

@@ -16,7 +16,7 @@ import { z } from "zod";
  * console, which is a single-page app that hardcodes its asset and API paths at
  * the root.
  */
-const DEFAULT_BACKEND = "https://api.aigiare.site";
+const DEFAULT_BACKEND = "https://api.vipai.site";
 
 /**
  * Hosts that never leave the machine or its private network.

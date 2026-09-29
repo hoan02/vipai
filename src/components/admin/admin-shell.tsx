@@ -29,8 +29,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
     <div className="dash admin">
       <aside className="dash-side">
         <Link className="dash-brand" href="/">
-          <Icon name="ic-aigiare" viewBox="0 0 24 24" width={18} height={18} />
-          AiGiare
+          <Icon name="ic-vipai" viewBox="0 0 24 24" width={18} height={18} />
+          VipAI
           <span className="dash-crumb">Admin</span>
         </Link>
         <nav className="dash-nav" aria-label="Admin">
@@ -51,7 +51,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </nav>
         <p className="note dash-side-note">
           Users, channels, keys and the rest live in the{" "}
-          <a className="link" href="https://api.aigiare.site/console">
+          <a className="link" href="https://api.vipai.site/console">
             gateway console
           </a>
           .
@@ -62,7 +62,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <header className="dash-top">
           <div className="dash-top-in">
             <div className="dash-account">
-              <a className="dash-tab" href="https://api.aigiare.site/console">
+              <a className="dash-tab" href="https://api.vipai.site/console">
                 Gateway console
               </a>
               <Link className="dash-tab" href="/dashboard">

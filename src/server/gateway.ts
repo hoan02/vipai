@@ -673,7 +673,7 @@ export async function getStatus(): Promise<GatewayStatus> {
   const data = await call<Record<string, unknown>>("/api/status");
   return {
     version: asString(data.version),
-    systemName: asString(data.system_name, "AiGiare"),
+    systemName: asString(data.system_name, "VipAI"),
     displayInCurrency: Boolean(data.display_in_currency),
     quotaPerUnit: Number(data.quota_per_unit) || QUOTA_PER_USD,
     apiInfoEnabled: data.api_info_enabled !== false,

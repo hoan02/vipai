@@ -10,7 +10,7 @@ import { DocCell, DocRow, DocTable, Pill } from "@/components/docs/doc-table";
 export const metadata: Metadata = {
   title: "Models & routing",
   description:
-    "Every AiGiare model id, the protocol each family needs, and list price beside ours so the discount can be checked against the published rate card.",
+    "Every VipAI model id, the protocol each family needs, and list price beside ours so the discount can be checked against the published rate card.",
 };
 
 /**
@@ -92,10 +92,10 @@ export default function ModelsPage() {
       <H2 id="catalogue">Catalogue and rates</H2>
       <p>
         Prices are per million tokens in USD. <strong>List</strong> is the provider&rsquo;s published rate;{" "}
-        <strong>AiGiare</strong> is what you are charged.
+        <strong>VipAI</strong> is what you are charged.
       </p>
       <DocTable
-        head={["Model", "Id", "Context", "Cache read", "List in", "AiGiare in", "AiGiare out", "Discount"]}
+        head={["Model", "Id", "Context", "Cache read", "List in", "VipAI in", "VipAI out", "Discount"]}
       >
         {models.map((m) => {
           const d = discount(m);
@@ -119,7 +119,7 @@ export default function ModelsPage() {
       </DocTable>
       <Callout kind="plain" title="Where the discount comes from">
         <p>
-          Volume. AiGiare commits to enterprise-scale usage with vetted providers and passes the difference
+          Volume. VipAI commits to enterprise-scale usage with vetted providers and passes the difference
           through. Discounts move with upstream costs, so treat the pricing page as live and check it before a
           large run rather than budgeting from this table.
         </p>
@@ -156,8 +156,8 @@ export default function ModelsPage() {
             code: `from openai import OpenAI
 
 client = OpenAI(
-    base_url="https://api.aigiare.site/v1",
-    api_key="sk-aigiare-xxxxxx",
+    base_url="https://api.vipai.site/v1",
+    api_key="sk-vipai-xxxxxx",
 )
 
 for m in client.models.list():
@@ -167,8 +167,8 @@ for m in client.models.list():
             label: "cURL",
             file: "request.sh",
             lang: "bash",
-            code: `curl https://api.aigiare.site/v1/models \\
-  -H "Authorization: Bearer $AIGIARE_API_KEY"`,
+            code: `curl https://api.vipai.site/v1/models \\
+  -H "Authorization: Bearer $VIPAI_API_KEY"`,
           },
         ]}
       />

@@ -58,7 +58,7 @@ export function modelKey(name: string) {
 }
 
 /** Fired by the pricing table so the live section can select the same model. */
-export const PICK_MODEL_EVENT = "aigiare:pick-model";
+export const PICK_MODEL_EVENT = "vipai:pick-model";
 export type PickModelDetail = { key: string; vendor: string };
 
 export const discountModels: DiscountModel[] = [
@@ -113,8 +113,8 @@ export const codeSnippets: Record<string, CodeSnippet> = {
     code: `from openai import OpenAI
 
 client = OpenAI(
-    base_url="https://api.aigiare.site/v1",
-    api_key="sk-aigiare-...",
+    base_url="https://api.vipai.site/v1",
+    api_key="sk-vipai-...",
 )
 
 stream = client.chat.completions.create(
@@ -132,8 +132,8 @@ for chunk in stream:
     code: `import OpenAI from "openai";
 
 const client = new OpenAI({
-  baseURL: "https://api.aigiare.site/v1",
-  apiKey: "sk-aigiare-...",
+  baseURL: "https://api.vipai.site/v1",
+  apiKey: "sk-vipai-...",
 });
 
 const stream = await client.chat.completions.create({
@@ -149,8 +149,8 @@ for await (const chunk of stream) {
   curl: {
     file: "request.sh",
     model: "GPT-5.6 Sol",
-    code: `curl https://api.aigiare.site/v1/chat/completions \\
-  -H "Authorization: Bearer $AIGIARE_API_KEY" \\
+    code: `curl https://api.vipai.site/v1/chat/completions \\
+  -H "Authorization: Bearer $VIPAI_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '
   {
@@ -170,8 +170,8 @@ import (
 )
 
 func main() {
-    client := openai.NewClient("sk-aigiare-...")
-    client.BaseURL = "https://api.aigiare.site/v1"
+    client := openai.NewClient("sk-vipai-...")
+    client.BaseURL = "https://api.vipai.site/v1"
     // the rest of your code stays the same
     fmt.Println("ready")
 }`,
@@ -185,8 +185,8 @@ import com.openai.client.okhttp.OpenAIOkHttpClient;
 public class Main {
   public static void main(String[] args) {
     OpenAIClient client = OpenAIOkHttpClient.builder()
-        .baseUrl("https://api.aigiare.site/v1")
-        .apiKey("sk-aigiare-...")
+        .baseUrl("https://api.vipai.site/v1")
+        .apiKey("sk-vipai-...")
         .build();
     // the rest of your code stays the same
     System.out.println("ready");
@@ -201,8 +201,8 @@ public class Main {
 #[tokio::main]
 async fn main() {
     let config = OpenAIConfig::new()
-        .with_api_base("https://api.aigiare.site/v1")
-        .with_api_key("sk-aigiare-...");
+        .with_api_base("https://api.vipai.site/v1")
+        .with_api_key("sk-vipai-...");
     let _client = Client::with_config(config);
     // the rest of your code stays the same
     println!("ready");
@@ -213,8 +213,8 @@ async fn main() {
     model: "GPT-5.6 Sol",
     code: `<?php
 // the rest of your code stays the same
-$client = OpenAI::client("sk-aigiare-...");
-$client->baseUri = "https://api.aigiare.site/v1";
+$client = OpenAI::client("sk-vipai-...");
+$client->baseUri = "https://api.vipai.site/v1";
 
 echo "ready";`,
   },
@@ -224,8 +224,8 @@ echo "ready";`,
     code: `require "openai"
 
 client = OpenAI::Client.new(
-  access_token: "sk-aigiare-...",
-  uri_base: "https://api.aigiare.site/v1",
+  access_token: "sk-vipai-...",
+  uri_base: "https://api.vipai.site/v1",
 )
 
 # the rest of your code stays the same
@@ -266,7 +266,7 @@ export const faqs = [
     a: "A single API that sits between your tools and model providers. You call one endpoint with one key; the router sends each request to Claude, GPT, Gemini or others, meters usage, and gives you one bill.",
   },
   {
-    q: "Is AiGiare OpenAI-compatible?",
+    q: "Is VipAI OpenAI-compatible?",
     a: "Yes — both formats. The OpenAI-compatible endpoint works with official OpenAI SDKs and Codex by changing the base URL. Claude Code connects through the Anthropic-compatible endpoint with two environment variables.",
   },
   {

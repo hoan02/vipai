@@ -37,7 +37,7 @@ function HeroBaseUrl() {
   }, []);
 
   const copy = () => {
-    copyText(`https://api.aigiare.site${current.path}`);
+    copyText(`https://api.vipai.site${current.path}`);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1400);
   };
@@ -58,7 +58,7 @@ function HeroBaseUrl() {
         <Icon name="ic-chevron" />
       </button>
       <code className="hb-url">
-        <span className="scheme">https://</span>api.aigiare.site
+        <span className="scheme">https://</span>api.vipai.site
         {current.path ? <span className="path">{current.path}</span> : null}
       </code>
       <button className={`hb-copy${copied ? " copied" : ""}`} type="button" aria-label="Copy base URL" onClick={copy}>
@@ -129,7 +129,7 @@ function RouteDiagram() {
       <div className="route-node hub" style={{ left: "50%", top: "50%" }}>
         <span className="hub-core">
           <span className="hub-pulse" aria-hidden="true" />
-          <Icon name="ic-aigiare" className="lg" viewBox="0 0 24 24" />
+          <Icon name="ic-vipai" className="lg" viewBox="0 0 24 24" />
         </span>
         <ul className="hub-caps">
           <li>
@@ -245,7 +245,7 @@ function CapStrip() {
           </span>
           <span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <Icon name="ic-aigiare" width={19} height={19} style={{ color: "var(--amber-deep)" }} />
+            <Icon name="ic-vipai" width={19} height={19} style={{ color: "var(--amber-deep)" }} />
           </span>
           <span>
             <Icon name="ic-bolt" />
@@ -295,7 +295,7 @@ export function Hero() {
               rel="noreferrer noopener"
             >
               <span>Chat on Telegram</span>
-              <span className="btn-tag">@aigiare</span>
+              <span className="btn-tag">@vipai</span>
             </a>
           </div>
 

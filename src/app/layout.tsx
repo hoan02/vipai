@@ -21,12 +21,12 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AiGiare — The LLM router built for Claude Code and Codex",
+  title: "VipAI — The LLM router built for Claude Code and Codex",
   description:
-    "AiGiare is an AI API gateway for developers: one key for GPT, Claude, Gemini and other leading models.",
+    "VipAI is an AI API gateway for developers: one key for GPT, Claude, Gemini and other leading models.",
   icons: {
-    icon: [{ url: "/aigiare.svg", type: "image/svg+xml" }],
-    shortcut: ["/aigiare.svg"],
+    icon: [{ url: "/vipai.svg", type: "image/svg+xml" }],
+    shortcut: ["/vipai.svg"],
   },
 };
 

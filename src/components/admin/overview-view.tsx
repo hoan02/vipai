@@ -63,7 +63,7 @@ export function OverviewView({
           </Link>
         ))}
         <a
-          href="https://api.aigiare.site/console"
+          href="https://api.vipai.site/console"
           className="panel"
           style={{ padding: 18, textDecoration: "none", display: "block" }}
         >

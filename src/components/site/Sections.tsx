@@ -206,11 +206,11 @@ function DuoColumn({ head, sub, items }: { head: string; sub: string; items: typ
 
 export function Duo() {
   return (
-    <section className="section" id="why" aria-label="Why AiGiare" style={{ paddingTop: 0 }}>
+    <section className="section" id="why" aria-label="Why VipAI" style={{ paddingTop: 0 }}>
       <div className="duo ai-reveal">
         <DuoColumn
           head="A Router You Can Build Your Business On"
-          sub="Traditional gateways weren't built for agent workloads. AiGiare is tuned for Claude Code, Codex, and long agentic sessions — without sacrificing the basics."
+          sub="Traditional gateways weren't built for agent workloads. VipAI is tuned for Claude Code, Codex, and long agentic sessions — without sacrificing the basics."
           items={duoLeft}
         />
         <DuoColumn
@@ -336,7 +336,7 @@ export function Leaderboard() {
       <div className="rank-grid ai-reveal">
         <div className="panel">
           <h3>Daily token volume</h3>
-          <p className="panel-sub">Total tokens routed through AiGiare per day</p>
+          <p className="panel-sub">Total tokens routed through VipAI per day</p>
           <div className="vol-head">
             <span className="vol-n">
               354.3B<small>tokens</small>
@@ -399,7 +399,7 @@ export function Finale() {
           <canvas className="dim-gl" aria-hidden="true" />
           <div className="dim-tx">
             <span className="dim-kick">
-              <span>AiGiare</span>
+              <span>VipAI</span>
             </span>
             <h2 className="dim-title">Every Request Takes The Best Route</h2>
           </div>
@@ -414,7 +414,7 @@ const footCols = [
     head: "Product",
     links: [
       { href: "/#pricing", label: "Pricing" },
-      { href: "/download", label: "Download AiGiare" },
+      { href: "/download", label: "Download VipAI" },
       { href: "/#ranking", label: "Leaderboard" },
       { href: "/#live", label: "Live discounts" },
       { href: "/dashboard", label: "Dashboard" },
@@ -445,8 +445,8 @@ export function Footer() {
       <div className="foot-top">
         <div className="fc fc-brand">
           <span className="b">
-            <Icon name="ic-aigiare" viewBox="0 0 24 24" />
-            AiGiare
+            <Icon name="ic-vipai" viewBox="0 0 24 24" />
+            VipAI
           </span>
           <p className="foot-tag">The native billing and routing layer built for developers.</p>
           <div className="fc-touch">
@@ -491,7 +491,7 @@ export function Footer() {
             ))}
           </nav>
           <div className="fc-endrow">
-            <span className="fc-copy">© 2026 AiGiare HK Limited. All rights reserved.</span>
+            <span className="fc-copy">© 2026 VipAI HK Limited. All rights reserved.</span>
           </div>
         </div>
       </div>

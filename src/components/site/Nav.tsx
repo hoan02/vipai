@@ -26,7 +26,7 @@ export function Nav() {
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const stored = (localStorage.getItem("aigiare.locale") as "en" | "vi") || "vi";
+    const stored = (localStorage.getItem("vipai.locale") as "en" | "vi") || "vi";
     setLang(stored);
     document.documentElement.lang = stored;
   }, []);
@@ -45,8 +45,8 @@ export function Nav() {
     <nav className="nav-pill" aria-label="Primary">
       <div className="nav-in">
         <a className="brand" href="/">
-          <Icon name="ic-aigiare" className="logo" viewBox="0 0 24 24" />
-          <span className="brand-name">AiGiare</span>
+          <Icon name="ic-vipai" className="logo" viewBox="0 0 24 24" />
+          <span className="brand-name">VipAI</span>
         </a>
 
         <div className={`nav-scrim${menuOpen ? " open" : ""}`} onClick={close} />
@@ -56,7 +56,7 @@ export function Nav() {
             <span className="nav-user">
               <span className="nav-user-av" />
               <span className="nav-user-tx">
-                <span className="nav-user-id">{session?.user?.email || "AiGiare"}</span>
+                <span className="nav-user-id">{session?.user?.email || "VipAI"}</span>
                 <span className="nav-user-sub">
                   {session?.user ? "Signed in" : "Not signed in"}
                 </span>

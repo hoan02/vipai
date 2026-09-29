@@ -137,7 +137,7 @@ export function ProfileView({ initial }: { initial: ProfileData }) {
   };
 
   const referralLink = profile.affiliateCode
-    ? `https://aigiare.site/?aff=${profile.affiliateCode}`
+    ? `https://vipai.site/?aff=${profile.affiliateCode}`
     : "";
 
   return (

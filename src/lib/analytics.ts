@@ -101,7 +101,7 @@ export const DEFAULT_PREFERENCES: ChartPreferences = {
   defaultTimeGranularity: "hour",
 };
 
-export const PREFERENCES_STORAGE_KEY = "aigiare.dashboard.modelAnalytics";
+export const PREFERENCES_STORAGE_KEY = "vipai.dashboard.modelAnalytics";
 
 /**
  * VChart's built-in data palette — the one new-api's charts draw from. There

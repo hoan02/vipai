@@ -32,7 +32,7 @@ export default function middleware(request: NextRequest) {
   // Coarse gate: the cookie is signed and verified where it is read, but a
   // presence check here is enough to send a signed-out visitor to the auth
   // dialog without doing crypto in middleware.
-  const sessionCookie = request.cookies.get("aigiare_session")?.value;
+  const sessionCookie = request.cookies.get("vipai_session")?.value;
   const authHeader = request.headers.get("authorization");
 
   if (!sessionCookie && !authHeader) {

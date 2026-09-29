@@ -7,7 +7,7 @@ import { Check, Copy, WrapText } from "lucide-react";
  * Token colouring
  *
  * Language-aware on purpose. `//` opens a comment in JavaScript and is part of
- * every URL, so a single comment rule turns https://api.aigiare.site grey.
+ * every URL, so a single comment rule turns https://api.vipai.site grey.
  * And a JSON payload nested in a shell argument spans lines, so `-d '{` has to
  * switch the grammar until the closing quote rather than colouring the whole
  * body as one string.

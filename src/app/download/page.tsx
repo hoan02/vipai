@@ -8,15 +8,15 @@ import { DownloadPlatforms } from "@/components/site/download-platforms";
 import { Icon } from "@/lib/icons";
 
 export const metadata: Metadata = {
-  title: "Download AiGiare — AiGiare",
-  description: "Download the AiGiare desktop client for one-click setup with Codex and Claude Code.",
+  title: "Download VipAI — VipAI",
+  description: "Download the VipAI desktop client for one-click setup with Codex and Claude Code.",
 };
 
 const steps = [
   {
     n: "01",
     title: "Install the client",
-    body: "Run the installer for your platform. AiGiare detects Codex, Claude Code and the other supported clients on your machine.",
+    body: "Run the installer for your platform. VipAI detects Codex, Claude Code and the other supported clients on your machine.",
   },
   {
     n: "02",
@@ -26,7 +26,7 @@ const steps = [
   {
     n: "03",
     title: "Start coding",
-    body: "AiGiare writes the base URL and key into each client. Switch models or protocols later from the dashboard.",
+    body: "VipAI writes the base URL and key into each client. Switch models or protocols later from the dashboard.",
   },
 ];
 
@@ -43,9 +43,9 @@ export default function DownloadPage() {
               <i aria-hidden="true" />
               One-click setup
             </span>
-            <h1>Download AiGiare</h1>
+            <h1>Download VipAI</h1>
             <p>
-              The desktop client connects Codex, Claude Code and any OpenAI-compatible tool to AiGiare for you. One
+              The desktop client connects Codex, Claude Code and any OpenAI-compatible tool to VipAI for you. One
               install, one sign-in, one bill.
             </p>
           </div>
@@ -55,7 +55,7 @@ export default function DownloadPage() {
         <section className="section" data-reveal style={{ paddingTop: 0 }}>
           <div className="sec-head">
             <h2 className="sec-title">How setup works</h2>
-            <p className="sec-sub">Three steps, then everything routes through AiGiare at the live discount.</p>
+            <p className="sec-sub">Three steps, then everything routes through VipAI at the live discount.</p>
           </div>
           <div className="dl-steps">
             {steps.map((s) => (
@@ -73,7 +73,7 @@ export default function DownloadPage() {
               <p className="meta" style={{ marginTop: 6 }}>
                 Point any client at the endpoint below and drop in a key.
               </p>
-              <code style={{ display: "block", marginTop: 10 }}>https://api.aigiare.site/v1</code>
+              <code style={{ display: "block", marginTop: 10 }}>https://api.vipai.site/v1</code>
             </div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <Link className="btn btn-primary btn-lg" href="/dashboard/api-keys">

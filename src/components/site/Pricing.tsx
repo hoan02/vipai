@@ -63,8 +63,8 @@ export function Pricing({ models }: { models: Model[] }) {
     const tableRel = tableRelRef.current;
     if (!tableRel) return;
     const ths = tableRel.querySelectorAll<HTMLTableCellElement>("thead th");
-    const thIn = ths[4]; // Input (AiGiare)
-    const thOut = ths[5]; // Output (AiGiare)
+    const thIn = ths[4]; // Input (VipAI)
+    const thOut = ths[5]; // Output (VipAI)
     if (thIn && thOut) {
       const relRect = tableRel.getBoundingClientRect();
       const inRect = thIn.getBoundingClientRect();
@@ -396,10 +396,10 @@ export function Pricing({ models }: { models: Model[] }) {
                 <th scope="col">Input (List)</th>
                 <th scope="col">Output (List)</th>
                 <th scope="col" className="tr">
-                  Input (AiGiare)
+                  Input (VipAI)
                 </th>
                 <th scope="col" className="tr">
-                  Output (AiGiare)
+                  Output (VipAI)
                 </th>
                 <th scope="col">Provider</th>
                 <th scope="col">Uptime (SLA)</th>
@@ -421,7 +421,7 @@ export function Pricing({ models }: { models: Model[] }) {
                     if ((e.target as HTMLElement).closest("button, a, input")) return;
                     openInLive(m);
                   }}
-                  /* Row index drives the stagger of the AiGiare column sweep, so
+                  /* Row index drives the stagger of the VipAI column sweep, so
                      the wave stays even however many models are in rotation. */
                   style={{ "--i": i } as CSSProperties}
                 >
@@ -478,7 +478,7 @@ export function Pricing({ models }: { models: Model[] }) {
       </div>
 
       <p className="form-note" style={{ marginTop: 14 }}>
-        List prices are the providers&apos; published rates; the AiGiare column is what you pay. The six cards above are
+        List prices are the providers&apos; published rates; the VipAI column is what you pay. The six cards above are
         our most-used models — open the full catalogue for every model we route.
       </p>
     </section>

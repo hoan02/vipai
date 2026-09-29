@@ -5,7 +5,7 @@ import { DashboardShell } from "@/components/dashboard/shell";
 import { requireAccountOrRedirect } from "@/server/auth";
 
 export const metadata: Metadata = {
-  title: "Dashboard — AiGiare",
+  title: "Dashboard — VipAI",
 };
 
 /**

@@ -149,7 +149,7 @@ export function RouteDecisionGraph() {
           className="rdg-svg"
           viewBox="0 0 560 260"
           role="img"
-          aria-label="How AiGiare routes a request from an agent to a model"
+          aria-label="How VipAI routes a request from an agent to a model"
         >
           {LANES.map((lane, i) => (
             <text key={lane} className="rdg-lane" x={8 + i * 144} y={14}>

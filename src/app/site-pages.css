@@ -8,7 +8,7 @@
    src/app/docs/layout.tsx, exactly as the dashboard has its own.
 
    Everything below line 26 in the previous revision was documentation or dead
-   first-generation documentation. See AIGIARE-DOCS-UPGRADE.md.
+   first-generation documentation. See VIPAI-DOCS-UPGRADE.md.
    ============================================================ */
 
 .dl-hero{ text-align:center; max-width:780px; margin:0 auto; }

@@ -46,7 +46,7 @@ function copyText(text: string) {
 
 const sideCards = [
   { icon: "/assets/router.webp", title: "Full setup guides", sub: "Step-by-step for popular clients and SDKs" },
-  { icon: "/assets/key.webp", title: "Download AiGiare for Codex", sub: "Download the AiGiare desktop app, setup done for you (new users)" },
+  { icon: "/assets/key.webp", title: "Download VipAI for Codex", sub: "Download the VipAI desktop app, setup done for you (new users)" },
   { icon: "/assets/shield-check.webp", title: "View API docs", sub: "Endpoints, SDKs, and protocol details" },
   { icon: "/assets/ico-curated.webp", title: "OpenClaw / CC-Switch", sub: "Install guides for other clients and CLI tools" },
 ];
@@ -76,7 +76,7 @@ export function QuickStart() {
       <div className="sec-head">
         <h2 className="sec-title">Quick start</h2>
         <p className="sec-sub">
-          Point your existing tools at AiGiare. A one-line change — official SDKs, standard endpoints, nothing to
+          Point your existing tools at VipAI. A one-line change — official SDKs, standard endpoints, nothing to
           relearn. Also works with Codex, Claude Desktop, OpenClaw, CC-Switch and any OpenAI-compatible client.
         </p>
       </div>
@@ -186,7 +186,7 @@ export function QuickStart() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/assets/qs-app-shot.png"
-                  alt="AiGiare desktop app onboarding screen"
+                  alt="VipAI desktop app onboarding screen"
                   width={1432}
                   height={1360}
                   loading="lazy"
@@ -222,7 +222,7 @@ export function QuickStart() {
 
             {showCode ? (
               <p className="qsx-note">
-                Point the base URL at AiGiare, drop in your API key — the rest of your code stays the same.
+                Point the base URL at VipAI, drop in your API key — the rest of your code stays the same.
               </p>
             ) : null}
           </div>

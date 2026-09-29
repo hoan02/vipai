@@ -3,18 +3,18 @@
 # There is no registry. The image is built on VM 104 itself — the self-hosted
 # runner is installed there, next to the k3s node it deploys to — saved to a
 # tarball and imported straight into k3s' containerd under the tag the
-# Deployment already references (`aigiare/fe:local`). Because 40-web.yaml sets
+# Deployment already references (`vipai/fe:local`). Because 40-web.yaml sets
 # `imagePullPolicy: IfNotPresent`, a restart picks up the freshly imported image
 # without editing the manifest — the same sequence the k8s README describes by
 # hand.
 #
 # The Dockerfile and .dockerignore are not in this repository: they ship with the
-# deployment and live on the node at /opt/aigiare/agr-fe/. The job copies them
+# deployment and live on the node at /opt/vipai/agr-fe/. The job copies them
 # into the checked-out source before building, so the only thing git owns is the
 # app itself.
 #
 # Prerequisites, once per node:
-#   deploy/vm/install-runner.sh   (installs the `aigiare`-labelled runner)
+#   deploy/vm/install-runner.sh   (installs the `vipai`-labelled runner)
 
 name: Deploy web
 
@@ -34,14 +34,14 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: aigiare/fe:local
-  NAMESPACE: aigiare
+  IMAGE: vipai/fe:local
+  NAMESPACE: vipai
   DEPLOYMENT: web
 
 jobs:
   deploy:
     # The runner registered by deploy/vm/install-runner.sh carries this label.
-    runs-on: [self-hosted, linux, aigiare]
+    runs-on: [self-hosted, linux, vipai]
     timeout-minutes: 30
 
     steps:
@@ -53,7 +53,7 @@ jobs:
         # repo; on the node they live beside the app source. Override the
         # location with a repository variable if it ever moves.
         env:
-          DOCKERFILE_DIR: ${{ vars.DOCKERFILE_DIR || '/opt/aigiare/agr-fe' }}
+          DOCKERFILE_DIR: ${{ vars.DOCKERFILE_DIR || '/opt/vipai/agr-fe' }}
         run: |
           set -euo pipefail
           src="$DOCKERFILE_DIR"
@@ -82,7 +82,7 @@ jobs:
           sudo -n k3s kubectl -n "$NAMESPACE" get pods -l "app=$DEPLOYMENT" -o wide
 
       - name: Prune the superseded image
-        # Best effort: each build retags aigiare/fe:local, leaving the previous
+        # Best effort: each build retags vipai/fe:local, leaving the previous
         # image untagged. The build cache is kept on purpose so builds stay fast.
         if: always()
         run: docker image prune -f >/dev/null 2>&1 || true

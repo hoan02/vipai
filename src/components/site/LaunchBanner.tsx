@@ -39,7 +39,7 @@ const messages: BannerMessage[] = [
 ];
 
 const ROTATE_MS = 4500;
-const BANNER_KEY = "aigiare.notice.launch-banner.v1";
+const BANNER_KEY = "vipai.notice.launch-banner.v1";
 
 /** Same local calendar day. A dismissal only covers the day it was made, so the
  *  banner is back after midnight instead of staying gone for a week. */

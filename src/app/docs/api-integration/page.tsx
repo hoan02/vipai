@@ -9,7 +9,7 @@ import { DocCell, DocRow, DocTable, Pill } from "@/components/docs/doc-table";
 export const metadata: Metadata = {
   title: "API integration",
   description:
-    "AiGiare supports OpenAI, Anthropic and Gemini compatible API formats, so official SDKs can call Claude, Gemini, GPT and other models through one gateway.",
+    "VipAI supports OpenAI, Anthropic and Gemini compatible API formats, so official SDKs can call Claude, Gemini, GPT and other models through one gateway.",
 };
 
 const base = `https://${API_BASE}`;
@@ -18,7 +18,7 @@ const AUTH_ROWS = [
   [
     "Anthropic",
     <>
-      <code>x-api-key: sk-aigiare-xxxxxx</code> plus <code>anthropic-version: 2023-06-01</code>
+      <code>x-api-key: sk-vipai-xxxxxx</code> plus <code>anthropic-version: 2023-06-01</code>
     </>,
     <Pill key="p" tone="ok">
       none
@@ -27,7 +27,7 @@ const AUTH_ROWS = [
   [
     "OpenAI",
     <>
-      <code key="a">Authorization: Bearer sk-aigiare-xxxxxx</code>, suffix <code key="b">/v1</code>
+      <code key="a">Authorization: Bearer sk-vipai-xxxxxx</code>, suffix <code key="b">/v1</code>
     </>,
     <Pill key="p" tone="ok">
       as given
@@ -36,7 +36,7 @@ const AUTH_ROWS = [
   [
     "Gemini",
     <>
-      <code key="a">Authorization: Bearer sk-aigiare-xxxxxx</code>, or <code key="b">x-goog-api-key</code>
+      <code key="a">Authorization: Bearer sk-vipai-xxxxxx</code>, or <code key="b">x-goog-api-key</code>
     </>,
     <Pill key="p" tone="ok">
       none
@@ -55,7 +55,7 @@ export default function ApiIntegrationPage() {
   return (
     <>
       <p className="doc-lede">
-        AiGiare accepts four wire formats. Point the official SDK at the base URL and your application
+        VipAI accepts four wire formats. Point the official SDK at the base URL and your application
         code does not change — the requests, the streaming and the SDK behaviour are the provider&rsquo;s own.
       </p>
 
@@ -87,7 +87,7 @@ export default function ApiIntegrationPage() {
             file: "request.sh",
             lang: "bash",
             code: `curl ${base}/v1/models \\
-  -H "Authorization: Bearer $AIGIARE_API_KEY"`,
+  -H "Authorization: Bearer $VIPAI_API_KEY"`,
           },
           {
             label: "Python",
@@ -97,7 +97,7 @@ export default function ApiIntegrationPage() {
 
 client = OpenAI(
     base_url="${base}/v1",
-    api_key="sk-aigiare-xxxxxx",
+    api_key="sk-vipai-xxxxxx",
 )
 
 for m in client.models.list():
@@ -121,7 +121,7 @@ for m in client.models.list():
             file: "request.sh",
             lang: "bash",
             code: `curl ${base}/v1/messages \\
-  -H "x-api-key: sk-aigiare-xxxxxx" \\
+  -H "x-api-key: sk-vipai-xxxxxx" \\
   -H "anthropic-version: 2023-06-01" \\
   -H "content-type: application/json" \\
   -d '{
@@ -137,7 +137,7 @@ for m in client.models.list():
             code: `from anthropic import Anthropic
 
 client = Anthropic(
-    api_key="sk-aigiare-xxxxxx",
+    api_key="sk-vipai-xxxxxx",
     base_url="${base}",
 )
 
@@ -179,7 +179,7 @@ print(resp.content[0].text)`,
             file: "request.sh",
             lang: "bash",
             code: `curl ${base}/v1/messages \\
-  -H "x-api-key: sk-aigiare-xxxxxx" \\
+  -H "x-api-key: sk-vipai-xxxxxx" \\
   -H "anthropic-version: 2023-06-01" \\
   -H "content-type: application/json" \\
   -d '{
@@ -203,7 +203,7 @@ print(resp.content[0].text)`,
             file: "request.sh",
             lang: "bash",
             code: `curl ${base}/v1/chat/completions \\
-  -H "Authorization: Bearer sk-aigiare-xxxxxx" \\
+  -H "Authorization: Bearer sk-vipai-xxxxxx" \\
   -H "content-type: application/json" \\
   -d '{
     "model": "gpt-5.6-sol",
@@ -219,7 +219,7 @@ print(resp.content[0].text)`,
 
 const client = new OpenAI({
   baseURL: "${base}/v1",
-  apiKey: process.env.AIGIARE_API_KEY,
+  apiKey: process.env.VIPAI_API_KEY,
 });
 
 const resp = await client.chat.completions.create({
@@ -252,7 +252,7 @@ console.log(resp.choices[0].message.content);`,
         ]}
       />
       <p>
-        Add <code>&quot;stream&quot;: true</code> and AiGiare returns standard OpenAI SSE chunks in the{" "}
+        Add <code>&quot;stream&quot;: true</code> and VipAI returns standard OpenAI SSE chunks in the{" "}
         <code>data: &#123;…&#125;</code> form, terminated by <code>data: [DONE]</code>.
       </p>
 
@@ -269,11 +269,11 @@ console.log(resp.choices[0].message.content);`,
             file: "request.sh",
             lang: "bash",
             code: `curl ${base}/v1/responses \\
-  -H "Authorization: Bearer sk-aigiare-xxxxxx" \\
+  -H "Authorization: Bearer sk-vipai-xxxxxx" \\
   -H "content-type: application/json" \\
   -d '{
     "model": "gpt-5.6-sol",
-    "input": "Introduce AiGiare in one sentence"
+    "input": "Introduce VipAI in one sentence"
   }'`,
           },
           {
@@ -284,12 +284,12 @@ console.log(resp.choices[0].message.content);`,
 
 client = OpenAI(
     base_url="${base}/v1",
-    api_key="sk-aigiare-xxxxxx",
+    api_key="sk-vipai-xxxxxx",
 )
 
 resp = client.responses.create(
     model="gpt-5.6-sol",
-    input="Introduce AiGiare in one sentence",
+    input="Introduce VipAI in one sentence",
 )
 print(resp.output_text)`,
           },
@@ -318,7 +318,7 @@ print(resp.output_text)`,
 
 client = OpenAI(
     base_url="${base}/v1",
-    api_key="sk-aigiare-xxxxxx",
+    api_key="sk-vipai-xxxxxx",
 )
 
 resp = client.responses.create(
@@ -349,7 +349,7 @@ print(resp.output_text)`,
             file: "request.sh",
             lang: "bash",
             code: `curl ${base}/v1beta/models/gemini-3.5-flash:generateContent \\
-  -H "Authorization: Bearer sk-aigiare-xxxxxx" \\
+  -H "Authorization: Bearer sk-vipai-xxxxxx" \\
   -H "content-type: application/json" \\
   -d '{
     "contents": [
@@ -389,7 +389,7 @@ print(resp.output_text)`,
             file: "request.sh",
             lang: "bash",
             code: `curl "${base}/v1beta/models/gemini-3.5-flash:streamGenerateContent?alt=sse" \\
-  -H "Authorization: Bearer sk-aigiare-xxxxxx" \\
+  -H "Authorization: Bearer sk-vipai-xxxxxx" \\
   -H "content-type: application/json" \\
   -d '{
     "contents": [
@@ -404,7 +404,7 @@ print(resp.output_text)`,
       <p>
         Gemini SDKs disagree about how to spell a custom endpoint — the field may be <code>base_url</code>,{" "}
         <code>baseURL</code>, <code>apiEndpoint</code>, or an environment variable. The rule underneath is the
-        same: point the base URL at AiGiare and use your key.
+        same: point the base URL at VipAI and use your key.
       </p>
       <CodeBlock
         tabs={[
@@ -413,7 +413,7 @@ print(resp.output_text)`,
             file: "~/.zshrc",
             lang: "bash",
             code: `export GOOGLE_GEMINI_BASE_URL="${base}"
-export GEMINI_API_KEY="sk-aigiare-xxxxxx"
+export GEMINI_API_KEY="sk-vipai-xxxxxx"
 export GEMINI_API_KEY_AUTH_MECHANISM="bearer"`,
           },
         ]}
@@ -433,7 +433,7 @@ export GEMINI_API_KEY_AUTH_MECHANISM="bearer"`,
             file: "request.sh",
             lang: "bash",
             code: `curl ${base}/v1/images/generations \\
-  -H "Authorization: Bearer sk-aigiare-xxxxxx" \\
+  -H "Authorization: Bearer sk-vipai-xxxxxx" \\
   -H "content-type: application/json" \\
   -d '{
     "model": "gpt-image-2",
@@ -459,7 +459,7 @@ export GEMINI_API_KEY_AUTH_MECHANISM="bearer"`,
             file: "request.sh",
             lang: "bash",
             code: `curl ${base}/v1/images/edits \\
-  -H "Authorization: Bearer sk-aigiare-xxxxxx" \\
+  -H "Authorization: Bearer sk-vipai-xxxxxx" \\
   -F model="gpt-image-2" \\
   -F image="@photo.png" \\
   -F prompt="Replace the background with a starry sky"`,
@@ -492,21 +492,21 @@ export GEMINI_API_KEY_AUTH_MECHANISM="bearer"`,
             file: "~/.zshrc",
             lang: "bash",
             code: `export ANTHROPIC_BASE_URL="${base}"
-export ANTHROPIC_API_KEY="sk-aigiare-xxxxxx"`,
+export ANTHROPIC_API_KEY="sk-vipai-xxxxxx"`,
           },
           {
             label: "OpenAI",
             file: "~/.zshrc",
             lang: "bash",
             code: `export OPENAI_BASE_URL="${base}/v1"
-export OPENAI_API_KEY="sk-aigiare-xxxxxx"`,
+export OPENAI_API_KEY="sk-vipai-xxxxxx"`,
           },
           {
             label: "PowerShell",
             file: "$PROFILE",
             lang: "powershell",
             code: `$env:ANTHROPIC_BASE_URL = "${base}"
-$env:ANTHROPIC_API_KEY = "sk-aigiare-xxxxxx"`,
+$env:ANTHROPIC_API_KEY = "sk-vipai-xxxxxx"`,
           },
         ]}
       />
@@ -517,7 +517,7 @@ $env:ANTHROPIC_API_KEY = "sk-aigiare-xxxxxx"`,
       <p>
         Check the protocol-to-header mapping first: Anthropic uses <code>x-api-key</code>, OpenAI and Gemini
         use <code>Authorization: Bearer</code>. Then confirm the key is complete, starts with{" "}
-        <code>sk-aigiare-</code>, has no stray whitespace, and still exists in the dashboard. Finally check
+        <code>sk-vipai-</code>, has no stray whitespace, and still exists in the dashboard. Finally check
         the base URL: OpenAI SDKs need the <code>/v1</code> suffix and Anthropic SDKs must not have it.
       </p>
 

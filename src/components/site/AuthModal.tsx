@@ -47,7 +47,7 @@ const COPY = {
     footCta: "Đăng ký ngay",
   },
   signup: {
-    title: "Bắt đầu với AiGiare",
+    title: "Bắt đầu với VipAI",
     sub: "Miễn phí để bắt đầu, không cần thẻ tín dụng.",
     cta: "Tạo tài khoản miễn phí",
     busy: "Đang tạo tài khoản…",
@@ -282,12 +282,12 @@ export function AuthModal() {
       open(trigger.getAttribute("data-auth-modal") === "signup" ? "signup" : "signin");
     };
 
-    window.addEventListener("aigiare:open-auth", onOpen as EventListener);
-    window.addEventListener("aigiare:close-auth", onClose);
+    window.addEventListener("vipai:open-auth", onOpen as EventListener);
+    window.addEventListener("vipai:close-auth", onClose);
     document.addEventListener("click", onClick);
     return () => {
-      window.removeEventListener("aigiare:open-auth", onOpen as EventListener);
-      window.removeEventListener("aigiare:close-auth", onClose);
+      window.removeEventListener("vipai:open-auth", onOpen as EventListener);
+      window.removeEventListener("vipai:close-auth", onClose);
       document.removeEventListener("click", onClick);
     };
   }, [open, requestClose]);
@@ -506,11 +506,11 @@ export function AuthModal() {
         <div className="am-scroll" inert={done}>
           <header className="am-hd">
             <span className="am-mark">
-              <Icon name="ic-aigiare" viewBox="0 0 24 24" width={20} height={20} />
+              <Icon name="ic-vipai" viewBox="0 0 24 24" width={20} height={20} />
             </span>
             <span className="am-hd-txt">
-              <b>AiGiare</b>
-              <small>AIGIARE · ACCOUNT</small>
+              <b>VipAI</b>
+              <small>VIPAI · ACCOUNT</small>
             </span>
             <button className="am-x" type="button" onClick={requestClose} aria-label={t("Đóng")}>
               <Icon name="ic-x" viewBox="0 0 24 24" width={13} height={13} />

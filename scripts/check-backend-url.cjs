@@ -38,11 +38,11 @@ const accept = [
   ["http://localhost:4000", "loopback by name"],
   ["http://192.168.10.211:8080", "private RFC1918"],
   ["http://172.20.0.4:8080", "private 172.16/12"],
-  ["https://api.aigiare.site", "public over https"],
+  ["https://api.vipai.site", "public over https"],
 ];
 
 const refuse = [
-  ["http://aigiare.site/_aigiare", "public over plain http"],
+  ["http://vipai.site/_vipai", "public over plain http"],
   ["http://api.example.com/v1", "public over plain http"],
   ["http://169.254.169.254/latest/meta-data", "link-local metadata"],
 ];

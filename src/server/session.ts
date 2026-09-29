@@ -20,7 +20,7 @@ import { cookies, headers } from "next/headers";
  * `Access-Control-Allow-Credentials: true`, a combination browsers reject.
  */
 
-export const SESSION_COOKIE = "aigiare_session";
+export const SESSION_COOKIE = "vipai_session";
 
 /** Fifteen minutes, minus a margin so a token never expires mid-request. */
 const REFRESH_MARGIN_MS = 60_000;

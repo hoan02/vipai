@@ -45,7 +45,7 @@ function Connector() {
   const [protocol, setProtocol] = useState<(typeof protocols)[number]["id"]>("openai");
   const [copied, setCopied] = useState(false);
   const current = protocols.find((p) => p.id === protocol) ?? protocols[0];
-  const baseUrl = `https://api.aigiare.site${current.path}`;
+  const baseUrl = `https://api.vipai.site${current.path}`;
 
   return (
     <div className="conn">
@@ -117,7 +117,7 @@ function Connector() {
           </div>
 
           <div className="conn-dl">
-            <b>Download the AiGiare client for one-click setup</b>
+            <b>Download the VipAI client for one-click setup</b>
             <small>Codex / Claude Code</small>
             <div className="conn-btns">
               <a className="btn btn-sm btn-mac" href="/download">
@@ -245,7 +245,7 @@ export function ApiKeysView({
               API keys <Pill tone="cap"><i />Discount cap</Pill>
             </span>
           }
-          sub="API keys are credentials for accessing the AiGiare API and carry full account permissions. Store them securely. Revoking a key is permanent."
+          sub="API keys are credentials for accessing the VipAI API and carry full account permissions. Store them securely. Revoking a key is permanent."
         />
       </div>
 

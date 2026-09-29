@@ -10,11 +10,11 @@ import "./docs.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Docs — AiGiare",
-    template: "%s — AiGiare Docs",
+    default: "Docs — VipAI",
+    template: "%s — VipAI Docs",
   },
   description:
-    "AiGiare documentation: connect Claude Code and other agent tools, call the Anthropic, OpenAI and Gemini compatible API, and understand rate limits and billing.",
+    "VipAI documentation: connect Claude Code and other agent tools, call the Anthropic, OpenAI and Gemini compatible API, and understand rate limits and billing.",
 };
 
 /**

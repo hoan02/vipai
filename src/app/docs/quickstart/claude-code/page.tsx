@@ -9,7 +9,7 @@ import { DocCell, DocRow, DocTable } from "@/components/docs/doc-table";
 export const metadata: Metadata = {
   title: "Connect Claude Code",
   description:
-    "Point Claude Code at AiGiare with two environment variables, pin the models it uses, and verify the chain end to end.",
+    "Point Claude Code at VipAI with two environment variables, pin the models it uses, and verify the chain end to end.",
 };
 
 const base = `https://${API_BASE}`;
@@ -31,7 +31,7 @@ export default function ClaudeCodePage() {
 
       <Callout kind="info" title="Before you start">
         <p>
-          You need an AiGiare API key and Node.js 18 or newer. If Claude Code is not installed yet, the first
+          You need an VipAI API key and Node.js 18 or newer. If Claude Code is not installed yet, the first
           step covers it.
         </p>
       </Callout>
@@ -57,7 +57,7 @@ claude --version`,
           </p>
         </Step>
 
-        <Step id="cc-point" title="Point it at AiGiare">
+        <Step id="cc-point" title="Point it at VipAI">
           <p>
             Claude Code reads these at startup, so nothing inside the tool has to be edited. Open a new
             terminal afterwards, or the shell will keep the old values.
@@ -69,21 +69,21 @@ claude --version`,
                 file: "~/.zshrc",
                 lang: "bash",
                 code: `export ANTHROPIC_BASE_URL="${base}"
-export ANTHROPIC_API_KEY="sk-aigiare-xxxxxx"`,
+export ANTHROPIC_API_KEY="sk-vipai-xxxxxx"`,
               },
               {
                 label: "PowerShell",
                 file: "$PROFILE",
                 lang: "powershell",
                 code: `$env:ANTHROPIC_BASE_URL = "${base}"
-$env:ANTHROPIC_API_KEY = "sk-aigiare-xxxxxx"`,
+$env:ANTHROPIC_API_KEY = "sk-vipai-xxxxxx"`,
               },
               {
                 label: ".env",
                 file: ".env",
                 lang: "env",
                 code: `ANTHROPIC_BASE_URL=${base}
-ANTHROPIC_API_KEY=sk-aigiare-xxxxxx`,
+ANTHROPIC_API_KEY=sk-vipai-xxxxxx`,
               },
             ]}
           />
@@ -148,7 +148,7 @@ $env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "claude-haiku-4-5"`,
                 label: "Prompt",
                 file: "claude",
                 lang: "bash",
-                code: "> Summarise the AiGiare base URL and the auth header in one line each.",
+                code: "> Summarise the VipAI base URL and the auth header in one line each.",
               },
             ]}
           />

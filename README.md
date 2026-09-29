@@ -71,6 +71,28 @@ The image and compose definitions live in a separate private repository,
 Removing it makes the image build fail, because `.next/standalone` is what the
 runtime stage copies.
 
+### Continuous deploy
+
+`.github/workflows/deploy-web.yml` runs on a self-hosted runner installed on the
+k3s node itself (VM 104). On every push to `main` — or on demand via
+*workflow_dispatch* — it builds the image on that host, imports it into k3s'
+containerd, and restarts the `web` Deployment. There is no registry: the runner
+sits next to the cluster, so the image never leaves the node.
+
+The Dockerfile and `.dockerignore` are owned by the deployment, not this repo.
+The job copies them from `/opt/aigiare/agr-fe/` on the node into the checked-out
+source before building — the same files the manual build uses. Point it elsewhere
+by setting the `DOCKERFILE_DIR` repository variable.
+
+Install the runner once per node from the deploy repository:
+
+```bash
+deploy/vm/install-runner.sh https://github.com/hoan02/aigiare /path/to/token aigiare
+```
+
+It must run as `hoan`, who is in the `docker` group and holds passwordless sudo
+for `k3s`. Both are what the workflow's steps call.
+
 ## Stack
 
 | Layer | Choice |

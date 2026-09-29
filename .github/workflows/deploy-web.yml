@@ -1,0 +1,88 @@
+# Build the Next.js web image on the k3s node and roll the `web` Deployment.
+#
+# There is no registry. The image is built on VM 104 itself — the self-hosted
+# runner is installed there, next to the k3s node it deploys to — saved to a
+# tarball and imported straight into k3s' containerd under the tag the
+# Deployment already references (`aigiare/fe:local`). Because 40-web.yaml sets
+# `imagePullPolicy: IfNotPresent`, a restart picks up the freshly imported image
+# without editing the manifest — the same sequence the k8s README describes by
+# hand.
+#
+# The Dockerfile and .dockerignore are not in this repository: they ship with the
+# deployment and live on the node at /opt/aigiare/agr-fe/. The job copies them
+# into the checked-out source before building, so the only thing git owns is the
+# app itself.
+#
+# Prerequisites, once per node:
+#   deploy/vm/install-runner.sh   (installs the `aigiare`-labelled runner)
+
+name: Deploy web
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# The runner only needs to read the repo; the deploy itself is local to the node.
+permissions:
+  contents: read
+
+# One deploy at a time: a queued run waits instead of cancelling a rollout that
+# is already half applied.
+concurrency:
+  group: deploy-web-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: aigiare/fe:local
+  NAMESPACE: aigiare
+  DEPLOYMENT: web
+
+jobs:
+  deploy:
+    # The runner registered by deploy/vm/install-runner.sh carries this label.
+    runs-on: [self-hosted, linux, aigiare]
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out the app
+        uses: actions/checkout@v4
+
+      - name: Stage the deployment's Dockerfile
+        # The Dockerfile and .dockerignore ship with the deployment, not this
+        # repo; on the node they live beside the app source. Override the
+        # location with a repository variable if it ever moves.
+        env:
+          DOCKERFILE_DIR: ${{ vars.DOCKERFILE_DIR || '/opt/aigiare/agr-fe' }}
+        run: |
+          set -euo pipefail
+          src="$DOCKERFILE_DIR"
+          for f in Dockerfile .dockerignore; do
+            if [ ! -f "$src/$f" ]; then
+              echo "::error::$src/$f is missing; the deployment build needs it. On the node it is placed by deploy/agr-fe/."
+              exit 1
+            fi
+            cp "$src/$f" "$f"
+          done
+          ls -l Dockerfile .dockerignore
+
+      - name: Build the image
+        run: docker build -t "$IMAGE" .
+
+      - name: Import into k3s containerd
+        # `ctr images import` replaces the tag in place, so the old image becomes
+        # dangling rather than lingering under the same name.
+        run: docker save "$IMAGE" | sudo -n k3s ctr images import -
+
+      - name: Roll out
+        run: |
+          set -euo pipefail
+          sudo -n k3s kubectl -n "$NAMESPACE" rollout restart "deploy/$DEPLOYMENT"
+          sudo -n k3s kubectl -n "$NAMESPACE" rollout status "deploy/$DEPLOYMENT" --timeout=180s
+          sudo -n k3s kubectl -n "$NAMESPACE" get pods -l "app=$DEPLOYMENT" -o wide
+
+      - name: Prune the superseded image
+        # Best effort: each build retags aigiare/fe:local, leaving the previous
+        # image untagged. The build cache is kept on purpose so builds stay fast.
+        if: always()
+        run: docker image prune -f >/dev/null 2>&1 || true

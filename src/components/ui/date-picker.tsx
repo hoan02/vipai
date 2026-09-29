@@ -12,6 +12,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useLocale } from "@/components/site/I18n";
 
 /**
  * A date field with its own calendar.
@@ -72,11 +73,23 @@ function sameDay(a: Date, b: Date): boolean {
   );
 }
 
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+// Month and weekday names per locale. Indexed by Date#getMonth (0-11) and
+// Date#getDay (0 = Sunday) respectively, so the calendar grid can stay
+// locale-agnostic and only the labels change.
+const MONTHS: Record<"en" | "vi", string[]> = {
+  en: [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ],
+  vi: [
+    "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
+    "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12",
+  ],
+};
+const WEEKDAYS: Record<"en" | "vi", string[]> = {
+  en: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
+  vi: ["CN", "T2", "T3", "T4", "T5", "T6", "T7"],
+};
 
 export function DatePicker({
   value,
@@ -92,6 +105,9 @@ export function DatePicker({
 }: DatePickerProps) {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
+
+  const locale = useLocale();
+  const vi = locale === "vi";
 
   const selected = useMemo(() => parse(value), [value]);
   const minDate = useMemo(() => (min ? parse(min) : null), [min]);
@@ -203,7 +219,11 @@ export function DatePicker({
   }, [view, weekStartsOn]);
 
   const label_ = selected
-    ? selected.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+    ? selected.toLocaleDateString(vi ? "vi-VN" : undefined, {
+        year: "numeric",
+        month: vi ? "long" : "short",
+        day: "numeric",
+      })
     : "";
 
   const commitTyped = () => {
@@ -218,23 +238,27 @@ export function DatePicker({
     else setTyped(value);
   };
 
+  const monthNames = vi ? MONTHS.vi : MONTHS.en;
+  const weekdayNames = vi ? WEEKDAYS.vi : WEEKDAYS.en;
+
   const header = (
     <div className="ui-date-head">
       <button
         type="button"
         className="ui-date-nav"
-        aria-label="Previous month"
+        aria-label={vi ? "Tháng trước" : "Previous month"}
         onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}
       >
         <ChevronLeft size={16} />
       </button>
       <span className="ui-date-title">
-        {MONTHS[view.getMonth()]} {view.getFullYear()}
+        {monthNames[view.getMonth()]}
+        {vi ? "," : ""} {view.getFullYear()}
       </span>
       <button
         type="button"
         className="ui-date-nav"
-        aria-label="Next month"
+        aria-label={vi ? "Tháng sau" : "Next month"}
         onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
       >
         <ChevronRight size={16} />
@@ -274,7 +298,7 @@ export function DatePicker({
               {header}
 
               <div className="ui-date-weekdays" aria-hidden="true">
-                {Array.from({ length: 7 }, (_, i) => WEEKDAYS[(i + weekStartsOn) % 7]).map((name) => (
+                {Array.from({ length: 7 }, (_, i) => weekdayNames[(i + weekStartsOn) % 7]).map((name) => (
                   <span key={name}>{name}</span>
                 ))}
               </div>
@@ -310,11 +334,11 @@ export function DatePicker({
                   onClick={() => commit(today)}
                   disabled={isDisabledDay(today)}
                 >
-                  Today
+                  {vi ? "Hôm nay" : "Today"}
                 </button>
                 {value ? (
                   <button type="button" className="ui-date-quick" onClick={() => onChange("")}>
-                    Clear
+                    {vi ? "Xoá" : "Clear"}
                   </button>
                 ) : null}
               </div>

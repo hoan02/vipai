@@ -58,7 +58,7 @@ export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
       />
 
       {error ? (
-        <div className="panel" style={{ padding: 14, marginTop: 16, color: "#b91c1c" }} role="alert">
+        <div className="panel" style={{ padding: 14, marginTop: 16, color: "var(--danger)" }} role="alert">
           {error}
         </div>
       ) : null}

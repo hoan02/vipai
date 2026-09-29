@@ -1,6 +1,7 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect } from "react";
+import { create } from "zustand";
 
 /**
  * The browser's view of the session.
@@ -12,9 +13,11 @@ import { useSyncExternalStore } from "react";
  * `/api/user/*`, reached through this app's `/api/session/*` routes so the
  * browser never has to hold a token or deal with the gateway's CORS.
  *
- * The state lives in a module-level store rather than a hook-local one, because
- * the nav, the user menu and the dashboard shell all read the same session and
- * must re-render together when it changes.
+ * The state lives in a Zustand store rather than a hook-local one, because the
+ * nav, the user menu and the dashboard shell all read the same session and must
+ * re-render together when it changes. The store itself never persists: the
+ * session is a server cookie, and caching a user across reloads would render a
+ * signed-out visitor as signed in.
  */
 
 export type SessionUser = {
@@ -28,21 +31,31 @@ export type SessionUser = {
   sidebarModules: string | null;
 };
 
-type State = {
+type Status = "loading" | "ready";
+
+type SessionStore = {
   user: SessionUser | null;
-  status: "loading" | "ready";
+  status: Status;
+  setUser: (user: SessionUser | null) => void;
+  setStatus: (status: Status) => void;
 };
 
-let state: State = { user: null, status: "loading" };
+/**
+ * The session store.
+ *
+ * Zustand rather than a hand-rolled listener set: `set` merges into the store
+ * and notifies only the selectors whose slice changed, so the nav does not
+ * re-render when the user menu's own open/closed state changes.
+ */
+export const useSessionStore = create<SessionStore>()((set) => ({
+  user: null,
+  status: "loading",
+  setUser: (user) => set({ user }),
+  setStatus: (status) => set({ status }),
+}));
+
 let loaded = false;
 let inflight: Promise<void> | null = null;
-
-const listeners = new Set<() => void>();
-
-function setState(next: State) {
-  state = next;
-  for (const listener of listeners) listener();
-}
 
 /** Reads the session once and caches it. Concurrent callers share one request. */
 function load(): Promise<void> {
@@ -55,12 +68,12 @@ function load(): Promise<void> {
         ? ((await response.json()) as { user: SessionUser | null })
         : null;
       loaded = true;
-      setState({ user: body?.user ?? null, status: "ready" });
+      useSessionStore.setState({ user: body?.user ?? null, status: "ready" });
     } catch {
       // A network failure is indistinguishable from signed out here, and the
       // next navigation retries.
       loaded = true;
-      setState({ user: null, status: "ready" });
+      useSessionStore.setState({ user: null, status: "ready" });
     } finally {
       inflight = null;
     }
@@ -74,24 +87,6 @@ export function refreshSession(): Promise<void> {
   loaded = true;
   inflight = null;
   return load();
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  if (!loaded) void load();
-  return () => {
-    listeners.delete(listener);
-  };
-}
-
-function getSnapshot(): State {
-  return state;
-}
-
-// A constant, so the server render and the first client render agree.
-const PENDING: State = { user: null, status: "loading" };
-function getServerSnapshot(): State {
-  return PENDING;
 }
 
 type SignInResult = { error?: { message?: string } };
@@ -117,7 +112,7 @@ async function post(path: string, body: unknown): Promise<SignInResult> {
   }
 
   loaded = true;
-  setState({ user: payload.user, status: "ready" });
+  useSessionStore.setState({ user: payload.user, status: "ready" });
   return {};
 }
 
@@ -179,24 +174,32 @@ export async function signout(): Promise<void> {
     await fetch("/api/session/logout", { method: "POST" });
   } finally {
     loaded = true;
-    setState({ user: null, status: "ready" });
+    useSessionStore.setState({ user: null, status: "ready" });
   }
 }
 
 /** The session as a promise, for callers outside a component. */
 export async function getSession(): Promise<{ user: SessionUser | null }> {
   await load();
-  return { user: state.user };
+  return { user: useSessionStore.getState().user };
 }
 
-/** Subscribes to the session. */
+/** Subscribes to the session, loading it once on first mount. */
 export function useSession(): {
   data: { user: SessionUser } | null;
   isPending: boolean;
 } {
-  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const user = useSessionStore((state) => state.user);
+  const status = useSessionStore((state) => state.status);
+
+  // The store has no subscriber hook of its own, so the first component that
+  // mounts the session kicks off the (deduped) read.
+  useEffect(() => {
+    if (!loaded) void load();
+  }, []);
+
   return {
-    data: snapshot.user ? { user: snapshot.user } : null,
-    isPending: snapshot.status === "loading",
+    data: user ? { user } : null,
+    isPending: status === "loading",
   };
 }

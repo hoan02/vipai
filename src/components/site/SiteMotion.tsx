@@ -18,6 +18,23 @@ export function SiteMotion() {
        attribute: threshold .12, a rootBounds fallback for tall targets, and a
        re-sweep on load and again after 1.2s for anything already above 92vh. */
     const root = document.documentElement;
+
+    /* Colours for the canvases below. Canvas 2D cannot resolve var() or
+       color-mix(), so the ink token is read once and re-read whenever the
+       theme attribute changes. */
+    const readInk = () => {
+      const raw = getComputedStyle(root).getPropertyValue("--ink").trim() || "#14110f";
+      const match = /^#?([0-9a-f]{6})$/i.exec(raw);
+      const value = match ? Number.parseInt(match[1], 16) : 0x14110f;
+      return { hex: raw, rgb: `${(value >> 16) & 255},${(value >> 8) & 255},${value & 255}` };
+    };
+    let ink = readInk();
+    const themeObserver = new MutationObserver(() => {
+      ink = readInk();
+    });
+    themeObserver.observe(root, { attributes: true, attributeFilter: ["data-theme", "class"] });
+    cleanups.push(() => themeObserver.disconnect());
+
     const REVEAL_SELECTOR = [
       "#pricing .sec-head",
       ".price-featured > .pf-card",
@@ -249,7 +266,7 @@ export function SiteMotion() {
             const lum = drum[r * cols + c];
             const ch = RAMP[Math.max(0, Math.min(RAMP.length - 1, Math.round(lum * (RAMP.length - 1))))];
             ctx.globalAlpha = fall * 0.5;
-            ctx.fillStyle = "#14110f";
+            ctx.fillStyle = ink.hex;
             ctx.fillText(ch, cx, cy);
           }
         }
@@ -363,7 +380,7 @@ export function SiteMotion() {
         const dt = last ? Math.min(48, ts - last) : 16;
         last = ts;
         ctx.clearRect(0, 0, w, h);
-        ctx.fillStyle = "rgba(20,17,15,0.10)";
+        ctx.fillStyle = `rgba(${ink.rgb},0.10)`;
         for (let i = 0; i < lattice.length; i += 2) {
           ctx.beginPath();
           ctx.arc(lattice[i], lattice[i + 1], 1, 0, Math.PI * 2);

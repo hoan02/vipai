@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { QRCodeSVG } from "qrcode.react";
+import { toast } from "sonner";
 import { Bell, Check, Copy, Gift } from "lucide-react";
 import { PageHead, Pill, SectionTitle, Stat } from "@/components/dashboard/kit";
 import { DataTable, type Column } from "@/components/admin/data-table";
@@ -132,23 +134,21 @@ function RechargePanel({ info, balance }: { info: WalletInfo; balance: number })
   const [custom, setCustom] = useState("");
   const [method, setMethod] = useState(info.payMethods[0]?.type ?? "");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [payUrl, setPayUrl] = useState<string | null>(null);
 
   const effective = custom.trim() ? Number(custom) : amount;
 
   const pay = async () => {
     if (!method) {
-      setError("Choose a payment method.");
+      toast.error("Choose a payment method.");
       return;
     }
     if (!Number.isFinite(effective) || effective < info.minTopup) {
-      setError(`The minimum top-up is ${usd(info.minTopup)}.`);
+      toast.error(`The minimum top-up is ${usd(info.minTopup)}.`);
       return;
     }
     setBusy(true);
-    setError(null);
-    setNotice(null);
+    setPayUrl(null);
     try {
       const response = await fetch("/api/wallet/recharge", {
         method: "POST",
@@ -159,18 +159,20 @@ function RechargePanel({ info, balance }: { info: WalletInfo; balance: number })
         | { url?: string; params?: Record<string, unknown>; message?: string }
         | null;
       if (!response.ok || !payload?.url) {
-        setError(payload?.message || "Could not start the payment.");
+        toast.error(payload?.message || "Could not start the payment.");
         return;
       }
       if (payload.params && Object.keys(payload.params).length > 0) {
+        // The gateway expects a form POST; a bare URL cannot replay it, so no QR.
         submitPaymentForm(payload.url, payload.params);
       } else {
         window.open(payload.url, "_blank", "noopener");
+        setPayUrl(payload.url);
       }
-      setNotice("Payment opened in a new tab. Your balance updates once it completes.");
+      toast.success("Payment opened in a new tab. Your balance updates once it completes.");
       router.refresh();
     } catch {
-      setError("Could not reach the server.");
+      toast.error("Could not reach the server.");
     } finally {
       setBusy(false);
     }
@@ -225,15 +227,22 @@ function RechargePanel({ info, balance }: { info: WalletInfo; balance: number })
           {busy ? "Starting…" : `Pay ${usd(Number.isFinite(effective) ? effective : 0)}`}
         </button>
       </div>
-      {error ? (
-        <p className="note" style={{ marginTop: 10, color: "#b91c1c" }} role="alert">
-          {error}
-        </p>
-      ) : null}
-      {notice ? (
-        <p className="note" style={{ marginTop: 10, color: "#0e6b45" }} role="status">
-          {notice}
-        </p>
+      {payUrl ? (
+        <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginTop: 16 }}>
+          <span style={{ border: "1px solid var(--d-line)", padding: 8, background: "var(--surface)", lineHeight: 0 }}>
+            <QRCodeSVG
+              value={payUrl}
+              size={132}
+              level="M"
+              bgColor="#ffffff"
+              fgColor="#14110f"
+              marginSize={1}
+            />
+          </span>
+          <p className="note" style={{ maxWidth: 240 }}>
+            Or scan with your phone to finish the payment there.
+          </p>
+        </div>
       ) : null}
     </>
   );
@@ -245,18 +254,14 @@ function RedeemPanel({ enabled }: { enabled: boolean }) {
   const router = useRouter();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const redeem = async () => {
     const key = code.trim();
     if (!key) {
-      setError("Enter a credit code.");
+      toast.error("Enter a credit code.");
       return;
     }
     setBusy(true);
-    setError(null);
-    setNotice(null);
     try {
       const response = await fetch("/api/wallet", {
         method: "POST",
@@ -267,14 +272,14 @@ function RedeemPanel({ enabled }: { enabled: boolean }) {
         | { creditedUsd?: number; message?: string }
         | null;
       if (!response.ok) {
-        setError(payload?.message || "That code could not be redeemed.");
+        toast.error(payload?.message || "That code could not be redeemed.");
         return;
       }
-      setNotice(`Code redeemed — ${usd(payload?.creditedUsd ?? 0)} added.`);
+      toast.success(`Code redeemed — ${usd(payload?.creditedUsd ?? 0)} added.`);
       setCode("");
       router.refresh();
     } catch {
-      setError("Could not reach the server.");
+      toast.error("Could not reach the server.");
     } finally {
       setBusy(false);
     }
@@ -307,16 +312,6 @@ function RedeemPanel({ enabled }: { enabled: boolean }) {
           {busy ? "Redeeming…" : "Redeem"}
         </button>
       </div>
-      {error ? (
-        <p className="note" style={{ marginTop: 10, color: "#b91c1c" }} role="alert">
-          {error}
-        </p>
-      ) : null}
-      {notice ? (
-        <p className="note" style={{ marginTop: 10, color: "#0e6b45" }} role="status">
-          {notice}
-        </p>
-      ) : null}
     </>
   );
 }
@@ -332,13 +327,9 @@ function SubscriptionPanel({
 }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const buy = async (plan: SubscriptionPlan) => {
     setBusyId(plan.id);
-    setError(null);
-    setNotice(null);
     try {
       const response = await fetch("/api/wallet/subscription", {
         method: "POST",
@@ -347,13 +338,13 @@ function SubscriptionPanel({
       });
       const payload = (await response.json().catch(() => null)) as { message?: string } | null;
       if (!response.ok) {
-        setError(payload?.message || "Could not buy the plan.");
+        toast.error(payload?.message || "Could not buy the plan.");
         return;
       }
-      setNotice(`${plan.title} is now active.`);
+      toast.success(`${plan.title} is now active.`);
       router.refresh();
     } catch {
-      setError("Could not reach the server.");
+      toast.error("Could not reach the server.");
     } finally {
       setBusyId(null);
     }
@@ -419,17 +410,6 @@ function SubscriptionPanel({
           ))}
         </div>
       )}
-
-      {error ? (
-        <p className="note" style={{ marginTop: 10, color: "#b91c1c" }} role="alert">
-          {error}
-        </p>
-      ) : null}
-      {notice ? (
-        <p className="note" style={{ marginTop: 10, color: "#0e6b45" }} role="status">
-          {notice}
-        </p>
-      ) : null}
     </>
   );
 }
@@ -440,16 +420,12 @@ function AffiliatePanel({ affiliate }: { affiliate: WalletAffiliate }) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const link = affiliate.code ? `${origin}/?aff=${affiliate.code}` : "";
 
   const transfer = async () => {
     setBusy(true);
-    setError(null);
-    setNotice(null);
     try {
       const response = await fetch("/api/wallet/affiliate", {
         method: "POST",
@@ -458,13 +434,13 @@ function AffiliatePanel({ affiliate }: { affiliate: WalletAffiliate }) {
       });
       const payload = (await response.json().catch(() => null)) as { message?: string } | null;
       if (!response.ok) {
-        setError(payload?.message || "Could not transfer the earnings.");
+        toast.error(payload?.message || "Could not transfer the earnings.");
         return;
       }
-      setNotice("Earnings moved to your balance.");
+      toast.success("Earnings moved to your balance.");
       router.refresh();
     } catch {
-      setError("Could not reach the server.");
+      toast.error("Could not reach the server.");
     } finally {
       setBusy(false);
     }
@@ -508,17 +484,6 @@ function AffiliatePanel({ affiliate }: { affiliate: WalletAffiliate }) {
       ) : (
         <p className="note">Your referral code is not available yet.</p>
       )}
-
-      {error ? (
-        <p className="note" style={{ marginTop: 10, color: "#b91c1c" }} role="alert">
-          {error}
-        </p>
-      ) : null}
-      {notice ? (
-        <p className="note" style={{ marginTop: 10, color: "#0e6b45" }} role="status">
-          {notice}
-        </p>
-      ) : null}
     </>
   );
 }

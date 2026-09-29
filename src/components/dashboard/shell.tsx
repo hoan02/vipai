@@ -16,10 +16,13 @@ import {
   ListTodo,
   MessageSquare,
   ScrollText,
+  Search,
   Shield,
   User,
 } from "lucide-react";
 import { Icon } from "@/lib/icons";
+import { openCommandPalette } from "@/components/command-palette";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { dashboardNavGroups, type NavIcon } from "@/lib/dashboard-data";
 import { isHrefVisible, parseSidebarModules } from "@/lib/sidebar-modules";
 import { TopUpModal } from "@/components/site/TopUpModal";
@@ -140,6 +143,17 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               ))}
             </nav>
             <div className="dash-account">
+              <button
+                className="dash-search"
+                type="button"
+                onClick={openCommandPalette}
+                aria-label="Search pages and actions"
+              >
+                <Search size={15} aria-hidden="true" />
+                <span className="dash-search-tx">Search</span>
+                <kbd className="dash-search-kbd">⌘K</kbd>
+              </button>
+              <ThemeToggle className="dash-theme" />
               <div className="dash-lang" role="group" aria-label="Language">
                 {(["en", "vi"] as const).map((l) => (
                   <button

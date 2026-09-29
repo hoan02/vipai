@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { DataTable, useColumnHelper, type Column } from "@/components/admin/data-table";
 import { send } from "@/components/admin/lib";
 import { PageHead } from "@/components/dashboard/kit";
@@ -82,8 +83,6 @@ export function MarginView({
   const router = useRouter();
   const [costRows, setCostRows] = useState<CostRow[]>(() => toCostRows(initialCosts));
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const [importing, setImporting] = useState(false);
@@ -108,31 +107,29 @@ export function MarginView({
       listOut: Number(row.listOut) || 0,
     }));
     setSaving(true);
-    setError(null);
-    setNotice(null);
     const result = await send("/api/admin/margin", "PUT", { models, apply });
     setSaving(false);
     if (result.message) {
-      setError(result.message);
+      toast.error(result.message);
       return;
     }
-    setNotice(apply ? "Saved, repriced retail, and wrote model metadata." : "Saved cost, margin and model metadata.");
+    toast.success(
+      apply ? "Saved, repriced retail, and wrote model metadata." : "Saved cost, margin and model metadata.",
+    );
     if (apply) router.refresh();
   };
 
   const runImport = async () => {
     setImporting(true);
-    setError(null);
-    setNotice(null);
     const result = await send<{ meta?: number; cost?: number }>("/api/admin/models/import", "PUT", { meta: importText });
     setImporting(false);
     if (result.message) {
-      setError(result.message);
+      toast.error(result.message);
       return;
     }
     const merged = result.data?.meta ?? 0;
     const costs = result.data?.cost ?? 0;
-    setNotice(`Merged ${merged} models${costs > 0 ? ` and ${costs} cost rows` : ""}.`);
+    toast.success(`Merged ${merged} models${costs > 0 ? ` and ${costs} cost rows` : ""}.`);
     setImportText("");
     router.refresh();
   };
@@ -221,7 +218,7 @@ export function MarginView({
         return (
           <span
             className="num"
-            style={actual !== null && actual < 0 ? { color: "#b91c1c" } : undefined}
+            style={actual !== null && actual < 0 ? { color: "var(--danger)" } : undefined}
           >
             {actual === null ? "—" : `${actual.toFixed(1)}%`}
           </span>
@@ -256,17 +253,6 @@ export function MarginView({
           </span>
         }
       />
-
-      {error ? (
-        <div className="panel" style={{ padding: 14, marginTop: 16, color: "#b91c1c" }} role="alert">
-          {error}
-        </div>
-      ) : null}
-      {notice ? (
-        <div className="panel" style={{ padding: 14, marginTop: 16 }} role="status">
-          {notice}
-        </div>
-      ) : null}
 
       <div className="panel" style={{ padding: 16, marginTop: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>

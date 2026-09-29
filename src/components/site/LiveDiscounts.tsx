@@ -419,7 +419,7 @@ export function LiveDiscounts({ models }: { models: Model[] }) {
                         x2={CW - CR}
                         y1={y.toFixed(1)}
                         y2={y.toFixed(1)}
-                        stroke="rgba(20,17,15,.14)"
+                        style={{ stroke: "color-mix(in srgb, var(--ink) 14%, transparent)" }}
                         strokeWidth="1"
                         strokeDasharray="3 3"
                         vectorEffect="non-scaling-stroke"
@@ -431,7 +431,7 @@ export function LiveDiscounts({ models }: { models: Model[] }) {
                     x2={CW - CR}
                     y1={avgY}
                     y2={avgY}
-                    stroke="#14110f"
+                    style={{ stroke: "var(--ink)" }}
                     strokeOpacity=".3"
                     strokeWidth="1"
                     strokeDasharray="4 5"
@@ -444,7 +444,7 @@ export function LiveDiscounts({ models }: { models: Model[] }) {
                   <path
                     d={line}
                     fill="none"
-                    stroke="#c2410c"
+                    style={{ stroke: "var(--amber-deep)" }}
                     strokeWidth="2.4"
                     strokeLinejoin="round"
                     strokeLinecap="round"
@@ -455,7 +455,7 @@ export function LiveDiscounts({ models }: { models: Model[] }) {
                     className="ln-guide"
                     y1={CG}
                     y2={bottom}
-                    stroke="rgba(20,17,15,.22)"
+                    style={{ stroke: "color-mix(in srgb, var(--ink) 22%, transparent)" }}
                     strokeWidth="1"
                     opacity="0"
                     vectorEffect="non-scaling-stroke"
@@ -467,7 +467,7 @@ export function LiveDiscounts({ models }: { models: Model[] }) {
                     y1={last![1].toFixed(1)}
                     x2={last![0].toFixed(1)}
                     y2={last![1].toFixed(1)}
-                    stroke="#c2410c"
+                    style={{ stroke: "var(--amber-deep)" }}
                     strokeWidth="6.4"
                     strokeLinecap="round"
                     vectorEffect="non-scaling-stroke"
@@ -475,7 +475,7 @@ export function LiveDiscounts({ models }: { models: Model[] }) {
                   <line
                     ref={haloRef}
                     className="ln-dot-halo"
-                    stroke="#fffefb"
+                    style={{ stroke: "var(--stage-bg)" }}
                     strokeWidth="8.8"
                     strokeLinecap="round"
                     vectorEffect="non-scaling-stroke"
@@ -484,7 +484,7 @@ export function LiveDiscounts({ models }: { models: Model[] }) {
                   <line
                     ref={dotRef}
                     className="ln-dot"
-                    stroke="#c2410c"
+                    style={{ stroke: "var(--amber-deep)" }}
                     strokeWidth="5.6"
                     strokeLinecap="round"
                     vectorEffect="non-scaling-stroke"

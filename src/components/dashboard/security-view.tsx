@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
+import { QRCodeSVG } from "qrcode.react";
+import { toast } from "sonner";
 import {
   AlertTriangle,
   Check,
@@ -14,6 +17,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { PageHead, Pill, SectionTitle } from "@/components/dashboard/kit";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/otp-input";
 import {
   buildRegistrationResult,
   createCredential,
@@ -170,8 +174,6 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
   const router = useRouter();
   const [data, setData] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const [tokenPassword, setTokenPassword] = useState("");
   const [twoFAPassword, setTwoFAPassword] = useState("");
@@ -192,15 +194,20 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
   const [passkeySupported, setPasskeySupported] = useState(false);
   useEffect(() => setPasskeySupported(isPasskeySupported()), []);
 
+  /**
+   * Runs one security action.
+   *
+   * Two-factor lives in its own route (`/api/security/2fa`); everything else
+   * shares `/api/security/actions`. `endpoint` picks between them.
+   */
   const call = async (
     body: Record<string, unknown>,
     tag: string,
+    endpoint = "/api/security/actions",
   ): Promise<Record<string, unknown> | null> => {
     setBusy(tag);
-    setError(null);
-    setNotice(null);
     try {
-      const response = await fetch("/api/security/actions", {
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
@@ -209,12 +216,12 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
         | Record<string, unknown>
         | null;
       if (!response.ok) {
-        setError((payload?.message as string) || "The action failed.");
+        toast.error((payload?.message as string) || "The action failed.");
         return null;
       }
       return payload;
     } catch {
-      setError("Could not reach the server.");
+      toast.error("Could not reach the server.");
       return null;
     } finally {
       setBusy(null);
@@ -226,7 +233,7 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
     const payload = await call({ action: "revoke-session", sid: session.sid }, `revoke-${session.sid}`);
     if (payload) {
       setData((d) => ({ ...d, sessions: d.sessions.filter((s) => s.sid !== session.sid) }));
-      setNotice("Session revoked.");
+      toast.success("Session revoked.");
     }
   };
 
@@ -234,7 +241,7 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
     const payload = await call({ action: "revoke-others" }, "revoke-others");
     if (payload) {
       setData((d) => ({ ...d, sessions: d.sessions.filter((s) => s.current) }));
-      setNotice("All other sessions signed out.");
+      toast.success("All other sessions signed out.");
     }
   };
 
@@ -263,12 +270,16 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
         ...d,
         accessToken: { exists: false, tokenRef: "", createdAt: null, lastUsedAt: null, lastUsedIp: "" },
       }));
-      setNotice("Access token revoked.");
+      toast.success("Access token revoked.");
     }
   };
 
   const beginTwoFactor = async () => {
-    const payload = await call({ action: "setup", password: twoFAPassword }, "2fa-setup");
+    const payload = await call(
+      { action: "setup", password: twoFAPassword },
+      "2fa-setup",
+      "/api/security/2fa",
+    );
     if (payload?.setup) setSetup(payload.setup as TwoFactorSetup);
   };
 
@@ -277,6 +288,7 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
     const payload = await call(
       { action: "enable", flowToken: setup.flowToken, code: twoFACode },
       "2fa-enable",
+      "/api/security/2fa",
     );
     if (payload) {
       setSetup(null);
@@ -286,17 +298,21 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
         ...d,
         twoFactor: { enabled: true, locked: false, backupCodesRemaining: d.twoFactor.backupCodesRemaining },
       }));
-      setNotice("Two-factor authentication is on.");
+      toast.success("Two-factor authentication is on.");
     }
   };
 
   const disableTwoFactor = async () => {
     if (!window.confirm("Turn off two-factor authentication?")) return;
-    const payload = await call({ action: "disable", password: twoFAPassword }, "2fa-disable");
+    const payload = await call(
+      { action: "disable", password: twoFAPassword },
+      "2fa-disable",
+      "/api/security/2fa",
+    );
     if (payload) {
       setTwoFAPassword("");
       setData((d) => ({ ...d, twoFactor: { enabled: false, locked: false, backupCodesRemaining: null } }));
-      setNotice("Two-factor authentication is off.");
+      toast.success("Two-factor authentication is off.");
     }
   };
 
@@ -310,13 +326,13 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
       setFreshBackupCodes(codes);
       setBackupPassword("");
       setData((d) => ({ ...d, twoFactor: { ...d.twoFactor, backupCodesRemaining: codes.length } }));
-      setNotice("New backup codes generated — store them now.");
+      toast.success("New backup codes generated — store them now.");
     }
   };
 
   const registerPasskey = async () => {
     if (!isPasskeySupported()) {
-      setError("This browser does not support passkeys.");
+      toast.error("This browser does not support passkeys.");
       return;
     }
     const begin = await call(
@@ -327,7 +343,7 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
 
     const flowToken = String(begin.flowToken ?? "");
     if (!flowToken) {
-      setError("The passkey registration flow expired. Try again.");
+      toast.error("The passkey registration flow expired. Try again.");
       return;
     }
 
@@ -337,12 +353,12 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
         prepareCredentialCreationOptions(begin.options ?? begin),
       )) as PublicKeyCredential | null;
     } catch {
-      setError("Passkey registration was cancelled.");
+      toast.error("Passkey registration was cancelled.");
       return;
     }
     const attestation = buildRegistrationResult(credential);
     if (!attestation) {
-      setError("The browser returned an invalid passkey response.");
+      toast.error("The browser returned an invalid passkey response.");
       return;
     }
 
@@ -353,7 +369,7 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
     if (payload) {
       setPasskeyPassword("");
       setData((d) => ({ ...d, passkey: { ...d.passkey, enabled: true } }));
-      setNotice("Passkey registered.");
+      toast.success("Passkey registered.");
     }
   };
 
@@ -363,7 +379,7 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
     if (payload) {
       setPasskeyPassword("");
       setData((d) => ({ ...d, passkey: { ...d.passkey, enabled: false, lastUsedAt: null } }));
-      setNotice("Passkey removed.");
+      toast.success("Passkey removed.");
     }
   };
 
@@ -377,13 +393,13 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
       setData((d) => ({ ...d, bindings: d.bindings.filter((b) => b.providerId !== unbindTarget) }));
       setUnbindTarget(null);
       setBindingPassword("");
-      setNotice("Account unlinked.");
+      toast.success("Account unlinked.");
     }
   };
 
   const deleteAccount = async () => {
     if (deleteConfirm.trim() !== data.profile.username) {
-      setError("Type your username exactly to confirm deletion.");
+      toast.error("Type your username exactly to confirm deletion.");
       return;
     }
     if (!window.confirm("Delete this account permanently? This cannot be undone.")) return;
@@ -396,8 +412,6 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
 
   const togglePrivacy = async (value: boolean) => {
     setPrivacyBusy(true);
-    setError(null);
-    setNotice(null);
     try {
       const response = await fetch("/api/profile/settings", {
         method: "PUT",
@@ -406,14 +420,14 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
       });
       const payload = (await response.json().catch(() => null)) as { message?: string } | null;
       if (!response.ok) {
-        setError(payload?.message || "Could not save the setting.");
+        toast.error(payload?.message || "Could not save the setting.");
         return;
       }
       setData((d) => ({ ...d, settings: { ...d.settings, recordIpLog: value } }));
-      setNotice("Setting saved.");
+      toast.success("Setting saved.");
       router.refresh();
     } catch {
-      setError("Could not reach the server.");
+      toast.error("Could not reach the server.");
     } finally {
       setPrivacyBusy(false);
     }
@@ -423,23 +437,20 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
     ? dateFmt.format(new Date(data.passkey.lastUsedAt))
     : "never";
 
+  // The authenticator URI is built here from the secret the gateway issued, so
+  // the QR renders crisply at any size instead of scaling a gateway bitmap.
+  const otpauthUri = setup?.secret
+    ? `otpauth://totp/${encodeURIComponent(`VipAI:${data.profile.username}`)}?secret=${encodeURIComponent(
+        setup.secret,
+      )}&issuer=VipAI&algorithm=SHA1&digits=6&period=30`
+    : "";
+
   return (
     <>
       <PageHead
         title="Security"
         sub="Sign-in methods, sessions, and the credentials that reach your account."
       />
-
-      {error ? (
-        <div className="panel" style={{ padding: 14, marginTop: 16, color: "#b91c1c" }} role="alert">
-          {error}
-        </div>
-      ) : null}
-      {notice ? (
-        <div className="panel" style={{ padding: 14, marginTop: 16, color: "#0e6b45" }} role="status">
-          {notice}
-        </div>
-      ) : null}
 
       <SectionTitle
         hint={
@@ -573,8 +584,19 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
               Scan the code with your authenticator app, then enter the six-digit code it shows.
             </p>
             <div style={{ display: "flex", gap: 22, flexWrap: "wrap", marginTop: 14 }}>
-              {setup.qrCodeData ? (
-                // The data URI is produced by the gateway from the shared secret.
+              {otpauthUri ? (
+                <span style={{ border: "1px solid var(--d-line)", padding: 10, background: "var(--surface)", lineHeight: 0 }}>
+                  <QRCodeSVG
+                    value={otpauthUri}
+                    size={168}
+                    level="M"
+                    bgColor="#ffffff"
+                    fgColor="#14110f"
+                    marginSize={1}
+                  />
+                </span>
+              ) : setup.qrCodeData ? (
+                // Fallback: the gateway also returns a QR bitmap for the secret.
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={setup.qrCodeData}
@@ -590,19 +612,26 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
                 <SecretList label="Backup codes — store these somewhere safe" values={setup.backupCodes} />
               </div>
             </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
-              <input
-                className="field"
-                style={{ flex: "0 1 200px", fontFamily: "var(--font-mono)" }}
-                placeholder="123456"
-                inputMode="numeric"
+            <div style={{ display: "flex", gap: 12, marginTop: 18, flexWrap: "wrap", alignItems: "center" }}>
+              <InputOTP
+                maxLength={6}
                 value={twoFACode}
-                onChange={(e) => setTwoFACode(e.target.value)}
-              />
+                onChange={setTwoFACode}
+                pattern={REGEXP_ONLY_DIGITS}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                aria-label="Six-digit authenticator code"
+              >
+                <InputOTPGroup>
+                  {[0, 1, 2, 3, 4, 5].map((index) => (
+                    <InputOTPSlot key={index} index={index} />
+                  ))}
+                </InputOTPGroup>
+              </InputOTP>
               <button
                 className="btn btn-primary btn-sm"
                 type="button"
-                disabled={busy !== null}
+                disabled={busy !== null || twoFACode.length < 6}
                 onClick={enableTwoFactor}
               >
                 {busy === "2fa-enable" ? "Verifying…" : "Confirm and enable"}
@@ -845,7 +874,7 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
           <AlertTriangle size={17} /> Delete account
         </span>
       </SectionTitle>
-      <div className="panel" style={{ padding: 18, borderColor: "color-mix(in srgb, #b91c1c 30%, transparent)" }}>
+      <div className="panel" style={{ padding: 18, borderColor: "color-mix(in srgb, var(--danger) 30%, transparent)" }}>
         <p className="note">
           Permanently deletes your account, keys and logs. Type your username to confirm.
         </p>
@@ -870,7 +899,7 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
           <button
             className="btn btn-ghost btn-sm"
             type="button"
-            style={{ color: "#b91c1c" }}
+            style={{ color: "var(--danger)" }}
             disabled={busy !== null}
             onClick={deleteAccount}
           >

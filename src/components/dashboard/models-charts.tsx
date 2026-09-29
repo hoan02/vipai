@@ -16,6 +16,8 @@ import {
   YAxis,
 } from "recharts";
 import { usd } from "@/lib/money";
+import { useTheme } from "next-themes";
+import { ModelIcon } from "@/components/model-icon";
 import {
   formatCompact,
   formatInt,
@@ -33,11 +35,29 @@ import {
  * because Recharts measures its container in the browser.
  */
 
-const GRID = "rgba(20,17,15,0.08)";
-const AXIS_TICK = { fontSize: 11, fill: "rgba(20,17,15,0.45)" } as const;
 const LEGEND_STYLE = { fontSize: 12, paddingTop: 6 } as const;
 const FALLBACK_COLOR = "#8B959E";
 const MAX_TOOLTIP_ITEMS = 15;
+
+/**
+ * Grid and axis colours for the charts.
+ *
+ * Recharts writes SVG attributes from JavaScript, so it cannot read the CSS
+ * tokens that drive the rest of the theme; the resolved theme decides the
+ * values here instead. The light values match what the page used before dark
+ * mode existed.
+ */
+function useChartColors() {
+  const { resolvedTheme } = useTheme();
+  const dark = resolvedTheme === "dark";
+  return {
+    grid: dark ? "rgba(243,238,232,0.12)" : "rgba(20,17,15,0.08)",
+    tick: {
+      fontSize: 11,
+      fill: dark ? "rgba(243,238,232,0.58)" : "rgba(20,17,15,0.45)",
+    },
+  };
+}
 
 type TipKind = "quota" | "count";
 
@@ -82,7 +102,10 @@ function AnalyticsTooltip({ active, payload, label, kind = "quota" }: TipProps) 
         return (
           <div className="an-tip-row" key={String(entry.dataKey ?? seriesName ?? index)}>
             <i style={{ background: entry.color }} aria-hidden="true" />
-            <span className="an-tip-n">{String(seriesName ?? "")}</span>
+            <span className="an-tip-n">
+              <ModelIcon model={String(seriesName ?? "")} size={13} />
+              <span className="an-tip-name">{String(seriesName ?? "")}</span>
+            </span>
             <b>{format(Number(entry.value) || 0)}</b>
           </div>
         );
@@ -104,6 +127,7 @@ export function QuotaDistributionChart({
   area: boolean;
 }) {
   const { rows, models, colors } = series;
+  const { grid: GRID, tick: AXIS_TICK } = useChartColors();
   if (rows.length === 0 || models.length === 0) return <ChartEmpty />;
 
   const axes = (
@@ -197,6 +221,7 @@ function ProportionChart({ analytics }: { analytics: ModelAnalytics }) {
 
 function RankChart({ analytics }: { analytics: ModelAnalytics }) {
   const { rank, colorOf } = analytics;
+  const { grid: GRID, tick: AXIS_TICK } = useChartColors();
   if (rank.length === 0) return <ChartEmpty />;
 
   return (
@@ -233,6 +258,7 @@ function RankChart({ analytics }: { analytics: ModelAnalytics }) {
 
 function TrendChart({ analytics }: { analytics: ModelAnalytics }) {
   const { rows, models, colors } = analytics.trend;
+  const { grid: GRID, tick: AXIS_TICK } = useChartColors();
   if (rows.length === 0 || models.length === 0) return <ChartEmpty />;
 
   return (

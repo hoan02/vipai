@@ -6,7 +6,7 @@
 .rdg-cap{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:color-mix(in srgb, var(--ink) 46%, transparent); }
 .rdg-run{
   display:inline-flex; align-items:center; gap:8px; height:34px; padding:0 14px; border-radius:var(--corner);
-  border:1px solid color-mix(in srgb, var(--ink) 14%, transparent); background:color-mix(in srgb, #fff 62%, transparent);
+  border:1px solid color-mix(in srgb, var(--ink) 14%, transparent); background:color-mix(in srgb, var(--surface) 62%, transparent);
   color:var(--ink); font-family:var(--font-sans); font-size:14px; font-weight:var(--fw-medium); cursor:pointer;
   transition:background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
@@ -15,18 +15,18 @@
 .rdg-stage{
   position:relative; padding:clamp(14px,2vw,22px); border-radius:var(--corner);
   border:1px solid color-mix(in srgb, var(--ink) 9%, transparent);
-  background:color-mix(in srgb, #fff 55%, transparent);
+  background:color-mix(in srgb, var(--surface) 55%, transparent);
 }
 .rdg-svg{ display:block; width:100%; height:auto; }
 .rdg-lane{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; fill:color-mix(in srgb, var(--ink) 38%, transparent); }
 .rdg-edge{ stroke:color-mix(in srgb, var(--ink) 16%, transparent); stroke-width:1.4; fill:none; transition:stroke .2s ease-out, stroke-width .2s ease-out, opacity .2s ease-out; }
 .rdg-edge.is-lit{ stroke:var(--amber); stroke-width:2; }
 .rdg-edge.is-dim{ opacity:.22; }
-.rdg-node .rdg-box{ fill:color-mix(in srgb, #fff 82%, transparent); stroke:color-mix(in srgb, var(--ink) 16%, transparent); stroke-width:1.2; transition:fill .2s ease-out, stroke .2s ease-out; }
+.rdg-node .rdg-box{ fill:color-mix(in srgb, var(--surface) 82%, transparent); stroke:color-mix(in srgb, var(--ink) 16%, transparent); stroke-width:1.2; transition:fill .2s ease-out, stroke .2s ease-out; }
 .rdg-node text{ font-family:var(--font-sans); font-size:11.5px; font-weight:var(--fw-semibold); fill:var(--ink); }
-.rdg-node.is-lit .rdg-box{ stroke:var(--amber); fill:color-mix(in srgb, var(--amber) 10%, #fff); }
+.rdg-node.is-lit .rdg-box{ stroke:var(--amber); fill:color-mix(in srgb, var(--amber) 10%, var(--surface)); }
 .rdg-node.is-dim{ opacity:.35; }
-.rdg-node.is-active .rdg-box{ fill:color-mix(in srgb, var(--amber) 16%, #fff); }
+.rdg-node.is-active .rdg-box{ fill:color-mix(in srgb, var(--amber) 16%, var(--surface)); }
 .rdg-hit{ fill:transparent; cursor:pointer; }
 .rdg-node.is-hot .rdg-box{ stroke:var(--amber); }
 .rdg-node:focus{ outline:none; }

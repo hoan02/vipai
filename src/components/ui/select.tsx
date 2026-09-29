@@ -34,6 +34,8 @@ export type SelectOption = {
   label: string;
   /** Shown under the label, for options that need a second line. */
   hint?: string;
+  /** A small leading mark, e.g. a model vendor icon. */
+  icon?: ReactNode;
   disabled?: boolean;
 };
 
@@ -263,6 +265,7 @@ export function Select({
       >
         {icon}
         <span className={`ui-select-value${selected ? "" : " is-placeholder"}`}>
+          {selected?.icon ? <span className="ui-select-lead">{selected.icon}</span> : null}
           {selected ? selected.label : placeholder}
         </span>
         <ChevronDown className="ui-select-caret" size={16} aria-hidden="true" />
@@ -298,7 +301,10 @@ export function Select({
                       onClick={() => choose(index)}
                     >
                       <span className="ui-select-option-text">
-                        <span>{option.label}</span>
+                        <span className="ui-select-option-line">
+                          {option.icon ? <span className="ui-select-lead">{option.icon}</span> : null}
+                          <span>{option.label}</span>
+                        </span>
                         {option.hint ? <small>{option.hint}</small> : null}
                       </span>
                       {isSelected ? <Check size={15} aria-hidden="true" /> : null}

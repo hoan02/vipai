@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Apple, Check, ChevronDown, ChevronUp, Copy, Plus } from "lucide-react";
 import { PageHead, Pill, SectionTitle } from "@/components/dashboard/kit";
 import { Select } from "@/components/ui/select";
@@ -155,7 +156,6 @@ export function ApiKeysView({
   const [expiresInDays, setExpiresInDays] = useState(0);
   const [fresh, setFresh] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const resetForm = () => {
@@ -170,12 +170,11 @@ export function ApiKeysView({
   const create = async () => {
     const label = name.trim();
     if (label.length < 3 || label.length > 50) {
-      setError("Give the key a name between 3 and 50 characters.");
+      toast.error("Give the key a name between 3 and 50 characters.");
       return;
     }
 
     setCreating(false);
-    setError(null);
     setBusy(true);
 
     try {
@@ -195,7 +194,7 @@ export function ApiKeysView({
         | null;
 
       if (!response.ok || !data?.key || !data.record) {
-        setError(data?.message || "Could not create the key. Please try again.");
+        toast.error(data?.message || "Could not create the key. Please try again.");
         return;
       }
 
@@ -203,7 +202,7 @@ export function ApiKeysView({
       setKeys((k) => [data.record as ApiKey, ...k]);
       resetForm();
     } catch {
-      setError("Could not reach the server. Please try again.");
+      toast.error("Could not reach the server. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -216,7 +215,6 @@ export function ApiKeysView({
   const revoke = async (key: ApiKey) => {
     if (!window.confirm(`Revoke "${key.name}"? This cannot be undone.`)) return;
 
-    setError(null);
     setKeys((k) => k.filter((item) => item.id !== key.id));
 
     try {
@@ -227,10 +225,11 @@ export function ApiKeysView({
         const data = (await response.json().catch(() => null)) as { message?: string } | null;
         throw new Error(data?.message || "Could not revoke the key.");
       }
+      toast.success("Key revoked.");
     } catch (err) {
       // Put the key back so the table keeps matching the backend.
       setKeys((k) => [key, ...k]);
-      setError((err as Error).message);
+      toast.error((err as Error).message);
     }
   };
 
@@ -268,12 +267,6 @@ export function ApiKeysView({
               {copiedKey === fresh ? <Check size={16} /> : <Copy size={16} />}
             </button>
           </div>
-        </div>
-      ) : null}
-
-      {error ? (
-        <div className="panel" style={{ padding: 14, marginTop: 18, color: "#b91c1c" }} role="alert">
-          {error}
         </div>
       ) : null}
 

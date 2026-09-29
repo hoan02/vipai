@@ -19,7 +19,7 @@ function vendorChips(models: Model[]): VendorChip[] {
   for (const m of models) {
     if (!seen.has(m.vendor)) seen.set(m.vendor, { name: m.vendor, icon: m.vendorIcon, color: m.vendorColor });
   }
-  return [{ name: "Featured", icon: "ic-vipai", color: "#14110f" }, ...seen.values()];
+  return [{ name: "Featured", icon: "ic-vipai", color: "var(--ink)" }, ...seen.values()];
 }
 
 const EXPAND_MS = 620;

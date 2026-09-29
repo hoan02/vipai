@@ -32,10 +32,10 @@
 .price-featured, .table-rel, .qsx, .live-panel, .rank-grid > .panel, .metric-cards > .mc-card{
   border-radius:var(--corner);
 }
-.price-featured{ padding:clamp(16px,2vw,22px); background:color-mix(in srgb,#fff 78%,transparent); box-shadow:var(--elev-ring),var(--elev-raised); }
-.table-rel{ padding:clamp(10px,1.4vw,16px); background:color-mix(in srgb,#fff 78%,transparent); box-shadow:var(--elev-ring),var(--elev-raised); }
-.live-panel{ padding:clamp(14px,1.8vw,20px); background:color-mix(in srgb,#fff 78%,transparent); box-shadow:var(--elev-ring),var(--elev-raised); }
-.rank-grid > .panel{ background:color-mix(in srgb,#fff 82%,transparent); }
+.price-featured{ padding:clamp(16px,2vw,22px); background:color-mix(in srgb,var(--surface) 78%,transparent); box-shadow:var(--elev-ring),var(--elev-raised); }
+.table-rel{ padding:clamp(10px,1.4vw,16px); background:color-mix(in srgb,var(--surface) 78%,transparent); box-shadow:var(--elev-ring),var(--elev-raised); }
+.live-panel{ padding:clamp(14px,1.8vw,20px); background:color-mix(in srgb,var(--surface) 78%,transparent); box-shadow:var(--elev-ring),var(--elev-raised); }
+.rank-grid > .panel{ background:color-mix(in srgb,var(--surface) 82%,transparent); }
 .metric-cards > .mc-card{ box-shadow:var(--elev-ring),var(--elev-raised); }
 
 /* Reference motion primitives (parity layer for the static index.html
@@ -57,7 +57,7 @@
   grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:center;
   padding:clamp(24px,3vw,40px); border-radius:var(--corner,16px);
   border:1px solid color-mix(in srgb, var(--ink) 10%, transparent);
-  background:linear-gradient(180deg, color-mix(in srgb, #c2410c 5%, #ffffff), #ffffff);
+  background:linear-gradient(180deg, color-mix(in srgb, #c2410c 5%, var(--surface)), var(--surface));
 }
 @media (max-width:860px){ .tg-cta{ grid-template-columns:1fr; } }
 .tg-badge{ display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:var(--fw-semibold,600); color:#c2410c; }

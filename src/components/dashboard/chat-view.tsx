@@ -2,8 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MessageSquarePlus, Send, Square, Trash2 } from "lucide-react";
+import { StickToBottom } from "use-stick-to-bottom";
+import { toast } from "sonner";
 import { PageHead, Pill } from "@/components/dashboard/kit";
+import { Markdown } from "@/components/markdown";
+import { ModelIcon } from "@/components/model-icon";
 import { Select } from "@/components/ui/select";
+import { streamCompletion } from "@/lib/playground-stream";
 
 type ChatRole = "system" | "user" | "assistant";
 type ChatMessage = { role: ChatRole; content: string };
@@ -82,6 +87,10 @@ function saveConversations(list: Conversation[]) {
  * The Playground is a single throwaway thread; this keeps several, remembers
  * them between visits, and offers preset system prompts. Requests still go
  * through this app's proxy so the relay key stays server-side.
+ *
+ * Replies stream into the active thread. Saving is debounced: tokens arrive
+ * many times a second and writing localStorage on every one would jank the
+ * stream, so the write waits for a quiet moment.
  */
 export function ChatView({
   models,
@@ -94,19 +103,25 @@ export function ChatView({
   const [activeId, setActiveId] = useState<string>("");
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [modelFilter, setModelFilter] = useState("");
-  const endRef = useRef<HTMLDivElement | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const saveTimer = useRef<number | null>(null);
 
   // Seed from storage after mount so the server and client renders match.
   useEffect(() => {
     const list = loadConversations(defaultModel);
     setConversations(list);
     setActiveId(list[0].id);
+    return () => abortRef.current?.abort();
   }, [defaultModel]);
 
   useEffect(() => {
-    if (conversations.length > 0) saveConversations(conversations);
+    if (conversations.length === 0) return;
+    if (saveTimer.current !== null) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      saveConversations(conversations);
+      saveTimer.current = null;
+    }, 400);
   }, [conversations]);
 
   const active = useMemo(
@@ -114,24 +129,35 @@ export function ChatView({
     [conversations, activeId],
   );
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [active?.messages.length, busy]);
-
   const update = (id: string, patch: Partial<Conversation>) => {
     setConversations((list) =>
       list.map((c) => (c.id === id ? { ...c, ...patch, updatedAt: Date.now() } : c)),
     );
   };
 
+  const appendDelta = (id: string, delta: string) => {
+    setConversations((list) =>
+      list.map((c) => {
+        if (c.id !== id) return c;
+        const messages = [...c.messages];
+        const last = messages[messages.length - 1];
+        if (last?.role === "assistant") {
+          messages[messages.length - 1] = { ...last, content: last.content + delta };
+        }
+        return { ...c, messages, updatedAt: Date.now() };
+      }),
+    );
+  };
+
   const createConversation = () => {
+    abortRef.current?.abort();
     const created = newConversation(active?.model ?? defaultModel);
     setConversations((list) => [created, ...list]);
     setActiveId(created.id);
-    setError(null);
   };
 
   const removeConversation = (id: string) => {
+    if (id === activeId) abortRef.current?.abort();
     setConversations((list) => {
       const next = list.filter((c) => c.id !== id);
       if (next.length === 0) {
@@ -153,44 +179,46 @@ export function ChatView({
       ...active.messages,
       { role: "user", content: text },
     ];
-
+    const id = active.id;
     const title = active.messages.length === 0 ? text.slice(0, 40) : active.title;
-    update(active.id, {
-      messages: [...active.messages, { role: "user", content: text }],
+
+    update(id, {
+      messages: [...active.messages, { role: "user", content: text }, { role: "assistant", content: "" }],
       title,
     });
     setInput("");
     setBusy(true);
-    setError(null);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     try {
-      const response = await fetch("/api/playground", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ model: active.model, messages: thread }),
-      });
-      const payload = (await response.json().catch(() => null)) as
-        | { content?: string; message?: string }
-        | null;
-      if (!response.ok) {
-        setError(payload?.message || "The request failed.");
-        return;
-      }
-      setConversations((list) =>
-        list.map((c) =>
-          c.id === active.id
-            ? {
-                ...c,
-                messages: [...c.messages, { role: "assistant", content: payload?.content ?? "" }],
-                updatedAt: Date.now(),
-              }
-            : c,
-        ),
+      await streamCompletion(
+        {
+          model: active.model,
+          messages: thread,
+          // A saved chat has no parameter panel; use the account defaults.
+        },
+        { signal: controller.signal, onDelta: (delta) => appendDelta(id, delta) },
       );
-    } catch {
-      setError("Could not reach the server.");
+    } catch (error) {
+      if ((error as Error).name !== "AbortError") {
+        toast.error((error as Error).message || "The request failed.");
+      }
     } finally {
+      abortRef.current = null;
       setBusy(false);
+      // Drop a placeholder that never received any text.
+      setConversations((list) =>
+        list.map((c) => {
+          if (c.id !== id) return c;
+          const last = c.messages[c.messages.length - 1];
+          if (last?.role === "assistant" && last.content.trim() === "") {
+            return { ...c, messages: c.messages.slice(0, -1) };
+          }
+          return c;
+        }),
+      );
     }
   };
 
@@ -202,7 +230,7 @@ export function ChatView({
     <>
       <PageHead
         title="Chat"
-        sub="A saved conversation workspace. Presets, history and streaming-ready requests."
+        sub="A saved conversation workspace. Presets, history and streaming replies."
       />
 
       <div
@@ -252,7 +280,7 @@ export function ChatView({
           </div>
         </div>
 
-        <div className="panel" style={{ padding: 16, display: "flex", flexDirection: "column", minHeight: 520 }}>
+        <div className="panel" style={{ padding: 16, display: "flex", flexDirection: "column", height: 600 }}>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
             {models.length > 8 ? (
               <input
@@ -268,7 +296,11 @@ export function ChatView({
               label="Model"
               value={active?.model ?? ""}
               onChange={(model) => active && update(active.id, { model })}
-              options={(modelFilter.trim() ? visibleModels : models).map((m) => ({ value: m, label: m }))}
+              options={(modelFilter.trim() ? visibleModels : models).map((m) => ({
+                value: m,
+                label: m,
+                icon: <ModelIcon model={m} />,
+              }))}
               emptyLabel="No models match the filter"
             />
             <Select
@@ -280,50 +312,44 @@ export function ChatView({
             {active ? <Pill tone="role">{active.messages.length} messages</Pill> : null}
           </div>
 
-          <div
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              paddingRight: 4,
-              maxHeight: 560,
-            }}
-          >
-            {!active || active.messages.length === 0 ? (
-              <p className="note" style={{ margin: "auto", textAlign: "center" }}>
-                Start a new conversation. Chats are saved in this browser.
-              </p>
-            ) : (
-              active.messages.map((message, index) => (
-                <div
-                  key={index}
-                  style={{
-                    alignSelf: message.role === "user" ? "flex-end" : "flex-start",
-                    maxWidth: "82%",
-                    background: message.role === "user" ? "var(--d-soft)" : "#fff",
-                    border: "1px solid var(--d-line)",
-                    borderRadius: 12,
-                    padding: "10px 13px",
-                    whiteSpace: "pre-wrap",
-                    fontSize: 14,
-                    lineHeight: 1.55,
-                  }}
-                >
-                  {message.content}
-                </div>
-              ))
-            )}
-            {busy ? <p className="note">Waiting for the model…</p> : null}
-            <div ref={endRef} />
-          </div>
-
-          {error ? (
-            <p className="note" style={{ color: "#b91c1c", marginTop: 10 }} role="alert">
-              {error}
-            </p>
-          ) : null}
+          <StickToBottom resize="smooth" initial="smooth" style={{ flex: 1, minHeight: 0 }}>
+            <StickToBottom.Content
+              style={{ display: "flex", flexDirection: "column", gap: 12, paddingRight: 4 }}
+            >
+              {!active || active.messages.length === 0 ? (
+                <p className="note" style={{ margin: "auto", textAlign: "center" }}>
+                  Start a new conversation. Chats are saved in this browser.
+                </p>
+              ) : (
+                active.messages.map((message, index) => {
+                  const streaming =
+                    busy && index === active.messages.length - 1 && message.role === "assistant";
+                  return (
+                    <div
+                      key={index}
+                      style={{
+                        alignSelf: message.role === "user" ? "flex-end" : "flex-start",
+                        maxWidth: "82%",
+                        background: message.role === "user" ? "var(--d-soft)" : "var(--surface)",
+                        border: "1px solid var(--d-line)",
+                        borderRadius: 12,
+                        padding: "10px 13px",
+                        whiteSpace: message.role === "assistant" ? "normal" : "pre-wrap",
+                        fontSize: 14,
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      {message.role === "assistant" ? (
+                        <Markdown content={message.content} streaming={streaming} />
+                      ) : (
+                        message.content
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </StickToBottom.Content>
+          </StickToBottom>
 
           <div style={{ display: "flex", gap: 10, marginTop: 14, alignItems: "flex-end" }}>
             <textarea
@@ -339,16 +365,28 @@ export function ChatView({
                 }
               }}
             />
-            <button
-              className="btn btn-primary btn-sm"
-              type="button"
-              disabled={busy || !input.trim()}
-              onClick={send}
-              style={{ height: 38 }}
-            >
-              {busy ? <Square size={15} /> : <Send size={15} />}
-              {busy ? "Running" : "Send"}
-            </button>
+            {busy ? (
+              <button
+                className="btn btn-ghost btn-sm"
+                type="button"
+                onClick={() => abortRef.current?.abort()}
+                style={{ height: 38 }}
+              >
+                <Square size={15} />
+                Stop
+              </button>
+            ) : (
+              <button
+                className="btn btn-primary btn-sm"
+                type="button"
+                disabled={!input.trim()}
+                onClick={send}
+                style={{ height: 38 }}
+              >
+                <Send size={15} />
+                Send
+              </button>
+            )}
           </div>
         </div>
       </div>

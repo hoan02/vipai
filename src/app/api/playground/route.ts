@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireAccount } from "@/server/auth";
-import { runPlayground, type ChatMessage } from "@/server/gateway";
+import {
+  runPlayground,
+  streamPlayground,
+  type ChatMessage,
+} from "@/server/gateway";
 import { requireAccessToken } from "@/server/repositories";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +15,12 @@ export const dynamic = "force-dynamic";
  * The call is proxied rather than made from the browser so the gateway's key
  * never reaches the client. The account's own balance pays for it, which is the
  * point of a playground: it measures what a real request would cost.
+ *
+ * With `stream: true` the reply is forwarded as Server-Sent Events instead of
+ * one JSON body. The frames are the project's own small protocol — `delta`
+ * while tokens arrive, then `done` with usage, or `error` — rather than a raw
+ * pass-through of the relay's OpenAI chunks, so the client does not have to
+ * know the upstream shape.
  */
 export async function POST(request: Request) {
   let token: string;
@@ -26,6 +36,7 @@ export async function POST(request: Request) {
     messages?: unknown;
     temperature?: unknown;
     maxTokens?: unknown;
+    stream?: unknown;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -72,8 +83,57 @@ export async function POST(request: Request) {
       ? Math.min(4096, Math.max(1, Math.floor(body.maxTokens)))
       : undefined;
 
+  const options = { model, messages, temperature, maxTokens };
+
+  if (body.stream === true) {
+    const encoder = new TextEncoder();
+    const frame = (payload: unknown) =>
+      encoder.encode(`data: ${JSON.stringify(payload)}\n\n`);
+    let abort: AbortController | null = null;
+
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        abort = new AbortController();
+        try {
+          for await (const event of streamPlayground(token, {
+            ...options,
+            signal: abort.signal,
+          })) {
+            controller.enqueue(frame(event));
+          }
+        } catch (error) {
+          // A client that already left cannot receive the frame; ignore that.
+          try {
+            controller.enqueue(frame({ error: (error as Error).message }));
+          } catch {
+            /* nothing to do */
+          }
+        } finally {
+          try {
+            controller.close();
+          } catch {
+            /* already closed or cancelled */
+          }
+        }
+      },
+      cancel() {
+        abort?.abort();
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache, no-transform",
+        connection: "keep-alive",
+        // Stops a reverse proxy from buffering the stream into one blob.
+        "x-accel-buffering": "no",
+      },
+    });
+  }
+
   try {
-    const result = await runPlayground(token, { model, messages, temperature, maxTokens });
+    const result = await runPlayground(token, options);
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json(

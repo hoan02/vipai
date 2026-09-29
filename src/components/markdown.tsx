@@ -19,11 +19,11 @@ import {
  * (`final: false`), which keeps half-typed constructs — an unclosed fence,
  * a dangling `**` — from flashing as broken output, and a caret is drawn
  * after the last node.
+ *
+ * Each mounted Markdown owns its parser instance: the streaming parser keeps
+ * mid-state on the instance, so sharing one across two replies would let them
+ * corrupt each other.
  */
-
-// One shared instance; the parser is stateful only for `streamParse: auto`
-// and holds no per-render data.
-const md = getMarkdown();
 
 /** A permissive shape covering every node the parser may emit. */
 type Node = {
@@ -206,17 +206,18 @@ export function Markdown({
   content: string;
   streaming?: boolean;
 }) {
+  const parser = useMemo(() => getMarkdown(), []);
   const nodes = useMemo<Node[]>(() => {
     if (!content.trim()) return [];
     try {
-      return parseMarkdownToStructure(content, md, {
+      return parseMarkdownToStructure(content, parser, {
         final: !streaming,
         streamParse: streaming ? "auto" : false,
       }) as unknown as Node[];
     } catch {
       return [{ type: "paragraph", children: [{ type: "text", content }] }];
     }
-  }, [content, streaming]);
+  }, [content, streaming, parser]);
 
   return (
     <div className="md">

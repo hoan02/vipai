@@ -78,6 +78,16 @@
   cursor:pointer;
 }
 .ui-select-option-text{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.ui-select-option-line{ display:inline-flex; align-items:center; min-width:0; }
+.ui-select-lead{
+  display:inline-flex;
+  align-items:center;
+  flex:none;
+  margin-right:7px;
+}
+/* Brand marks are monochrome by design: keep them on the text colour even on
+   the selected row, where the trailing check icon turns amber. */
+.ui-select-option.is-selected .ui-select-lead svg{ color:inherit; }
 .ui-select-option-text small{ font-size:12px; color:color-mix(in srgb, var(--ink, #14110f) 55%, transparent); }
 .ui-select-option.is-active{
   background:color-mix(in srgb, var(--amber, #f97316) 12%, transparent);

@@ -2031,6 +2031,119 @@ export async function runPlayground(
   }
 }
 
+type RelayChunk = {
+  model?: string;
+  choices?: Array<{ delta?: { content?: string } }>;
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
+  error?: { message?: string };
+};
+
+export type PlaygroundStreamEvent =
+  | { type: "delta"; content: string }
+  | { type: "done"; model: string; promptTokens: number; completionTokens: number };
+
+/**
+ * Same call as `runPlayground`, but streamed.
+ *
+ * The relay answers `text/event-stream`; each `data:` line carries one
+ * OpenAI-style chunk. This generator unwraps the chunk to its text delta and
+ * its trailing usage block. The throwaway key is deleted in a `finally`, which
+ * runs whether the reader drained the stream or the caller closed early — the
+ * latter is why the reader is cancelled in its own `finally`.
+ */
+export async function* streamPlayground(
+  accessToken: string,
+  options: {
+    model: string;
+    messages: ChatMessage[];
+    temperature?: number;
+    maxTokens?: number;
+    /** Aborted when the browser closes the response early. */
+    signal?: AbortSignal;
+  },
+): AsyncGenerator<PlaygroundStreamEvent> {
+  const { token: ephemeral, key } = await createToken(accessToken, "playground", {
+    models: [options.model],
+  });
+
+  try {
+    const response = await fetch(url("/v1/chat/completions"), {
+      method: "POST",
+      cache: "no-store",
+      signal: options.signal,
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer sk-${key}`,
+      },
+      body: JSON.stringify({
+        model: options.model,
+        messages: options.messages,
+        temperature: options.temperature ?? 1,
+        max_tokens: options.maxTokens ?? 1024,
+        stream: true,
+        stream_options: { include_usage: true },
+      }),
+    });
+
+    if (!response.ok || !response.body) {
+      const text = await response.text().catch(() => "");
+      let message = `Relay error (HTTP ${response.status})`;
+      try {
+        const body = text ? (JSON.parse(text) as RelayEnvelope) : {};
+        if (body.error?.message) message = body.error.message;
+      } catch {
+        /* keep the status message */
+      }
+      throw new GatewayError(message, response.status === 200 ? 400 : response.status);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let model = options.model;
+    let promptTokens = 0;
+    let completionTokens = 0;
+
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const data = trimmed.slice(5).trim();
+          if (!data || data === "[DONE]") continue;
+          let chunk: RelayChunk;
+          try {
+            chunk = JSON.parse(data) as RelayChunk;
+          } catch {
+            continue;
+          }
+          if (chunk.error?.message) throw new GatewayError(chunk.error.message, 502);
+          if (chunk.model) model = chunk.model;
+          const delta = chunk.choices?.[0]?.delta?.content;
+          if (typeof delta === "string" && delta.length > 0) {
+            yield { type: "delta", content: delta };
+          }
+          if (chunk.usage) {
+            promptTokens = chunk.usage.prompt_tokens ?? promptTokens;
+            completionTokens = chunk.usage.completion_tokens ?? completionTokens;
+          }
+        }
+      }
+    } finally {
+      await reader.cancel().catch(() => {});
+    }
+
+    yield { type: "done", model, promptTokens, completionTokens };
+  } finally {
+    await deleteToken(accessToken, String(ephemeral.id)).catch(() => {});
+  }
+}
+
 /**
  * A usable access token, renewing it when it is close to expiry.
  *

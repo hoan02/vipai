@@ -36,7 +36,7 @@
    Pricing
    ============================================================ */
 .price-featured{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
-.pf-card{ display:flex; flex-direction:column; gap:18px; padding:24px 26px 22px; border-radius:var(--corner); border:1px solid color-mix(in srgb, var(--ink) 12%, transparent); background:color-mix(in srgb, #fff 55%, transparent); position:relative; transition:transform .22s var(--stagger-ease), border-color .22s var(--stagger-ease); }
+.pf-card{ display:flex; flex-direction:column; gap:18px; padding:24px 26px 22px; border-radius:var(--corner); border:1px solid color-mix(in srgb, var(--ink) 12%, transparent); background:color-mix(in srgb, var(--surface) 55%, transparent); position:relative; transition:transform .22s var(--stagger-ease), border-color .22s var(--stagger-ease); }
 .pf-card:hover{ border-color:color-mix(in srgb, var(--ink) 20%, transparent); transform:translateY(-2px); }
 .pf-hd{ display:flex; align-items:center; gap:11px; flex-wrap:wrap; row-gap:8px; }
 .pf-hd .lg{ width:22px; height:22px; flex:none; }

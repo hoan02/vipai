@@ -57,6 +57,13 @@
   --brand-ruby:#fb8841;
   --tr-band-bg:#ffd9c4;
 
+  /* Surface = an opaque card/field. Dark mode re-points it; every rule that
+     paints a card should use it rather than a literal #fff. */
+  --surface:#ffffff;
+  /* The dashboard's tinted page behind its cards. */
+  --surface-3:#fffdf9;
+  --danger:#b91c1c;
+
   --sec-pt:clamp(84px,13vh,176px);
   --sec-pb:clamp(84px,13vh,176px);
 
@@ -91,6 +98,37 @@
 
   --lb-h:44px;
   --nav-h:64px;
+}
+
+/* ============================================================
+   Dark palette.
+
+   Only tokens change here, so every rule already written against
+   color-mix(in srgb, var(--ink) …) or var(--stage-bg) recolours itself:
+   borders, dotted rules, muted text, soft fills and shadows all follow
+   --ink. The few rules that named a literal light surface instead are
+   re-pointed, selector by selector, in src/styles/dark.css.
+
+   --nav-ink doubles as the nav's text colour and as the background of the
+   dark "contrast" chips, with their text set to --stage-bg or #fff; it is
+   therefore flipped to a light value here and those chip texts are moved
+   to --stage-bg in dark.css.
+   ============================================================ */
+[data-theme="dark"]{
+  --stage-bg:#100e0d;
+  --ink:#f3eee8;
+  --nav-ink:#f0ebe4;
+  --ok:#34d399;
+  --amber:#fb923c;
+  --amber-deep:#fdba74;
+  --brand-ruby:#fb8841;
+  --surface:#191715;
+  --surface-3:#131110;
+  --danger:#f87171;
+  --p-gpt:#e8e3dd;
+
+  --elev-ring:0 0 0 1px color-mix(in srgb, #000 60%, transparent);
+  --elev-raised:0 1px 2px 0 rgb(0 0 0 / .55), 0 16px 38px -18px rgb(0 0 0 / .8);
 }
 
 *,*::before,*::after{ box-sizing:border-box; }

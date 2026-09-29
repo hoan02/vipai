@@ -1,0 +1,115 @@
+/* ============================================================
+   Command palette (cmdk).
+
+   cmdk ships no styles. It renders `[cmdk-*]` attributes and data
+   flags (`data-selected`, `data-disabled`) that this file targets,
+   alongside the classes passed in src/components/command-palette.tsx.
+
+   The palette is portalled to <body>, outside the `.dash` scope, so it
+   uses the global tokens (--ink, --amber) with fallbacks rather than
+   the dashboard's --d-* pair. Corners stay square, like every surface.
+   ============================================================ */
+
+.cmd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: color-mix(in srgb, var(--ink, #14110f) 34%, transparent);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: cmd-fade 0.12s ease;
+}
+
+.cmd-panel {
+  position: fixed;
+  z-index: 91;
+  left: 50%;
+  top: 14vh;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 32px));
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--ink, #14110f) 14%, transparent);
+  box-shadow: 0 28px 70px -30px rgb(20 17 15 / 0.5);
+  animation: cmd-in 0.14s var(--stagger-ease, ease);
+}
+
+.cmd-input {
+  width: 100%;
+  height: 52px;
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink, #14110f) 10%, transparent);
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink, #14110f);
+  outline: none;
+}
+
+.cmd-input::placeholder {
+  color: color-mix(in srgb, var(--ink, #14110f) 42%, transparent);
+}
+
+.cmd-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.cmd-empty {
+  padding: 26px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--ink, #14110f) 52%, transparent);
+}
+
+.cmd-group [cmdk-group-heading] {
+  display: block;
+  padding: 9px 10px 4px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--ink, #14110f) 46%, transparent);
+}
+
+.cmd-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  font-size: 14px;
+  color: var(--ink, #14110f);
+  cursor: pointer;
+}
+
+.cmd-item svg {
+  flex: none;
+  color: color-mix(in srgb, var(--ink, #14110f) 58%, transparent);
+}
+
+.cmd-item[data-selected="true"] {
+  background: color-mix(in srgb, var(--amber, #f97316) 12%, transparent);
+}
+
+.cmd-item[data-selected="true"] svg {
+  color: var(--amber-deep, #c2410c);
+}
+
+@keyframes cmd-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cmd-in {
+  from { opacity: 0; transform: translate(-50%, -6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmd-overlay,
+  .cmd-panel { animation: none; }
+}

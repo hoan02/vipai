@@ -5,6 +5,8 @@ import "./globals.css";
 import "./site-pages.css";
 import { I18n } from "@/components/site/I18n";
 import { AuthModal } from "@/components/site/AuthModal";
+import { CommandPalette } from "@/components/command-palette";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 
 const geist = Geist({
@@ -33,12 +35,18 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="vi" className={`${geist.variable} ${mono.variable}`}>
+    // suppressHydrationWarning: next-themes sets data-theme on <html> before
+    // React hydrates, so the server and client class/attribute lists differ by
+    // design. This only silences the warning on this one element.
+    <html lang="vi" className={`${geist.variable} ${mono.variable}`} suppressHydrationWarning>
       <body>
-        <I18n />
-        {children}
-        <AuthModal />
-        <Toaster />
+        <ThemeProvider>
+          <I18n />
+          {children}
+          <AuthModal />
+          <CommandPalette />
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

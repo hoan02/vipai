@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Bell,
   Check,
@@ -199,15 +200,11 @@ function NotificationSettingsCard({
   const router = useRouter();
   const [settings, setSettings] = useState(initial);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const update = (patch: Partial<ProfileSettings>) => setSettings((s) => ({ ...s, ...patch }));
 
   const save = async () => {
     setBusy(true);
-    setError(null);
-    setNotice(null);
     try {
       const response = await fetch("/api/profile/settings", {
         method: "PUT",
@@ -216,13 +213,13 @@ function NotificationSettingsCard({
       });
       const payload = (await response.json().catch(() => null)) as { message?: string } | null;
       if (!response.ok) {
-        setError(payload?.message || "Could not save the settings.");
+        toast.error(payload?.message || "Could not save the settings.");
         return;
       }
-      setNotice("Settings saved.");
+      toast.success("Settings saved.");
       router.refresh();
     } catch {
-      setError("Could not reach the server.");
+      toast.error("Could not reach the server.");
     } finally {
       setBusy(false);
     }
@@ -423,8 +420,6 @@ function NotificationSettingsCard({
         <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={save}>
           {busy ? "Saving…" : "Save settings"}
         </button>
-        {error ? <span className="note" style={{ color: "#b91c1c" }} role="alert">{error}</span> : null}
-        {notice ? <span className="note" style={{ color: "#0e6b45" }} role="status">{notice}</span> : null}
       </div>
     </>
   );
@@ -436,8 +431,6 @@ function SidebarModulesCard({ initial }: { initial: string | null }) {
   const router = useRouter();
   const [config, setConfig] = useState(() => parseSidebarModules(initial));
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const toggleSection = (section: string, value: boolean) =>
     setConfig((c) => ({ ...c, [section]: { ...c[section], enabled: value } }));
@@ -447,8 +440,6 @@ function SidebarModulesCard({ initial }: { initial: string | null }) {
 
   const save = async () => {
     setBusy(true);
-    setError(null);
-    setNotice(null);
     try {
       const response = await fetch("/api/profile/sidebar", {
         method: "PUT",
@@ -457,15 +448,15 @@ function SidebarModulesCard({ initial }: { initial: string | null }) {
       });
       const payload = (await response.json().catch(() => null)) as { message?: string } | null;
       if (!response.ok) {
-        setError(payload?.message || "Could not save the sidebar settings.");
+        toast.error(payload?.message || "Could not save the sidebar settings.");
         return;
       }
       // Refresh the session so the shell re-reads the stored preferences.
       await refreshSession();
-      setNotice("Sidebar updated.");
+      toast.success("Sidebar updated.");
       router.refresh();
     } catch {
-      setError("Could not reach the server.");
+      toast.error("Could not reach the server.");
     } finally {
       setBusy(false);
     }
@@ -540,8 +531,6 @@ function SidebarModulesCard({ initial }: { initial: string | null }) {
         >
           Reset to default
         </button>
-        {error ? <span className="note" style={{ color: "#b91c1c" }} role="alert">{error}</span> : null}
-        {notice ? <span className="note" style={{ color: "#0e6b45" }} role="status">{notice}</span> : null}
       </div>
     </>
   );
@@ -553,8 +542,6 @@ function CheckinCard({ initial }: { initial: CheckinData }) {
   const router = useRouter();
   const [status, setStatus] = useState(initial);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [view, setView] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
@@ -579,15 +566,13 @@ function CheckinCard({ initial }: { initial: CheckinData }) {
 
   const claim = async () => {
     setBusy(true);
-    setError(null);
-    setNotice(null);
     try {
       const response = await fetch("/api/profile/checkin", { method: "POST" });
       const payload = (await response.json().catch(() => null)) as
         | { awardedUsd?: number; message?: string }
         | null;
       if (!response.ok) {
-        setError(payload?.message || "Could not check in.");
+        toast.error(payload?.message || "Could not check in.");
         return;
       }
       setStatus((current) => ({
@@ -597,10 +582,10 @@ function CheckinCard({ initial }: { initial: CheckinData }) {
         totalCheckins: current.totalCheckins + 1,
         records: [...current.records, { date: todayKey, quotaAwarded: 0 }],
       }));
-      setNotice(`Checked in — ${usd(payload?.awardedUsd ?? 0)} added.`);
+      toast.success(`Checked in — ${usd(payload?.awardedUsd ?? 0)} added.`);
       router.refresh();
     } catch {
-      setError("Could not reach the server.");
+      toast.error("Could not reach the server.");
     } finally {
       setBusy(false);
     }
@@ -684,13 +669,6 @@ function CheckinCard({ initial }: { initial: CheckinData }) {
         </button>
         <span className="note">One check-in per day; rewards are random.</span>
       </div>
-
-      {error ? (
-        <p className="note" style={{ marginTop: 10, color: "#b91c1c" }} role="alert">{error}</p>
-      ) : null}
-      {notice ? (
-        <p className="note" style={{ marginTop: 10, color: "#0e6b45" }} role="status">{notice}</p>
-      ) : null}
     </>
   );
 }
@@ -727,16 +705,12 @@ export function ProfileView({
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const isAdmin = profile.role >= 10;
 
   const saveProfile = async () => {
     setBusy(true);
-    setError(null);
-    setNotice(null);
     try {
       const response = await fetch("/api/profile", {
         method: "PUT",
@@ -745,15 +719,15 @@ export function ProfileView({
       });
       const payload = (await response.json().catch(() => null)) as { message?: string } | null;
       if (!response.ok) {
-        setError(payload?.message || "Could not save the profile.");
+        toast.error(payload?.message || "Could not save the profile.");
         return;
       }
       setProfile((p) => ({ ...p, displayName, username, language }));
       setLocale(language);
-      setNotice("Profile saved.");
+      toast.success("Profile saved.");
       router.refresh();
     } catch {
-      setError("Could not reach the server.");
+      toast.error("Could not reach the server.");
     } finally {
       setBusy(false);
     }
@@ -761,17 +735,15 @@ export function ProfileView({
 
   const savePassword = async () => {
     if (newPassword.length < 8) {
-      setError("Use at least 8 characters for the new password.");
+      toast.error("Use at least 8 characters for the new password.");
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("The two new passwords do not match.");
+      toast.error("The two new passwords do not match.");
       return;
     }
 
     setBusy(true);
-    setError(null);
-    setNotice(null);
     try {
       const response = await fetch("/api/profile", {
         method: "PUT",
@@ -782,7 +754,7 @@ export function ProfileView({
         | { message?: string; relogin?: boolean }
         | null;
       if (!response.ok) {
-        setError(payload?.message || "Could not change the password.");
+        toast.error(payload?.message || "Could not change the password.");
         return;
       }
       setCurrentPassword("");
@@ -795,9 +767,9 @@ export function ProfileView({
         return;
       }
 
-      setNotice("Password changed.");
+      toast.success("Password changed.");
     } catch {
-      setError("Could not reach the server.");
+      toast.error("Could not reach the server.");
     } finally {
       setBusy(false);
     }
@@ -811,17 +783,6 @@ export function ProfileView({
   return (
     <>
       <PageHead title="Profile" sub="Your account details, preferences and credentials." />
-
-      {error ? (
-        <div className="panel" style={{ padding: 14, marginTop: 16, color: "#b91c1c" }} role="alert">
-          {error}
-        </div>
-      ) : null}
-      {notice ? (
-        <div className="panel" style={{ padding: 14, marginTop: 16, color: "#0e6b45" }} role="status">
-          {notice}
-        </div>
-      ) : null}
 
       <div style={{ marginTop: 20 }}>
         <ProfileHeader profile={profile} />

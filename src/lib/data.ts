@@ -9,7 +9,7 @@
 
 /** new-api vendor name -> the sprite mark and brand colour. */
 export const vendorMarks: Record<string, { icon: string; color: string }> = {
-  OpenAI: { icon: "ic-openai", color: "#0b0a08" },
+  OpenAI: { icon: "ic-openai", color: "var(--p-gpt)" },
   Anthropic: { icon: "ic-claude", color: "#d97757" },
   Google: { icon: "ic-gemini", color: "#4285f4" },
   DeepSeek: { icon: "ic-deepseek", color: "#4d6bfe" },

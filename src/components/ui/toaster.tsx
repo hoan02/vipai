@@ -16,23 +16,23 @@ import { Toaster as Sonner, type ToasterProps } from "sonner";
  * The sharp corners match --corner: 0 used everywhere else.
  */
 const palette = {
-  "--normal-bg": "#fffefb",
+  "--normal-bg": "var(--surface)",
   "--normal-text": "var(--ink, #14110f)",
   "--normal-border": "color-mix(in srgb, var(--ink, #14110f) 12%, transparent)",
 
-  "--success-bg": "color-mix(in srgb, var(--ok, #1bb673) 10%, #fffefb)",
+  "--success-bg": "color-mix(in srgb, var(--ok, #1bb673) 12%, var(--surface))",
   "--success-border": "color-mix(in srgb, var(--ok, #1bb673) 32%, transparent)",
-  "--success-text": "color-mix(in srgb, var(--ok, #1bb673) 72%, #14110f)",
+  "--success-text": "color-mix(in srgb, var(--ok, #1bb673) 72%, var(--ink, #14110f))",
 
-  "--error-bg": "color-mix(in srgb, #b91c1c 8%, #fffefb)",
-  "--error-border": "color-mix(in srgb, #b91c1c 30%, transparent)",
-  "--error-text": "#b91c1c",
+  "--error-bg": "color-mix(in srgb, var(--danger, #b91c1c) 10%, var(--surface))",
+  "--error-border": "color-mix(in srgb, var(--danger, #b91c1c) 30%, transparent)",
+  "--error-text": "var(--danger, #b91c1c)",
 
-  "--warning-bg": "color-mix(in srgb, var(--amber, #f97316) 12%, #fffefb)",
+  "--warning-bg": "color-mix(in srgb, var(--amber, #f97316) 14%, var(--surface))",
   "--warning-border": "color-mix(in srgb, var(--amber, #f97316) 34%, transparent)",
-  "--warning-text": "color-mix(in srgb, var(--amber-deep, #c2410c) 90%, #14110f)",
+  "--warning-text": "color-mix(in srgb, var(--amber-deep, #c2410c) 90%, var(--ink, #14110f))",
 
-  "--info-bg": "color-mix(in srgb, var(--ink, #14110f) 6%, #fffefb)",
+  "--info-bg": "color-mix(in srgb, var(--ink, #14110f) 6%, var(--surface))",
   "--info-border": "color-mix(in srgb, var(--ink, #14110f) 16%, transparent)",
   "--info-text": "var(--ink, #14110f)",
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Icon } from "@/lib/icons";
+import { usePrefsStore } from "@/lib/prefs-store";
 
 type BannerMessage = { text: string; href: string; icon: ReactNode };
 
@@ -39,7 +40,6 @@ const messages: BannerMessage[] = [
 ];
 
 const ROTATE_MS = 4500;
-const BANNER_KEY = "vipai.notice.launch-banner.v1";
 
 /** Same local calendar day. A dismissal only covers the day it was made, so the
  *  banner is back after midnight instead of staying gone for a week. */
@@ -53,29 +53,27 @@ function isSameLocalDay(a: number, b: number): boolean {
   );
 }
 
-function wasDismissed(): boolean {
-  try {
-    const seen = localStorage.getItem(BANNER_KEY);
-    if (!seen) return false;
-    const at = Number(seen);
-    return Number.isFinite(at) && isSameLocalDay(at, Date.now());
-  } catch {
-    return false;
-  }
-}
-
 export function LaunchBanner() {
+  const dismissedAt = usePrefsStore((state) => state.launchBannerDismissedAt);
+  const dismissBanner = usePrefsStore((state) => state.dismissLaunchBanner);
   const [hidden, setHidden] = useState(false);
   const [active, setActive] = useState(0);
+
+  // Read the persisted dismissal after mount so server and client agree.
+  useEffect(() => {
+    void usePrefsStore.persist.rehydrate();
+  }, []);
+
+  const dismissedToday = dismissedAt !== null && isSameLocalDay(dismissedAt, Date.now());
 
   // Honour a dismissal from earlier the same day, mirroring the
   // static build's `launch-banner-off` root class.
   useEffect(() => {
-    if (wasDismissed()) {
+    if (dismissedToday) {
       setHidden(true);
       document.documentElement.classList.add("launch-banner-off");
     }
-  }, []);
+  }, [dismissedToday]);
 
   useEffect(() => {
     document.documentElement.style.setProperty("--lb-h", hidden ? "0px" : "44px");
@@ -112,9 +110,7 @@ export function LaunchBanner() {
         className="launch-banner-close"
         aria-label="Dismiss announcement"
         onClick={() => {
-          try {
-            localStorage.setItem(BANNER_KEY, String(Date.now()));
-          } catch {}
+          dismissBanner(Date.now());
           document.documentElement.classList.add("launch-banner-off");
           setHidden(true);
         }}

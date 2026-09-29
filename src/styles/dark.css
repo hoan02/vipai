@@ -1,0 +1,79 @@
+/* ============================================================
+   Dark theme — additive overrides.
+
+   Almost everything recolours itself from tokens: foundation.css flips
+   --ink / --stage-bg / --surface, and the existing rules that build colours
+   with color-mix(in srgb, var(--ink) …) — borders, dotted rules, muted
+   text, soft fills, shadows — follow automatically. Card surfaces were
+   moved to var(--surface) in place.
+
+   This file is the remainder: the few rules that named a literal colour, a
+   decorative light gradient, or the text of a "contrast" chip whose
+   background also flips. Every selector is prefixed with
+   [data-theme="dark"], so nothing here can affect light mode.
+   ============================================================ */
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* ---------- Contrast chips ----------
+   --nav-ink is the nav's text colour and the background of the dark chips.
+   In dark mode it flips to a light value, so the chips' literal #fff text
+   has to flip with it or it would vanish. */
+[data-theme="dark"] .disc,
+[data-theme="dark"] .filter[aria-pressed="true"],
+[data-theme="dark"] .lf-chip.is-active,
+[data-theme="dark"] .lm-pill.is-on,
+[data-theme="dark"] .lc2-tip,
+[data-theme="dark"] .pf-disc,
+[data-theme="dark"] .doc-drawer-btn {
+  color: var(--stage-bg);
+}
+[data-theme="dark"] .lm-pill.is-on .lg {
+  color: var(--stage-bg);
+}
+[data-theme="dark"] .doc-drawer-btn:hover {
+  background: color-mix(in srgb, var(--ink) 82%, transparent);
+  color: var(--stage-bg);
+}
+
+/* ---------- Decorative light gradients ----------
+   These are bespoke pastel washes rather than surfaces, so they are
+   redrawn dark rather than tokenised. */
+[data-theme="dark"] .conn {
+  background: linear-gradient(
+    105deg,
+    color-mix(in srgb, var(--d-amber) 16%, var(--surface)) 0%,
+    color-mix(in srgb, var(--d-amber) 9%, var(--surface)) 24%,
+    var(--surface) 55%,
+    color-mix(in srgb, #93c5fd 12%, var(--surface)) 100%
+  );
+}
+[data-theme="dark"] .ov-preview {
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--d-amber) 12%, var(--surface)) 0%,
+    color-mix(in srgb, var(--d-amber) 7%, var(--surface)) 42%,
+    color-mix(in srgb, #93c5fd 10%, var(--surface)) 100%
+  );
+}
+[data-theme="dark"] .ov-credit {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--d-amber) 14%, var(--surface)) 0%,
+    var(--surface) 58%,
+    color-mix(in srgb, #93c5fd 12%, var(--surface)) 100%
+  );
+}
+
+/* ---------- Code surfaces ----------
+   The code blocks are already dark; on a dark page they read as a slightly
+   deeper well so they stay distinct from the surrounding cards. */
+[data-theme="dark"] .md pre {
+  background: #0b0a09;
+}
+
+/* ---------- Recharts ----------
+   Grid and axis colours are set from JS (see models-charts.tsx) because
+   Recharts writes SVG attributes and cannot read CSS variables. */

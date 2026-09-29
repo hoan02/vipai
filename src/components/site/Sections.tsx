@@ -304,7 +304,7 @@ function VolumeChart() {
           y1={vy(g).toFixed(1)}
           x2={vw - vpad}
           y2={vy(g).toFixed(1)}
-          stroke="#14110f"
+          style={{ stroke: "var(--ink)" }}
           strokeOpacity=".08"
           strokeWidth="1"
         />

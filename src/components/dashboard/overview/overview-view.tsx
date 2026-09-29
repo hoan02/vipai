@@ -21,6 +21,7 @@ import {
   Timer,
 } from "lucide-react";
 import { PageHead } from "@/components/dashboard/kit";
+import { usePrefsStore } from "@/lib/prefs-store";
 import type { DashboardOverview } from "@/server/dashboard";
 import {
   AnnouncementsPanel,
@@ -30,8 +31,6 @@ import {
   SummaryCards,
   UptimePanel,
 } from "./overview-panels";
-
-const SETUP_GUIDE_STORAGE_KEY = "dashboard_overview_setup_guide_expanded";
 
 type Step = {
   key: string;
@@ -307,12 +306,12 @@ export function OverviewView({
   overview: DashboardOverview;
   isAdmin: boolean;
 }) {
-  const [expanded, setExpanded] = useState<boolean | null>(null);
+  const expanded = usePrefsStore((state) => state.setupGuideExpanded);
+  const setSetupGuideExpanded = usePrefsStore((state) => state.setSetupGuideExpanded);
 
+  // Hydrate the persisted preference after mount so server and client agree.
   useEffect(() => {
-    const saved = window.localStorage.getItem(SETUP_GUIDE_STORAGE_KEY);
-    if (saved === "expanded") setExpanded(true);
-    else if (saved === "collapsed") setExpanded(false);
+    void usePrefsStore.persist.rehydrate();
   }, []);
 
   const steps = [
@@ -325,8 +324,7 @@ export function OverviewView({
   const open = expanded ?? !complete;
 
   const setGuideOpen = (next: boolean) => {
-    setExpanded(next);
-    window.localStorage.setItem(SETUP_GUIDE_STORAGE_KEY, next ? "expanded" : "collapsed");
+    setSetupGuideExpanded(next);
   };
 
   return (

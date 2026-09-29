@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "@/lib/auth-client";
 import { openAuthModal } from "@/lib/auth-modal";
 import { UserButton } from "@/components/UserButton";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Icon } from "@/lib/icons";
 import { languages } from "@/lib/data";
 import { TELEGRAM_URL } from "@/lib/site";
@@ -71,6 +72,7 @@ export function Nav() {
         </div>
 
         <div className="actions">
+          <ThemeToggle className="icon-btn" />
           <a
             className="icon-btn"
             href={TELEGRAM_URL}

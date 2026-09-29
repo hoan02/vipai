@@ -1,0 +1,20 @@
+/* ============================================================
+   Model vendor marks (src/components/model-icon.tsx).
+
+   react-icons marks are SVG and need nothing; this file only styles
+   the initial-in-a-square shown for a vendor that has no published
+   icon, so it lines up with the SVGs beside it.
+   ============================================================ */
+
+.model-icon-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1px solid color-mix(in srgb, var(--ink, #14110f) 18%, transparent);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  line-height: 1;
+  color: color-mix(in srgb, var(--ink, #14110f) 72%, transparent);
+}

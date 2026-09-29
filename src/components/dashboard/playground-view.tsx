@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { PageHead, Pill } from "@/components/dashboard/kit";
-import { Select } from "@/components/ui/select";
+import { useRef, useState } from "react";
 import { Send, Square, Trash2 } from "lucide-react";
-
-type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+import { StickToBottom } from "use-stick-to-bottom";
+import { toast } from "sonner";
+import { PageHead, Pill } from "@/components/dashboard/kit";
+import { Markdown } from "@/components/markdown";
+import { ModelIcon } from "@/components/model-icon";
+import { Select } from "@/components/ui/select";
+import { streamCompletion, type PlaygroundMessage } from "@/lib/playground-stream";
 
 /**
  * A minimal chat playground.
@@ -13,7 +16,13 @@ type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
  * Requests are proxied through this app so the relay key stays on the server.
  * Each call costs the account's balance, which the reply reports back so the
  * price of a prompt is visible rather than a surprise on the usage screen.
+ *
+ * Replies stream: tokens land in the last bubble as they arrive, the view is
+ * pinned to the bottom while they do, and Stop abandons a reply mid-flight.
  */
+
+type ChatMessage = PlaygroundMessage;
+
 export function PlaygroundView({
   models,
   defaultModel,
@@ -26,7 +35,6 @@ export function PlaygroundView({
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [lastUsage, setLastUsage] = useState<{
     model: string;
     promptTokens: number;
@@ -36,10 +44,7 @@ export function PlaygroundView({
   const [maxTokens, setMaxTokens] = useState(1024);
   const [modelFilter, setModelFilter] = useState("");
 
-  const endRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, busy]);
+  const abortRef = useRef<AbortController | null>(null);
 
   const visibleModels = modelFilter.trim()
     ? models.filter((m) => m.toLowerCase().includes(modelFilter.trim().toLowerCase()))
@@ -55,44 +60,55 @@ export function PlaygroundView({
       { role: "user", content: text },
     ];
 
-    setMessages([...messages, { role: "user", content: text }]);
+    // Append the user's turn and an empty assistant bubble the deltas fill.
+    setMessages([...messages, { role: "user", content: text }, { role: "assistant", content: "" }]);
     setInput("");
     setBusy(true);
-    setError(null);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     try {
-      const response = await fetch("/api/playground", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ model, messages: thread, temperature, maxTokens }),
-      });
-      const payload = (await response.json().catch(() => null)) as
-        | {
-            content?: string;
-            model?: string;
-            promptTokens?: number;
-            completionTokens?: number;
-            message?: string;
-          }
-        | null;
-
-      if (!response.ok) {
-        setError(payload?.message || "The request failed.");
-        return;
-      }
-
-      setMessages((m) => [...m, { role: "assistant", content: payload?.content ?? "" }]);
+      const usage = await streamCompletion(
+        { model, messages: thread, temperature, maxTokens },
+        {
+          signal: controller.signal,
+          onDelta: (delta) =>
+            setMessages((list) => {
+              const next = [...list];
+              const last = next[next.length - 1];
+              if (last?.role === "assistant") {
+                next[next.length - 1] = { ...last, content: last.content + delta };
+              }
+              return next;
+            }),
+        },
+      );
       setLastUsage({
-        model: payload?.model ?? model,
-        promptTokens: payload?.promptTokens ?? 0,
-        completionTokens: payload?.completionTokens ?? 0,
+        model: usage.model,
+        promptTokens: usage.promptTokens,
+        completionTokens: usage.completionTokens,
       });
-    } catch {
-      setError("Could not reach the server.");
+    } catch (error) {
+      // A deliberate Stop keeps whatever streamed in; a real failure does not.
+      if ((error as Error).name !== "AbortError") {
+        toast.error((error as Error).message || "The request failed.");
+      }
     } finally {
+      abortRef.current = null;
       setBusy(false);
+      // Drop the placeholder if the reply never produced any text.
+      setMessages((list) => {
+        const last = list[list.length - 1];
+        if (last?.role === "assistant" && last.content.trim() === "") {
+          return list.slice(0, -1);
+        }
+        return list;
+      });
     }
   };
+
+  const stop = () => abortRef.current?.abort();
 
   return (
     <>
@@ -110,52 +126,49 @@ export function PlaygroundView({
           alignItems: "start",
         }}
       >
-        <div className="panel" style={{ padding: 16, display: "flex", flexDirection: "column", minHeight: 460 }}>
-          <div
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              paddingRight: 4,
-              maxHeight: 520,
-            }}
+        <div className="panel" style={{ padding: 16, display: "flex", flexDirection: "column", height: 600 }}>
+          <StickToBottom
+            resize="smooth"
+            initial="smooth"
+            style={{ flex: 1, minHeight: 0 }}
           >
-            {messages.length === 0 ? (
-              <p className="note" style={{ margin: "auto", textAlign: "center" }}>
-                Send a message to start. The conversation stays in this tab and is
-                not saved.
-              </p>
-            ) : (
-              messages.map((m, i) => (
-                <div
-                  key={i}
-                  style={{
-                    alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                    maxWidth: "82%",
-                    background: m.role === "user" ? "var(--d-soft)" : "#fff",
-                    border: "1px solid var(--d-line)",
-                    borderRadius: 12,
-                    padding: "10px 13px",
-                    whiteSpace: "pre-wrap",
-                    fontSize: 14,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {m.content || (busy && i === messages.length - 1 ? "…" : "")}
-                </div>
-              ))
-            )}
-            {busy ? <p className="note">Waiting for the model…</p> : null}
-            <div ref={endRef} />
-          </div>
-
-          {error ? (
-            <p className="note" style={{ color: "#b91c1c", marginTop: 10 }} role="alert">
-              {error}
-            </p>
-          ) : null}
+            <StickToBottom.Content
+              style={{ display: "flex", flexDirection: "column", gap: 12, paddingRight: 4 }}
+            >
+              {messages.length === 0 ? (
+                <p className="note" style={{ margin: "auto", textAlign: "center" }}>
+                  Send a message to start. The conversation stays in this tab and is
+                  not saved.
+                </p>
+              ) : (
+                messages.map((m, i) => {
+                  const streaming = busy && i === messages.length - 1 && m.role === "assistant";
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        alignSelf: m.role === "user" ? "flex-end" : "flex-start",
+                        maxWidth: "82%",
+                        background: m.role === "user" ? "var(--d-soft)" : "var(--surface)",
+                        border: "1px solid var(--d-line)",
+                        borderRadius: 12,
+                        padding: "10px 13px",
+                        whiteSpace: m.role === "assistant" ? "normal" : "pre-wrap",
+                        fontSize: 14,
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {m.role === "assistant" ? (
+                        <Markdown content={m.content} streaming={streaming} />
+                      ) : (
+                        m.content
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </StickToBottom.Content>
+          </StickToBottom>
 
           <div style={{ display: "flex", gap: 10, marginTop: 14, alignItems: "flex-end" }}>
             <textarea
@@ -171,16 +184,28 @@ export function PlaygroundView({
                 }
               }}
             />
-            <button
-              className="btn btn-primary btn-sm"
-              type="button"
-              disabled={busy || !input.trim()}
-              onClick={send}
-              style={{ height: 38 }}
-            >
-              {busy ? <Square size={15} /> : <Send size={15} />}
-              {busy ? "Running" : "Send"}
-            </button>
+            {busy ? (
+              <button
+                className="btn btn-ghost btn-sm"
+                type="button"
+                onClick={stop}
+                style={{ height: 38 }}
+              >
+                <Square size={15} />
+                Stop
+              </button>
+            ) : (
+              <button
+                className="btn btn-primary btn-sm"
+                type="button"
+                disabled={!input.trim()}
+                onClick={send}
+                style={{ height: 38 }}
+              >
+                <Send size={15} />
+                Send
+              </button>
+            )}
           </div>
         </div>
 
@@ -204,6 +229,7 @@ export function PlaygroundView({
             options={(modelFilter.trim() ? visibleModels : models).map((m) => ({
               value: m,
               label: m,
+              icon: <ModelIcon model={m} />,
             }))}
             emptyLabel="No models match the filter"
           />
@@ -258,8 +284,8 @@ export function PlaygroundView({
             type="button"
             style={{ marginTop: 16, width: "100%" }}
             onClick={() => {
+              abortRef.current?.abort();
               setMessages([]);
-              setError(null);
               setLastUsage(null);
             }}
           >

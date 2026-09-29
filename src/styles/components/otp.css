@@ -1,0 +1,57 @@
+/* ============================================================
+   One-time-code input (input-otp).
+
+   input-otp renders a real <input> it positions over these boxes, so
+   the boxes carry the design and the input stays invisible. Used by
+   the two-factor confirmation on the security screen. The --d-* tokens
+   are the dashboard's, with fallbacks for any other surface.
+   ============================================================ */
+
+.otp {
+  display: inline-flex;
+}
+
+.otp-group {
+  display: flex;
+  gap: 6px;
+}
+
+.otp-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 48px;
+  border: 1px solid var(--d-line, color-mix(in srgb, var(--ink, #14110f) 12%, transparent));
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 19px;
+  line-height: 1;
+  color: var(--ink, #14110f);
+}
+
+.otp-slot.is-active {
+  border-color: var(--d-amber, #f97316);
+  box-shadow: inset 0 -2px 0 var(--d-amber, #f97316);
+}
+
+.otp-caret {
+  position: absolute;
+  width: 1px;
+  height: 20px;
+  background: var(--ink, #14110f);
+  animation: otp-caret-blink 1s steps(2, start) infinite;
+}
+
+@keyframes otp-caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otp-caret {
+    animation: none;
+  }
+}

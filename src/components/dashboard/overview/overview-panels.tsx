@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Activity,
   ArrowRight,
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usd } from "@/lib/money";
+import { useNotificationStore } from "@/lib/notification-store";
 import type {
   DashboardOverview,
   OverviewPerformance,
@@ -97,6 +98,21 @@ const ANNOUNCEMENT_COLORS: Record<string, string> = {
 
 function announcementColor(type?: string): string {
   return ANNOUNCEMENT_COLORS[type ?? "default"] ?? ANNOUNCEMENT_COLORS.default;
+}
+
+/**
+ * A stable key for an announcement.
+ *
+ * Uses the gateway id when there is one, otherwise a fingerprint of the
+ * content so an announcement without an id is still tracked as read.
+ */
+export function announcementKey(item: { id?: number; content: string }): string {
+  if (typeof item.id === "number") return `id:${item.id}`;
+  let hash = 0;
+  for (let i = 0; i < item.content.length; i += 1) {
+    hash = (hash * 31 + item.content.charCodeAt(i)) | 0;
+  }
+  return `c:${hash}`;
 }
 
 const UPTIME_COLORS: Record<number, string> = {
@@ -527,30 +543,72 @@ function AnnouncementDialog({ item, onClose }: { item: GatewayAnnouncement; onCl
 
 export function AnnouncementsPanel({ status }: { status: OverviewStatus }) {
   const [selected, setSelected] = useState<GatewayAnnouncement | null>(null);
+  const readKeys = useNotificationStore((state) => state.readAnnouncementKeys);
+  const markRead = useNotificationStore((state) => state.markAnnouncementsRead);
   const items = status.announcements;
+
+  // Read the persisted keys after mount so server and client agree.
+  useEffect(() => {
+    void useNotificationStore.persist.rehydrate();
+  }, []);
+
+  const readSet = new Set(readKeys);
+  const unreadCount = items.filter((item) => !readSet.has(announcementKey(item))).length;
+
+  const openItem = (item: GatewayAnnouncement) => {
+    markRead([announcementKey(item)]);
+    setSelected(item);
+  };
 
   return (
     <>
       <Panel
         icon={<Megaphone size={16} />}
         title="Announcements"
-        description="Latest platform updates and notices"
+        description={
+          unreadCount > 0
+            ? `Latest platform updates and notices · ${unreadCount} new`
+            : "Latest platform updates and notices"
+        }
+        actions={
+          unreadCount > 0 ? (
+            <button
+              className="btn btn-ghost btn-sm"
+              type="button"
+              onClick={() => markRead(items.map(announcementKey))}
+            >
+              Mark all read
+            </button>
+          ) : undefined
+        }
         empty={items.length === 0}
         emptyText="No announcements at this time"
         scroll
       >
         <ul className="ov-ann-list">
-          {items.map((item, index) => (
-            <li key={item.id ?? index}>
-              <button type="button" className="ov-ann" onClick={() => setSelected(item)}>
-                <span className="ov-dot" style={{ background: announcementColor(item.type) }} aria-hidden="true" />
-                <span className="ov-ann-main">
-                  <span className="ov-ann-text">{preview(item.content)}</span>
-                  {item.publishDate ? <time className="note">{formatDate(item.publishDate)}</time> : null}
-                </span>
-              </button>
-            </li>
-          ))}
+          {items.map((item, index) => {
+            const isUnread = !readSet.has(announcementKey(item));
+            return (
+              <li key={item.id ?? index}>
+                <button
+                  type="button"
+                  className={`ov-ann${isUnread ? " is-unread" : ""}`}
+                  onClick={() => openItem(item)}
+                >
+                  <span className="ov-dot" style={{ background: announcementColor(item.type) }} aria-hidden="true" />
+                  <span className="ov-ann-main">
+                    <span className="ov-ann-text">{preview(item.content)}</span>
+                    <span className="ov-ann-meta">
+                      {isUnread ? <span className="ov-ann-new">New</span> : null}
+                      {item.publishDate ? (
+                        <time className="note">{formatDate(item.publishDate)}</time>
+                      ) : null}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </Panel>
       {selected ? <AnnouncementDialog item={selected} onClose={() => setSelected(null)} /> : null}

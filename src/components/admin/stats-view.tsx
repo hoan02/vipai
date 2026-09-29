@@ -45,7 +45,7 @@ export function StatsView({ stats }: { stats: AdminStats }) {
       cell: (info) => {
         const value = info.getValue();
         return (
-          <span className="num" style={value < 0 ? { color: "#b91c1c" } : undefined}>
+          <span className="num" style={value < 0 ? { color: "var(--danger)" } : undefined}>
             {value === -1 ? "—" : usd(value)}
           </span>
         );

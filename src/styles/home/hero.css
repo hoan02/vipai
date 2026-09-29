@@ -11,7 +11,7 @@
    plane behind the hero (not a faint wash), plus a soft scrim so
    the headline keeps its contrast without flattening the colour.
    ============================================================ */
-.hero-wrap{ min-height:clamp(560px,78vh,860px); }
+.hero-wrap{ min-height:clamp(520px,72vh,800px); }
 .art-bg{
   background:url("/assets/hero-art-bg.webp") center 58%/cover no-repeat;
   opacity:1;
@@ -66,11 +66,15 @@
 .buy.buy-hook .btn-primary:hover{ background:#fff; }
 @media (prefers-reduced-motion: reduce){
   .hero-lower::before{ filter:none; }
+  .cta .btn:hover,.cta .btn:focus-visible,.cta .btn:active{ transform:none; }
+  .cta .btn-primary:hover .knob,.cta .btn-primary:focus-visible .knob{ transform:none; }
+  .cta .btn-primary:hover .fx-star,.cta .btn-primary:focus-visible .fx-star{ animation:none; opacity:0; }
+  .cta .btn-ghost:hover .btn-fly,.cta .btn-ghost:focus-visible .btn-fly{ animation:none; opacity:0; }
 }
 
-.hero{ position:relative; z-index:2; max-width:1100px; margin:0 auto; padding:clamp(28px,5vh,60px) var(--edge) clamp(16px,3vh,30px); display:flex; flex-direction:column; align-items:center; text-align:center; }
+.hero{ position:relative; z-index:2; max-width:1100px; margin:0 auto; padding:clamp(20px,3.6vh,44px) var(--edge) clamp(12px,2.2vh,22px); display:flex; flex-direction:column; align-items:center; text-align:center; }
 .hero-eyebrow{
-  display:inline-flex; align-items:center; gap:7px; margin-bottom:clamp(18px,2.8vh,26px);
+  display:inline-flex; align-items:center; gap:7px; margin-bottom:clamp(12px,2vh,18px);
   height:28px; padding:0 13px; border-radius:var(--corner-hero);
   background:color-mix(in srgb, var(--surface) 50%, transparent);
   border:1px solid color-mix(in srgb, var(--ink) 13%, transparent);
@@ -78,7 +82,7 @@
   font-weight:var(--fw-medium); font-size:12.5px; letter-spacing:.02em;
 }
 .hero-eyebrow .he-dot{ width:7px; height:7px; border-radius:50%; background:var(--ok); flex:none; }
-.hero h1{ min-height:2lh; font-size:clamp(34px,5.2vw,58px); font-weight:var(--fw-bold); letter-spacing:-.035em; line-height:1.05; }
+.hero h1{ min-height:2lh; font-size:clamp(30px,4.4vw,52px); font-weight:var(--fw-bold); letter-spacing:-.035em; line-height:1.05; }
 .hero h1 .grad{
   background:url("/assets/agent-grad.webp") 0 50%/240% 160% no-repeat,
              linear-gradient(90deg,#fcd7d3,#fd924f 50%,#e3eaf4) 0 0/100% 100% no-repeat;
@@ -86,7 +90,7 @@
   animation:agentFlow 6.5s ease-in-out infinite alternate;
 }
 @keyframes agentFlow{ from{ background-position:0 50%, 0 0; } to{ background-position:100% 50%, 0 0; } }
-.cta{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:clamp(24px,3.6vh,34px); }
+.cta{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:clamp(15px,2.3vh,22px); }
 .btn{
   display:inline-flex; align-items:center; gap:9px; padding:12px 22px; border-radius:var(--corner-hero);
   font-size:15px; font-weight:var(--fw-semibold); text-decoration:none; cursor:pointer;
@@ -100,7 +104,84 @@
 .btn-ghost:hover{ background:color-mix(in srgb, var(--surface) 82%, transparent); }
 .btn-tagged{ gap:10px; }
 .btn-tag{ font-family:var(--font-mono); font-size:11px; font-weight:var(--fw-medium); padding:3px 8px; border-radius:var(--corner-hero); background:color-mix(in srgb, var(--ink) 7%, transparent); color:color-mix(in srgb, var(--ink) 58%, transparent); }
-.hero-meta{ position:relative; z-index:6; margin-top:clamp(18px,2.8vh,26px); display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:14px; }
+
+/* ------------------------------------------------------------
+   Hero CTAs — flat 2D cartoon hover. Both buttons behave like
+   stickers: they pop off a hard, un-blurred offset shadow with a
+   small wobble, and flatten on click. The key button throws comic
+   sparkles, the Telegram button launches a paper plane along a
+   dashed trail. Scoped to .cta so shared .btn-lg elsewhere keeps
+   its original size and flat hover.
+   ------------------------------------------------------------ */
+.cta .btn-lg{ padding:11px 20px; font-size:14.5px; }
+.cta .btn{
+  position:relative; overflow:hidden;
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease,
+    background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+.cta .btn:hover,.cta .btn:focus-visible{ transform:translate(-1px,-3px) rotate(-1.4deg); }
+.cta .btn:active{ transform:translate(2px,2px) rotate(0); box-shadow:none; transition-duration:.06s; }
+
+.cta .btn-primary{ opacity:1; }
+.cta .btn-primary:hover,.cta .btn-primary:focus-visible{
+  opacity:1;
+  box-shadow:4px 4px 0 0 color-mix(in srgb, var(--amber) 92%, transparent);
+}
+.cta .btn-primary .knob{ transition:transform var(--transition-med); }
+.cta .btn-primary:hover .knob,.cta .btn-primary:focus-visible .knob{ transform:rotate(-14deg) scale(1.12); }
+
+.cta .btn-ghost:hover,.cta .btn-ghost:focus-visible{
+  transform:translate(1px,-3px) rotate(1.2deg);
+  border-color:color-mix(in srgb, #6d92dd 85%, transparent);
+  background:color-mix(in srgb, #6d92dd 11%, color-mix(in srgb, var(--surface) 88%, transparent));
+  box-shadow:4px 4px 0 0 color-mix(in srgb, #6d92dd 58%, transparent);
+}
+.cta .btn-ghost .btn-tag{ transition:background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-med); }
+.cta .btn-ghost:hover .btn-tag,.cta .btn-ghost:focus-visible .btn-tag{
+  background:color-mix(in srgb, #6d92dd 24%, transparent);
+  color:#3f63b8;
+  transform:translateX(2px) rotate(-2deg);
+}
+[data-theme="dark"] .cta .btn-ghost:hover .btn-tag,
+[data-theme="dark"] .cta .btn-ghost:focus-visible .btn-tag{ color:#cfe0ff; }
+
+/* comic sparkles thrown by the key button */
+.btn-fx{ position:absolute; inset:0; pointer-events:none; color:#ffd9ae; }
+.fx-star{
+  position:absolute; width:9px; height:9px; background:currentColor; opacity:0;
+  clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);
+}
+.fx-star.s1{ left:7%; top:16%; }
+.fx-star.s2{ right:6%; top:64%; }
+.fx-star.s3{ left:46%; bottom:12%; }
+.cta .btn-primary:hover .fx-star,.cta .btn-primary:focus-visible .fx-star{ animation:fxTwinkle .9s ease-in-out infinite; }
+.cta .btn-primary .fx-star.s2{ animation-delay:.16s; }
+.cta .btn-primary .fx-star.s3{ animation-delay:.32s; }
+@keyframes fxTwinkle{
+  0%,100%{ opacity:0; transform:scale(.25) rotate(0) }
+  45%{ opacity:1; transform:scale(1) rotate(45deg) }
+}
+/* dark theme flips the key button to light, so the sparkles need ink */
+[data-theme="dark"] .btn-fx{ color:#e2701f; }
+
+/* paper plane launched across the Telegram button */
+.cta .btn-fly{
+  position:absolute; left:16px; bottom:1px; display:inline-flex; align-items:center; gap:6px;
+  color:color-mix(in srgb, #6d92dd 92%, transparent); opacity:0; pointer-events:none;
+}
+.cta .btn-fly .fly-plane{ display:block; }
+.cta .fly-trail{
+  width:20px; height:2px; border-radius:2px;
+  background:repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 9px);
+}
+.cta .btn-ghost:hover .btn-fly,.cta .btn-ghost:focus-visible .btn-fly{ animation:flyAcross 1.5s cubic-bezier(.4,.05,.6,.95) infinite; }
+@keyframes flyAcross{
+  0%{ opacity:0; transform:translateX(-70px) }
+  12%{ opacity:1 }
+  86%{ opacity:1 }
+  100%{ opacity:0; transform:translateX(580px) }
+}
+.hero-meta{ position:relative; z-index:6; margin-top:clamp(12px,2vh,18px); display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:14px; }
 .hero-baseurl{
   position:relative; display:inline-flex; align-items:center; height:42px; padding:0 4px 0 0; border-radius:var(--corner-hero);
   background:color-mix(in srgb, var(--surface) 68%, transparent); backdrop-filter:blur(8px);
@@ -126,17 +207,21 @@
 .hb-opt.is-on .ck{ opacity:1; }
 
 /* Route diagram */
-.hero-lower{ position:relative; z-index:1; width:100%; max-width:1300px; margin:0 auto; padding:clamp(20px,5vh,44px) var(--edge) clamp(28px,5vh,64px); }
-.route-diagram{ position:relative; width:100%; max-width:1300px; margin:0 auto; aspect-ratio:1320/340; }
+.hero-lower{ position:relative; z-index:1; width:100%; max-width:1300px; margin:0 auto; padding:clamp(14px,3vh,26px) var(--edge) clamp(18px,3vh,34px); }
+.route-diagram{ position:relative; width:100%; max-width:1300px; margin:0 auto; aspect-ratio:1320/300; }
 .rd-note{ position:absolute; display:flex; align-items:center; gap:7px; font-family:var(--font-mono); font-size:10px; letter-spacing:.14em; color:color-mix(in srgb, var(--ink) 40%, transparent); text-transform:uppercase; }
 .rd-note i{ width:6px; height:6px; border-radius:50%; background:var(--amber); display:block; }
 .route-node{ position:absolute; transform:translate(-50%,-50%); }
+/* The model stack hugs the left edge and the client stack the right edge, so
+   both read as aligned rails no matter how wide a label is. */
+.route-models .route-node{ left:6%; transform:translate(0,-50%); }
+.route-srcs .route-node{ right:6%; transform:translate(0,-50%); }
 .route-node.model,.route-node.src{
   display:inline-flex; align-items:center; gap:10px; padding:8px 16px 8px 11px;
   background:linear-gradient(180deg,rgba(255,255,255,.76),rgba(255,255,255,.52));
   backdrop-filter:blur(13px) saturate(1.25); -webkit-backdrop-filter:blur(13px) saturate(1.25);
   border:1px solid rgba(255,255,255,.85); border-radius:var(--corner-hero); white-space:nowrap; color:#34291f;
-  transition:transform var(--transition-med);
+  transition:transform var(--transition-med), border-color var(--transition-med), box-shadow var(--transition-med);
 }
 .route-node .lg{ width:23px; height:23px; flex:none; display:block; }
 .route-node .nm{ font-weight:650; font-size:16px; letter-spacing:-.01em; color:#34291f; line-height:1; }
@@ -144,6 +229,7 @@
 .n-codex .lg{ filter:drop-shadow(0 0 4px rgba(99,110,255,.5)); }
 .n-gpt .lg{ color:#2f2a26; }
 .n-gemini .lg{ color:#4285f4; filter:drop-shadow(0 0 4px rgba(66,133,244,.45)); }
+.n-deepseek .lg{ filter:drop-shadow(0 0 4px rgba(77,107,254,.5)); }
 .n-openclaw .lg{ filter:drop-shadow(0 0 4px rgba(208,36,15,.4)); }
 .route-node.hub{ width:78px; height:78px; display:grid; place-items:center; }
 .hub-core{
@@ -151,11 +237,38 @@
   background:linear-gradient(180deg,rgba(255,255,255,.88),rgba(255,255,255,.64));
   backdrop-filter:blur(14px) saturate(1.25); -webkit-backdrop-filter:blur(14px) saturate(1.25);
   border:1px solid rgba(255,255,255,.92); display:grid; place-items:center;
+  transition:transform var(--transition-med), box-shadow var(--transition-med);
 }
 .hub-core::before{ content:""; position:absolute; inset:-46%; z-index:-1; border-radius:50%; background:radial-gradient(closest-side,rgba(253,146,79,.55),rgba(252,215,211,.2) 55%,transparent 72%); filter:blur(9px); }
 .hub-core .lg{ height:28px; width:auto; display:block; position:relative; z-index:2; }
 .hub-core::after{ content:""; position:absolute; left:50%; top:50%; width:60%; height:60%; z-index:1; border-radius:50%; transform:translate(-50%,-50%); border:1.5px solid rgba(253,146,79,.8); animation:ripple 2.6s var(--stagger-ease) infinite; }
 @keyframes ripple{ 0%{ transform:translate(-50%,-50%) scale(.3); opacity:.85 } 70%{ transform:translate(-50%,-50%) scale(1.5); opacity:0 } 100%{ opacity:0 } }
+
+/* ------------------------------------------------------------
+   Live reactions — SiteMotion toggles .route-hot on a card when a
+   comet leaves or lands on it, and on the hub while one passes
+   through, so the diagram pings back instead of only the canvas
+   moving. Warm accent outbound (models), cool accent inbound
+   (clients), matching the streak gradient.
+   ------------------------------------------------------------ */
+.route-models .route-node.route-hot,
+.route-srcs .route-node.route-hot{ transform:translate(0,-50%) scale(1.05); }
+.route-models .route-node.route-hot{
+  border-color:color-mix(in srgb, var(--amber) 62%, transparent);
+  box-shadow:0 8px 20px -10px color-mix(in srgb, var(--amber-deep) 70%, transparent),
+             0 0 0 3px color-mix(in srgb, var(--amber) 14%, transparent);
+}
+.route-srcs .route-node.route-hot{
+  border-color:color-mix(in srgb, #6d92dd 62%, transparent);
+  box-shadow:0 8px 20px -10px color-mix(in srgb, #6d92dd 72%, transparent),
+             0 0 0 3px color-mix(in srgb, #6d92dd 14%, transparent);
+}
+.route-node.hub.route-hot .hub-core{
+  transform:scale(1.08);
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--amber) 55%, transparent),
+             0 0 30px -6px color-mix(in srgb, var(--amber) 72%, transparent);
+}
+[data-theme="dark"] .route-node.hub.route-hot .hub-core .lg{ color:var(--ink); }
 .hub-caps{ position:absolute; top:calc(100% + 10px); left:50%; transform:translateX(-50%); display:flex; gap:6px; }
 .hub-caps li{ display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:var(--corner); background:rgba(255,255,255,.72); border:1px solid rgba(255,255,255,.85); backdrop-filter:blur(8px); font-size:11.5px; font-weight:var(--fw-semibold); white-space:nowrap; }
 .hub-caps i{ width:7px; height:7px; border-radius:50%; background:var(--c,var(--amber)); display:block; }

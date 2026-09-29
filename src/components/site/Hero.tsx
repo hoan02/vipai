@@ -93,30 +93,30 @@ function RouteDiagram() {
       <div className="route-diagram" aria-label="Smart routing diagram">
         <canvas className="route-canvas" aria-hidden="true" />
 
-        <div className="rd-note" style={{ left: "12%", top: "2%" }}>
+        <div className="rd-note" style={{ left: "6%", top: "2%" }}>
           <i aria-hidden="true" />
           <span>MODEL PROVIDERS</span>
         </div>
-        <div className="rd-note" style={{ right: "9%", top: "-2.4%" }}>
+        <div className="rd-note" style={{ right: "6%", top: "2%" }}>
           <i aria-hidden="true" />
           <span>CODING AGENTS &amp; CLIENTS</span>
         </div>
 
       <div className="route-srcs">
-        <div className="route-node src n-claude" style={{ left: "87.9%", top: "18.5%" }}>
+        <div className="route-node src n-claude" style={{ top: "18.5%" }}>
           <Icon name="ic-claudecode" className="lg" />
           <span className="nm">Claude Code</span>
         </div>
-        <div className="route-node src n-codex" style={{ left: "89.8%", top: "39.5%" }}>
+        <div className="route-node src n-codex" style={{ top: "39.5%" }}>
           <Icon name="ic-codex" className="lg" />
           <span className="nm">Codex</span>
         </div>
-        <div className="route-node src n-ccswitch" style={{ left: "88.6%", top: "60.5%" }}>
+        <div className="route-node src n-ccswitch" style={{ top: "60.5%" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="lg" src="/assets/cc-switch.webp" alt="" aria-hidden="true" width={23} height={23} />
           <span className="nm">CC Switch</span>
         </div>
-        <div className="route-node src n-openclaw" style={{ left: "88.7%", top: "81.5%" }}>
+        <div className="route-node src n-openclaw" style={{ top: "81.5%" }}>
           <Icon name="ic-openclaw" className="lg" />
           <span className="nm">OpenClaw</span>
         </div>
@@ -144,17 +144,21 @@ function RouteDiagram() {
       </div>
 
       <div className="route-models">
-        <div className="route-node model n-claude" style={{ left: "10.4%", top: "23.5%" }}>
+        <div className="route-node model n-claude" style={{ top: "18.5%" }}>
           <Icon name="ic-claude" className="lg" />
           <span className="nm">Claude</span>
         </div>
-        <div className="route-node model n-gpt" style={{ left: "9.6%", top: "50%" }}>
+        <div className="route-node model n-gpt" style={{ top: "39.5%" }}>
           <Icon name="ic-openai" className="lg" />
           <span className="nm">GPT</span>
         </div>
-        <div className="route-node model n-gemini" style={{ left: "10.4%", top: "76.5%" }}>
+        <div className="route-node model n-gemini" style={{ top: "60.5%" }}>
           <Icon name="ic-gemini" className="lg" />
           <span className="nm">Gemini</span>
+        </div>
+        <div className="route-node model n-deepseek" style={{ top: "81.5%" }}>
+          <Icon name="ic-deepseek" className="lg" />
+          <span className="nm">DeepSeek</span>
         </div>
       </div>
       <div className="agents-cap">Works with 10+ coding agents and clients</div>
@@ -289,6 +293,11 @@ export function Hero({ maxOff }: { maxOff: number }) {
                 <Icon name="ic-key" width={16} height={16} />
               </span>
               Get free test tokens
+              <span className="btn-fx" aria-hidden="true">
+                <span className="fx-star s1" />
+                <span className="fx-star s2" />
+                <span className="fx-star s3" />
+              </span>
             </a>
             <a
               className="btn btn-ghost btn-lg btn-tagged"
@@ -298,6 +307,10 @@ export function Hero({ maxOff }: { maxOff: number }) {
             >
               <span>Chat on Telegram</span>
               <span className="btn-tag">@vipai</span>
+              <span className="btn-fly" aria-hidden="true">
+                <span className="fly-trail" />
+                <Icon name="ic-telegram" className="fly-plane" width={14} height={14} />
+              </span>
             </a>
           </div>
 

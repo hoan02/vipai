@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { PageHead, Pill, SectionTitle } from "@/components/dashboard/kit";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/otp-input";
+import { useLocale } from "@/components/site/I18n";
+import { formatDateTime } from "@/lib/datetime";
 import {
   buildRegistrationResult,
   createCredential,
@@ -101,14 +103,6 @@ function copyText(text: string) {
   document.body.removeChild(ta);
 }
 
-const dateFmt = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
 /** A short label for a browser user-agent, since the raw string is unreadable. */
 function describeAgent(userAgent: string): string {
   if (!userAgent) return "Unknown client";
@@ -172,6 +166,7 @@ function SecretList({ label, values }: { label: string; values: string[] }) {
  */
 export function SecurityView({ initial }: { initial: SecurityData }) {
   const router = useRouter();
+  const locale = useLocale();
   const [data, setData] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -434,7 +429,7 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
   };
 
   const lastUsed = data.passkey.lastUsedAt
-    ? dateFmt.format(new Date(data.passkey.lastUsedAt))
+    ? formatDateTime(data.passkey.lastUsedAt, locale)
     : "never";
 
   // The authenticator URI is built here from the secret the gateway issued, so
@@ -490,8 +485,8 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
                         </small>
                       </span>
                     </td>
-                    <td>{dateFmt.format(new Date(session.createdAt))}</td>
-                    <td>{dateFmt.format(new Date(session.lastActiveAt))}</td>
+                    <td>{formatDateTime(session.createdAt, locale)}</td>
+                    <td>{formatDateTime(session.lastActiveAt, locale)}</td>
                     <td className="num">{session.ip || "—"}</td>
                     <td className="r">
                       {session.current ? (
@@ -687,7 +682,7 @@ export function SecurityView({ initial }: { initial: SecurityData }) {
           <p className="note">
             A token exists ({data.accessToken.tokenRef || "ref hidden"}
             {data.accessToken.lastUsedAt
-              ? `, last used ${dateFmt.format(new Date(data.accessToken.lastUsedAt))}`
+              ? `, last used ${formatDateTime(data.accessToken.lastUsedAt, locale)}`
               : ", never used"}
             ). Generating a new one replaces it.
           </p>

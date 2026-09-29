@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usd } from "@/lib/money";
+import { useLocale } from "@/components/site/I18n";
+import { formatDateTime } from "@/lib/datetime";
 import { useNotificationStore } from "@/lib/notification-store";
 import type {
   DashboardOverview,
@@ -124,18 +126,6 @@ const UPTIME_COLORS: Record<number, string> = {
 
 function uptimeColor(status: number): string {
   return UPTIME_COLORS[status] ?? "#9ca3af";
-}
-
-const dateFmt = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
-function formatDate(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : dateFmt.format(date);
 }
 
 function preview(value: string): string {
@@ -497,6 +487,7 @@ export function ApiInfoPanel({ status }: { status: OverviewStatus }) {
  * ------------------------------------------------------------------------ */
 
 function AnnouncementDialog({ item, onClose }: { item: GatewayAnnouncement; onClose: () => void }) {
+  const locale = useLocale();
   const [copied, setCopied] = useState(false);
   return (
     <div
@@ -515,7 +506,7 @@ function AnnouncementDialog({ item, onClose }: { item: GatewayAnnouncement; onCl
             ✕
           </button>
         </header>
-        {item.publishDate ? <p className="note">Published: {formatDate(item.publishDate)}</p> : null}
+        {item.publishDate ? <p className="note">Published: {formatDateTime(item.publishDate, locale)}</p> : null}
         <div className="ov-modal-bd">
           <p className="ov-modal-content">{item.content}</p>
           {item.extra ? <p className="note ov-modal-content">{item.extra}</p> : null}
@@ -542,6 +533,7 @@ function AnnouncementDialog({ item, onClose }: { item: GatewayAnnouncement; onCl
 }
 
 export function AnnouncementsPanel({ status }: { status: OverviewStatus }) {
+  const locale = useLocale();
   const [selected, setSelected] = useState<GatewayAnnouncement | null>(null);
   const readKeys = useNotificationStore((state) => state.readAnnouncementKeys);
   const markRead = useNotificationStore((state) => state.markAnnouncementsRead);
@@ -601,7 +593,7 @@ export function AnnouncementsPanel({ status }: { status: OverviewStatus }) {
                     <span className="ov-ann-meta">
                       {isUnread ? <span className="ov-ann-new">New</span> : null}
                       {item.publishDate ? (
-                        <time className="note">{formatDate(item.publishDate)}</time>
+                        <time className="note">{formatDateTime(item.publishDate, locale)}</time>
                       ) : null}
                     </span>
                   </span>

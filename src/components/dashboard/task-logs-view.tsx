@@ -8,6 +8,8 @@ import {
   type LogFilterState,
 } from "@/components/dashboard/logs-filter";
 import { toLogQuery } from "@/components/dashboard/use-log-page";
+import { useLocale } from "@/components/site/I18n";
+import { formatDateTime } from "@/lib/datetime";
 import { usd } from "@/lib/money";
 import type { DrawingLogRow, TaskLogRow } from "@/server/logs";
 
@@ -21,13 +23,6 @@ type TaskPage = {
   items: Array<TaskLogRow | DrawingLogRow>;
 };
 
-const timeFmt = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
 const SECTIONS: Array<{ value: Section; label: string }> = [
   { value: "task", label: "All tasks" },
   { value: "drawing", label: "Drawing" },
@@ -40,6 +35,7 @@ const SECTIONS: Array<{ value: Section; label: string }> = [
  * Midjourney-style drawing log; the two are tabs over one table here.
  */
 export function TaskLogsView({ initial }: { initial: TaskPage }) {
+  const locale = useLocale();
   const [data, setData] = useState<TaskPage>(initial);
   const [section, setSection] = useState<Section>(initial.section);
   const [filters, setFilters] = useState<LogFilterState>(EMPTY_LOG_FILTERS);
@@ -163,7 +159,7 @@ export function TaskLogsView({ initial }: { initial: TaskPage }) {
                 ) : (
                   (data.items as DrawingLogRow[]).map((row) => (
                     <tr key={row.id}>
-                      <td>{timeFmt.format(new Date(row.createdAt))}</td>
+                      <td>{formatDateTime(row.createdAt, locale, { year: false })}</td>
                       <td>{row.action || "—"}</td>
                       <td style={{ maxWidth: 420, whiteSpace: "normal" }}>
                         {row.imageUrl ? (
@@ -207,7 +203,7 @@ export function TaskLogsView({ initial }: { initial: TaskPage }) {
                 ) : (
                   (data.items as TaskLogRow[]).map((row) => (
                     <tr key={row.id}>
-                      <td>{timeFmt.format(new Date(row.createdAt))}</td>
+                      <td>{formatDateTime(row.createdAt, locale, { year: false })}</td>
                       <td>{row.platform || "—"}</td>
                       <td>{row.action || "—"}</td>
                       <td>

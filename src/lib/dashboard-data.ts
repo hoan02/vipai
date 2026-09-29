@@ -77,6 +77,7 @@ export type ApiKey = {
   masked: string;
   /** Ready to display: "Active", "Expired", "Quota used". */
   statusText: string;
+  /** ISO date the key was created; the view formats it per locale. */
   created: string;
   /** Total requests made with this key, when the backend reports it. */
   requests: string | null;

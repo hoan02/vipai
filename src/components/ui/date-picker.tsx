@@ -13,6 +13,7 @@ import {
 import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocale } from "@/components/site/I18n";
+import { formatDate } from "@/lib/datetime";
 
 /**
  * A date field with its own calendar.
@@ -218,13 +219,7 @@ export function DatePicker({
     return cells;
   }, [view, weekStartsOn]);
 
-  const label_ = selected
-    ? selected.toLocaleDateString(vi ? "vi-VN" : undefined, {
-        year: "numeric",
-        month: vi ? "long" : "short",
-        day: "numeric",
-      })
-    : "";
+  const label_ = selected ? formatDate(selected, locale) : "";
 
   const commitTyped = () => {
     setTyping(false);

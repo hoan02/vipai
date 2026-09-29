@@ -1,7 +1,11 @@
 /* ============================================================
    Launch banner â€” fixed, 44px, #14110f
    ============================================================ */
-.launch-banner{ position:fixed; top:0; left:0; right:0; z-index:60; height:var(--lb-h); background:var(--ink); color:var(--stage-bg); }
+.launch-banner{ position:fixed; top:0; left:0; right:0; z-index:60; height:44px; background:var(--ink); color:var(--stage-bg); transition:translate .3s cubic-bezier(.2,0,0,1); }
+/* Auto-hidden while the page is scrolled (see LaunchBanner.tsx). Uses `translate`
+   rather than `transform` so it composes with the entry animation instead of
+   being overridden by its `both` fill. */
+html.lb-scrolled .launch-banner{ translate:0 -100%; }
 .launch-banner-link{
   position:relative; z-index:1; display:flex; align-items:center; justify-content:center; flex-wrap:wrap;
   gap:7px; min-height:44px; padding:12px 52px; color:inherit; text-align:center; text-decoration:none;
@@ -19,7 +23,7 @@
 .lb-msg svg{ flex:none; width:15px; height:15px; }
 .launch-banner-arrow{ flex:none; transition:transform .2s cubic-bezier(.2,0,0,1); }
 .launch-banner-link:hover .launch-banner-arrow{ transform:translateX(4px); }
-@media (prefers-reduced-motion: reduce){ .lb-msg{ transition:none !important; } }
+@media (prefers-reduced-motion: reduce){ .lb-msg{ transition:none !important; } .launch-banner, .nav-pill{ transition:none !important; } }
 .launch-banner-close{
   position:absolute; z-index:1; top:50%; right:14px; transform:translateY(-50%);
   display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px;
@@ -33,6 +37,7 @@
    ============================================================ */
 .nav-pill{
   position:fixed; top:var(--lb-h); left:0; right:0; z-index:50; height:var(--nav-h);
+  transition:top .3s cubic-bezier(.2,0,0,1);
   background-color:var(--stage-bg);
   background-image:var(--dot-rule); background-repeat:repeat-x; background-position:0 100%; background-size:var(--dot-rule-size);
 }

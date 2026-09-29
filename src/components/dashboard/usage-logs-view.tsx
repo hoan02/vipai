@@ -4,16 +4,10 @@ import { Fragment, useState } from "react";
 import { PageHead, Stat } from "@/components/dashboard/kit";
 import { LogsFilterBar } from "@/components/dashboard/logs-filter";
 import { useLogPager } from "@/components/dashboard/use-log-page";
+import { useLocale } from "@/components/site/I18n";
+import { formatDateTime } from "@/lib/datetime";
 import { usd } from "@/lib/money";
 import type { UsageLogPage } from "@/server/logs";
-
-const dayFmt = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-});
 
 /**
  * The account's request log.
@@ -23,6 +17,7 @@ const dayFmt = new Intl.DateTimeFormat("en-US", {
  * page at 100 rows and an active account can have far more than one page.
  */
 export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
+  const locale = useLocale();
   const { data, filters, setFilters, page, loading, error, apply, reset, goto } =
     useLogPager<UsageLogPage["items"][number]>("/api/usage-logs", initial);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -90,7 +85,7 @@ export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
                       onClick={() => setExpanded(expanded === row.id ? null : row.id)}
                       style={{ cursor: "pointer" }}
                     >
-                      <td>{dayFmt.format(new Date(row.createdAt))}</td>
+                      <td>{formatDateTime(row.createdAt, locale, { year: false, seconds: true })}</td>
                       <td>
                         <span className="cell-main">
                           <span>{row.model}</span>

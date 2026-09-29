@@ -8,6 +8,8 @@ import { Bell, Check, Copy, Gift } from "lucide-react";
 import { PageHead, Pill, SectionTitle, Stat } from "@/components/dashboard/kit";
 import { DataTable, type Column } from "@/components/admin/data-table";
 import { Select } from "@/components/ui/select";
+import { useLocale } from "@/components/site/I18n";
+import { formatDate, formatDateTime } from "@/lib/datetime";
 import { usd } from "@/lib/money";
 import type { SubscriptionPlan, SubscriptionSelf } from "@/server/gateway";
 
@@ -37,16 +39,6 @@ export type WalletAffiliate = {
   /** Unclaimed referral earnings, in quota units, for the transfer call. */
   quota: number;
 };
-
-function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
 
 function durationLabel(plan: SubscriptionPlan): string {
   if (plan.durationUnit === "custom") {
@@ -326,6 +318,7 @@ function SubscriptionPanel({
   subscription: SubscriptionSelf;
 }) {
   const router = useRouter();
+  const locale = useLocale();
   const [busyId, setBusyId] = useState<number | null>(null);
 
   const buy = async (plan: SubscriptionPlan) => {
@@ -369,7 +362,7 @@ function SubscriptionPanel({
                   </span>
                   <span className="note">
                     {sub.amountUsed.toLocaleString()} / {sub.amountTotal.toLocaleString()} used · until{" "}
-                    {new Date(sub.endTime * 1000).toLocaleDateString()}
+                    {formatDate(sub.endTime * 1000, locale)}
                   </span>
                 </li>
               );
@@ -509,12 +502,14 @@ export function WalletView({
   subscription: SubscriptionSelf;
   affiliate: WalletAffiliate;
 }) {
+  const locale = useLocale();
+
   const columns: Column<WalletTopUp>[] = [
     {
       id: "createdAt",
       header: "Date",
       accessorFn: (r) => r.createdAt,
-      cell: (info) => formatDate(info.getValue()),
+      cell: (info) => formatDateTime(info.getValue(), locale),
     },
     {
       id: "amountUsd",

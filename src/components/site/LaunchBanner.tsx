@@ -57,11 +57,22 @@ export function LaunchBanner() {
   const dismissedAt = usePrefsStore((state) => state.launchBannerDismissedAt);
   const dismissBanner = usePrefsStore((state) => state.dismissLaunchBanner);
   const [hidden, setHidden] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState(0);
 
   // Read the persisted dismissal after mount so server and client agree.
   useEffect(() => {
     void usePrefsStore.persist.rehydrate();
+  }, []);
+
+  // Auto-hide once the page is scrolled past the banner. Unlike a dismissal this
+  // keeps the reserved space (--lb-space), so nothing shifts; only --lb-h moves,
+  // which slides the nav up and re-aligns the sticky pricing filters/header.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 48);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   const dismissedToday = dismissedAt !== null && isSameLocalDay(dismissedAt, Date.now());
@@ -76,8 +87,11 @@ export function LaunchBanner() {
   }, [dismissedToday]);
 
   useEffect(() => {
-    document.documentElement.style.setProperty("--lb-h", hidden ? "0px" : "44px");
-  }, [hidden]);
+    const lifted = hidden || scrolled;
+    document.documentElement.classList.toggle("lb-scrolled", scrolled);
+    document.documentElement.style.setProperty("--lb-h", lifted ? "0px" : "44px");
+    document.documentElement.style.setProperty("--lb-space", hidden ? "0px" : "44px");
+  }, [hidden, scrolled]);
 
   useEffect(() => {
     if (hidden) return;

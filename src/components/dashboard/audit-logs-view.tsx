@@ -4,18 +4,13 @@ import { Fragment, useState } from "react";
 import { PageHead, Pill, Stat } from "@/components/dashboard/kit";
 import { LogsFilterBar } from "@/components/dashboard/logs-filter";
 import { useLogPager } from "@/components/dashboard/use-log-page";
+import { useLocale } from "@/components/site/I18n";
+import { formatDateTime } from "@/lib/datetime";
 import type { AuditLogPage } from "@/server/logs";
-
-const timeFmt = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-});
 
 /** The account's audit trail: authenticated actions taken with this account or its keys. */
 export function AuditLogsView({ initial }: { initial: AuditLogPage }) {
+  const locale = useLocale();
   const { data, filters, setFilters, page, loading, error, apply, reset, goto } =
     useLogPager<AuditLogPage["items"][number]>("/api/usage-logs/audit", initial);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -78,7 +73,7 @@ export function AuditLogsView({ initial }: { initial: AuditLogPage }) {
                       onClick={() => setExpanded(expanded === row.id ? null : row.id)}
                       style={{ cursor: "pointer" }}
                     >
-                      <td>{timeFmt.format(new Date(row.createdAt))}</td>
+                      <td>{formatDateTime(row.createdAt, locale, { year: false, seconds: true })}</td>
                       <td>{row.action || "—"}</td>
                       <td>{row.category || "—"}</td>
                       <td>

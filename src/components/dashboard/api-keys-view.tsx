@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { Apple, Check, ChevronDown, ChevronUp, Copy, Plus } from "lucide-react";
 import { PageHead, Pill, SectionTitle } from "@/components/dashboard/kit";
 import { Select } from "@/components/ui/select";
+import { useLocale } from "@/components/site/I18n";
+import { formatDate } from "@/lib/datetime";
 import type { ApiKey } from "@/lib/dashboard-data";
 import { usd } from "@/lib/money";
 
@@ -146,6 +148,7 @@ export function ApiKeysView({
   /** Every model the account may call, for the allow-list picker. */
   models?: string[];
 }) {
+  const locale = useLocale();
   const [keys, setKeys] = useState<ApiKey[]>(initialKeys);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
@@ -452,16 +455,10 @@ export function ApiKeysView({
                       )}
                     </td>
                     <td>
-                      {k.expiresAt
-                        ? new Intl.DateTimeFormat("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          }).format(new Date(k.expiresAt))
-                        : "Never"}
+                      {k.expiresAt ? formatDate(k.expiresAt, locale) : "Never"}
                     </td>
                     <td className="r num">{usd(k.usedUsd)}</td>
-                    <td>{k.created}</td>
+                    <td>{formatDate(k.created, locale)}</td>
                     <td className="r">
                       <span style={{ display: "inline-flex", gap: 6 }}>
                         {/* No enable/disable action: the gateway's API cannot

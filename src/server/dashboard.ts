@@ -37,12 +37,6 @@ import {
 } from "@/lib/analytics";
 import { type ApiKey } from "@/lib/dashboard-data";
 
-const dateFmt = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-});
-
 /**
  * Maps a gateway key record to the view shape.
  *
@@ -61,7 +55,7 @@ export function toViewKey(record: ApiKeyRecord): ApiKey {
     name: record.name,
     masked: record.masked,
     statusText,
-    created: dateFmt.format(record.createdAt),
+    created: record.createdAt.toISOString(),
     requests: null,
     usedUsd: record.usedUsd,
     group: record.group,

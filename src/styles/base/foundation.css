@@ -96,7 +96,13 @@
   --transition-fast:.15s ease;
   --transition-med:.28s cubic-bezier(.22,1,.36,1);
 
+  /* --lb-h is the live offset of the fixed chrome below the viewport top:
+     it collapses to 0 when the banner is dismissed or auto-hidden on scroll,
+     so the nav and every sticky offset move up with it. --lb-space is the
+     layout space reserved above the content; it only collapses on a real
+     dismissal, so auto-hiding while scrolled never shifts the page. */
   --lb-h:44px;
+  --lb-space:44px;
   --nav-h:64px;
 }
 
@@ -140,7 +146,7 @@ body{
   font-family:var(--font-sans);
   font-size:16px;
   line-height:1.6;
-  padding-top:calc(var(--lb-h) + var(--nav-h));
+  padding-top:calc(var(--lb-space) + var(--nav-h));
   -webkit-font-smoothing:antialiased;
   text-rendering:optimizeLegibility;
   overflow-x:hidden;

@@ -108,7 +108,7 @@ for `k3s`. Both are what the workflow's steps call.
 | Language | TypeScript |
 | Styling | Plain CSS — tokens + design system in `globals.css`, route-scoped stylesheets per section |
 | Icons | `lucide-react`; provider marks use the inline sprite, the VipAI logo is the `brandMark` image (`/assets/logo.webp`) |
-| Fonts | `next/font/local` — Geist + JetBrains Mono, self-hosted in `src/app/fonts/` (a build-time Google Fonts fetch is unreliable inside the deploy container) |
+| Fonts | `next/font/google` — Geist + JetBrains Mono |
 | Auth client | `src/lib/auth-client.ts` — a store over this app's `/api/session` routes |
 | Data | fetch only; no ORM, no database driver |
 | Animation | Custom CSS + Canvas 2D (no Framer Motion / GSAP) |

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import localFont from "next/font/local";
+import { Geist, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "./site-pages.css";
 import { I18n } from "@/components/site/I18n";
@@ -9,22 +9,16 @@ import { CommandPalette } from "@/components/command-palette";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 
-// Fonts are self-hosted so `next build` never reaches Google Fonts. The deploy
-// builds inside a container where that fetch fails intermittently, which trips
-// Turbopack's Google-font loader ("Can't resolve
-// @vercel/turbopack-next/internal/font/google/font"). These are the latin
-// subsets the previous `next/font/google` config downloaded, kept as variable
-// files so every weight stays available.
-const geist = localFont({
-  src: "./fonts/Geist-Variable.woff2",
-  weight: "100 900",
+const geist = Geist({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-geist",
   display: "swap",
 });
 
-const mono = localFont({
-  src: "./fonts/JetBrainsMono-Variable.woff2",
-  weight: "100 800",
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
   variable: "--font-mono-src",
   display: "swap",
 });

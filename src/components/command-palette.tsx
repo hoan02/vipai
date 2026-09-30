@@ -128,7 +128,7 @@ export function CommandPalette() {
     () =>
       dashboardNavGroups.flatMap((group) =>
         group.items.map((item) => ({
-          key: item.labelKey,
+          label: td(item.labelKey),
           href: item.href,
           icon: NAV_ICONS[item.icon],
           keywords: `${td(group.titleKey)} ${item.href}`,

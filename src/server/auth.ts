@@ -1,6 +1,7 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
+import { localePath, type Locale } from "@/i18n/routing";
 import { currentAccess, getUser, type GatewayUser } from "./gateway";
 
 /** The signed-in account, as the pages need it. */
@@ -95,10 +96,17 @@ export async function requireAccount(): Promise<Account> {
  * somewhere useful, while a route handler should answer 401 and let the caller
  * decide. `redirect` works by throwing, so the two cannot be the same function.
  */
-export async function requireAccountOrRedirect(redirectTo = "/dashboard"): Promise<Account> {
+export async function requireAccountOrRedirect(
+  locale: Locale,
+  redirectTo = "/dashboard",
+): Promise<Account> {
   const account = await getAccount();
   if (!account) {
-    redirect(`/?auth=signin&redirect_url=${encodeURIComponent(redirectTo)}`);
+    // `redirect_url` is kept locale-neutral: `AuthModal` navigates with the
+    // locale-aware router, which adds the prefix. Storing a prefixed path here
+    // would prefix it twice.
+    const home = localePath(locale, "/");
+    redirect(`${home}?auth=signin&redirect_url=${encodeURIComponent(redirectTo)}`);
   }
   return account;
 }

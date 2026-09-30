@@ -1,8 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import { BarChart3, Layers, LayoutDashboard } from "lucide-react";
 import { UserButton } from "@/components/UserButton";
 import { Icon } from "@/lib/icons";

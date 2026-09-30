@@ -44,17 +44,17 @@ import { type ApiKey } from "@/lib/dashboard-data";
  * verbatim rather than composing a mask of its own.
  */
 export function toViewKey(record: ApiKeyRecord): ApiKey {
-  const statusText = record.isExpired
-    ? "Expired"
+  const status: ApiKey["status"] = record.isExpired
+    ? "expired"
     : record.enabled
-      ? "Active"
-      : "Disabled";
+      ? "active"
+      : "disabled";
 
   return {
     id: record.id,
     name: record.name,
     masked: record.masked,
-    statusText,
+    status,
     created: record.createdAt.toISOString(),
     requests: null,
     usedUsd: record.usedUsd,

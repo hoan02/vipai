@@ -1,8 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import { Icon } from "@/lib/icons";
 import { PICK_MODEL_EVENT, brandMark, modelKey, type Model, type PickModelDetail } from "@/lib/data";
+
+/** The filter value for "no vendor filter". A stable value, not a label: the
+ *  chips compare against it, so it must not change with the locale. */
+const FEATURED = "Featured";
 
 function ModelMark({ model, size }: { model: Model; size: number }) {
   return (
@@ -19,7 +24,7 @@ function vendorChips(models: Model[]): VendorChip[] {
   for (const m of models) {
     if (!seen.has(m.vendor)) seen.set(m.vendor, { name: m.vendor, icon: m.vendorIcon, color: m.vendorColor });
   }
-  return [{ name: "Featured", icon: brandMark, color: "var(--ink)" }, ...seen.values()];
+  return [{ name: FEATURED, icon: brandMark, color: "var(--ink)" }, ...seen.values()];
 }
 
 const EXPAND_MS = 620;
@@ -28,8 +33,10 @@ const COLLAPSE_MS = 440;
 const JUMP_AFTER_EXPAND_MS = 660;
 const JUMP_FLASH_MS = 1800;
 
-export function Pricing({ models }: { models: Model[] }) {
-  const [vendor, setVendor] = useState<string>("Featured");
+export function Pricing({ models, liveHref = "#live" }: { models: Model[]; liveHref?: string | null }) {
+  const t = useTranslations("pricing");
+  const tc = useTranslations("common");
+  const [vendor, setVendor] = useState<string>(FEATURED);
   const [expanded, setExpanded] = useState(false);
   const [query, setQuery] = useState("");
   const [pendingJump, setPendingJump] = useState<string | null>(null);
@@ -56,7 +63,7 @@ export function Pricing({ models }: { models: Model[] }) {
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = vendor === "Featured" ? models : models.filter((m) => m.vendor === vendor);
+    const base = vendor === FEATURED ? models : models.filter((m) => m.vendor === vendor);
     return q ? base.filter((m) => `${m.name} ${m.vendor}`.toLowerCase().includes(q)) : base;
   }, [vendor, query, models]);
 
@@ -291,22 +298,17 @@ export function Pricing({ models }: { models: Model[] }) {
   }, []);
 
   return (
-    <section className="section pricing" id="pricing" aria-label="Live pricing" ref={sectionRef}>
+    <section className="section pricing" id="pricing" aria-label={t("label")} ref={sectionRef} data-i18n-skip>
       <div className="sec-head">
-        <h2
-          className="sec-title"
-          data-i18n={maxOff > 0 ? "Live pricing · up to {n}% off" : undefined}
-          data-i18n-n={maxOff > 0 ? String(maxOff) : undefined}
-        >
-          {maxOff > 0 ? `Live pricing · up to ${maxOff}% off` : "Live pricing"}
-        </h2>
+        <h2 className="sec-title">{maxOff > 0 ? t("titleDiscounted", { n: maxOff }) : t("title")}</h2>
         <p className="sec-sub">
-          Prices update in real time and move with upstream costs. Each request is billed at the discount in effect when
-          it&apos;s made. All prices in USD per 1M tokens.
-          <a className="sub-link" href="#live">
-            See live discounts
-            <Icon name="ic-arrow" />
-          </a>
+          {t("subtitle")}
+          {liveHref ? (
+            <a className="sub-link" href={liveHref}>
+              {t("seeLiveDiscounts")}
+              <Icon name="ic-arrow" />
+            </a>
+          ) : null}
         </p>
       </div>
 
@@ -328,15 +330,15 @@ export function Pricing({ models }: { models: Model[] }) {
               <span className="pf-tx">
                 <b className="pf-name">{m.name}</b>
                 <small className="pf-sub">
-                  {m.ctx ? `${m.vendor} · ${m.ctx} context` : m.vendor}
+                  {m.ctx ? t("cardContext", { vendor: m.vendor, ctx: m.ctx }) : m.vendor}
                 </small>
               </span>
-              {m.disc ? (
+              {m.discPct > 0 ? (
                 <span
                   className="pf-disc is-linkable"
                   role="button"
                   tabIndex={0}
-                  aria-label={`See live discount history for ${m.name}`}
+                  aria-label={t("discountHistoryLabel", { model: m.name })}
                   onClick={(e) => {
                     e.stopPropagation();
                     openInLive(m);
@@ -348,18 +350,18 @@ export function Pricing({ models }: { models: Model[] }) {
                     openInLive(m);
                   }}
                 >
-                  {m.disc}
+                  {tc("discountOff", { pct: m.discPct })}
                 </span>
               ) : null}
             </header>
             <div className="pf-prices">
               <div className="pf-col">
-                <span className="pf-cap">Input / 1M tokens</span>
+                <span className="pf-cap">{t("inputPerMillion")}</span>
                 <span className="pf-off">{m.listIn}</span>
                 <b className="pf-now">{m.inNow}</b>
               </div>
               <div className="pf-col">
-                <span className="pf-cap">Output / 1M tokens</span>
+                <span className="pf-cap">{t("outputPerMillion")}</span>
                 <span className="pf-off">{m.listOut}</span>
                 <b className="pf-now">{m.outNow}</b>
               </div>
@@ -370,7 +372,7 @@ export function Pricing({ models }: { models: Model[] }) {
 
       <div className="price-all" id="priceAll" ref={allRef}>
         <div className="table-tools price-filters">
-          <div className="filters pf-chips" role="group" aria-label="Filter models by vendor">
+          <div className="filters pf-chips" role="group" aria-label={t("filterLabel")}>
             {chips.map((c) => (
               <button
                 key={c.name}
@@ -379,11 +381,11 @@ export function Pricing({ models }: { models: Model[] }) {
                 aria-pressed={vendor === c.name}
                 onClick={() => setVendor(c.name)}
               >
-                {c.name}
+                {c.name === FEATURED ? t("featured") : c.name}
               </button>
             ))}
           </div>
-          <label className="pf-search" aria-label="Search models">
+          <label className="pf-search" aria-label={t("searchLabel")}>
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="7" />
               <path d="m16.2 16.2 4.8 4.8" />
@@ -391,7 +393,7 @@ export function Pricing({ models }: { models: Model[] }) {
             <input
               type="search"
               id="priceSearch"
-              placeholder="Search models"
+              placeholder={t("searchPlaceholder")}
               autoComplete="off"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -404,7 +406,7 @@ export function Pricing({ models }: { models: Model[] }) {
             <span className="tr-sheen" />
           </div>
           <table className="price-table" data-expanded={expanded ? "true" : "false"}>
-            <caption className="sr">Live model pricing comparison</caption>
+            <caption className="sr">{t("tableCaption")}</caption>
             <colgroup>
               <col style={{ width: "24%" }} />
               <col style={{ width: "8%" }} />
@@ -417,18 +419,18 @@ export function Pricing({ models }: { models: Model[] }) {
             </colgroup>
             <thead>
               <tr>
-                <th scope="col">Model</th>
-                <th scope="col">Context</th>
-                <th scope="col">Input (List)</th>
-                <th scope="col">Output (List)</th>
+                <th scope="col">{t("colModel")}</th>
+                <th scope="col">{t("colContext")}</th>
+                <th scope="col">{t("colListInput")}</th>
+                <th scope="col">{t("colListOutput")}</th>
                 <th scope="col" className="tr">
-                  Input (VipAI)
+                  {t("colVipaiInput")}
                 </th>
                 <th scope="col" className="tr">
-                  Output (VipAI)
+                  {t("colVipaiOutput")}
                 </th>
-                <th scope="col">Cache (VipAI)</th>
-                <th scope="col">Provider</th>
+                <th scope="col">{t("colCache")}</th>
+                <th scope="col">{t("colProvider")}</th>
               </tr>
             </thead>
             <tbody id="priceBody">
@@ -462,9 +464,9 @@ export function Pricing({ models }: { models: Model[] }) {
                   <td>{m.listOut ? <span className="pt-off">{m.listOut}</span> : "—"}</td>
                   <td className="tr">
                     <span className="pt-now">{m.inNow}</span>
-                    {m.disc ? (
+                    {m.discPct > 0 ? (
                       <span className="disc" style={{ marginLeft: 6 }}>
-                        {m.disc}
+                        {tc("discountOff", { pct: m.discPct })}
                       </span>
                     ) : null}
                   </td>
@@ -477,11 +479,11 @@ export function Pricing({ models }: { models: Model[] }) {
           </table>
           {models.length === 0 ? (
             <p className="pf-empty" id="priceEmpty">
-              Pricing is momentarily unavailable — refresh in a minute.
+              {t("emptyUnavailable")}
             </p>
           ) : rows.length === 0 ? (
             <p className="pf-empty" id="priceEmpty">
-              No matching models. Try another vendor.
+              {t("emptyNoMatch")}
             </p>
           ) : null}
         </div>
@@ -496,14 +498,13 @@ export function Pricing({ models }: { models: Model[] }) {
               </span>
             ))}
           </span>
-          <span className="pt-closed">See all model prices</span>
-          <span className="pt-open">Show less</span>
+          <span className="pt-closed">{t("seeAll")}</span>
+          <span className="pt-open">{t("showLess")}</span>
         </button>
       </div>
 
       <p className="form-note" style={{ marginTop: 14 }}>
-        List prices are the providers&apos; published rates; the VipAI column is what you pay. The six cards above are
-        our most-used models — open the full catalogue for every model we route.
+        {t("note")}
       </p>
     </section>
   );

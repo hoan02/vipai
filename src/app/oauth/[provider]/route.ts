@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { completeOAuth, persistSession } from "@/server/gateway";
 import { publicOrigin } from "@/server/http";
+import { isLocale, localePath, LOCALE_COOKIE, routing } from "@/i18n/routing";
 
 export const dynamic = "force-dynamic";
 
@@ -24,8 +26,13 @@ export async function GET(request: Request, { params }: Params) {
   const denied = incoming.searchParams.get("error");
   const origin = publicOrigin(request);
 
+  // The callback URL is registered with the provider, so the locale cannot ride
+  // along in it. The cookie next-intl already wrote is the next best signal.
+  const cookieLocale = (await cookies()).get(LOCALE_COOKIE)?.value;
+  const locale = isLocale(cookieLocale) ? cookieLocale : routing.defaultLocale;
+
   const fail = (reason: string) => {
-    const target = new URL("/", origin);
+    const target = new URL(localePath(locale, "/"), origin);
     target.searchParams.set("auth", "signin");
     target.searchParams.set("oauth_error", reason);
     return NextResponse.redirect(target);
@@ -37,7 +44,7 @@ export async function GET(request: Request, { params }: Params) {
   try {
     const session = await completeOAuth(provider, code, state);
     await persistSession(session);
-    return NextResponse.redirect(new URL("/dashboard", origin));
+    return NextResponse.redirect(new URL(localePath(locale, "/dashboard"), origin));
   } catch (error) {
     console.error("[vipai] oauth callback failed:", error);
     return fail("oauth_failed");

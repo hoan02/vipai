@@ -17,6 +17,7 @@ import {
 } from "recharts";
 import { usd } from "@/lib/money";
 import { useTheme } from "next-themes";
+import { useTranslations } from "next-intl";
 import { ModelIcon } from "@/components/model-icon";
 import {
   formatCompact,
@@ -84,6 +85,7 @@ type TipProps = {
  * height rather than the hovered segment.
  */
 function AnalyticsTooltip({ active, payload, label, kind = "quota" }: TipProps) {
+  const t = useTranslations("models");
   if (!active || !payload || payload.length === 0) return null;
 
   const rows = [...payload].sort((a, b) => (Number(b.value) || 0) - (Number(a.value) || 0));
@@ -94,7 +96,7 @@ function AnalyticsTooltip({ active, payload, label, kind = "quota" }: TipProps) 
     <div className="an-tip">
       <div className="an-tip-h">{label}</div>
       <div className="an-tip-row is-total">
-        <span className="an-tip-n">Total</span>
+        <span className="an-tip-n">{t("total")}</span>
         <b>{format(total)}</b>
       </div>
       {rows.slice(0, MAX_TOOLTIP_ITEMS).map((entry, index) => {
@@ -115,7 +117,8 @@ function AnalyticsTooltip({ active, payload, label, kind = "quota" }: TipProps) 
 }
 
 function ChartEmpty() {
-  return <div className="an-empty">No usage recorded in this period yet.</div>;
+  const t = useTranslations("models");
+  return <div className="an-empty">{t("empty")}</div>;
 }
 
 /** The stacked bars or stacked-area lines behind "Quota distribution". */
@@ -220,6 +223,7 @@ function ProportionChart({ analytics }: { analytics: ModelAnalytics }) {
 }
 
 function RankChart({ analytics }: { analytics: ModelAnalytics }) {
+  const t = useTranslations("models");
   const { rank, colorOf } = analytics;
   const { grid: GRID, tick: AXIS_TICK } = useChartColors();
   if (rank.length === 0) return <ChartEmpty />;
@@ -246,7 +250,7 @@ function RankChart({ analytics }: { analytics: ModelAnalytics }) {
           tickFormatter={(value: number) => formatCompact(value)}
         />
         <Tooltip content={<AnalyticsTooltip kind="count" />} />
-        <Bar dataKey="value" name="Calls">
+        <Bar dataKey="value" name={t("calls")}>
           {rank.map((entry) => (
             <Cell key={entry.name} fill={colorOf[entry.name] ?? FALLBACK_COLOR} />
           ))}

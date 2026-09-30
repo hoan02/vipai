@@ -14,12 +14,12 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { signIn, signUp } from "@/lib/auth-client";
 import { Icon } from "@/lib/icons";
 import { brandMark } from "@/lib/data";
 import { TELEGRAM_URL } from "@/lib/site";
-import { refreshTranslations, useT } from "@/components/site/I18n";
 import type { AuthMode } from "@/lib/auth-modal";
 
 /* ------------------------------------------------------------------ *
@@ -41,28 +41,31 @@ import type { AuthMode } from "@/lib/auth-modal";
  *   error shakes, and success draws a check before the card exits.
  * ------------------------------------------------------------------ */
 
-/* Copy is authored in Vietnamese — the source language of the site's
- * i18n dictionary — and resolved with useT() so EN readers see English. */
-const COPY = {
+/* Keys into the `auth` namespace in `messages/`, one set per panel. The panel
+ * is chosen at render, so `t(copy.title)` resolves in whichever language the
+ * URL asks for — no dictionary pass over the DOM, and no second language
+ * authoring the source strings. */
+const PANEL_KEYS = {
   signin: {
-    title: "Chào mừng trở lại",
-    sub: "Đăng nhập để quản lý API key, credit và hạn mức.",
-    cta: "Đăng nhập ngay",
-    busy: "Đang xác thực…",
-    foot: "Chưa có tài khoản?",
-    footCta: "Đăng ký ngay",
+    title: "signinTitle",
+    sub: "signinSub",
+    cta: "signinCta",
+    busy: "signinBusy",
+    foot: "signinFoot",
+    footCta: "signinFootCta",
   },
   signup: {
-    title: "Bắt đầu với VipAI",
-    sub: "Miễn phí để bắt đầu, không cần thẻ tín dụng.",
-    cta: "Tạo tài khoản miễn phí",
-    busy: "Đang tạo tài khoản…",
-    foot: "Đã có tài khoản?",
-    footCta: "Đăng nhập ngay",
+    title: "signupTitle",
+    sub: "signupSub",
+    cta: "signupCta",
+    busy: "signupBusy",
+    foot: "signupFoot",
+    footCta: "signupFootCta",
   },
 } as const;
 
-const STRENGTH = ["", "Yếu", "Trung bình", "Khá", "Mạnh"];
+/** Index 0 is "no password yet", so it has no label. */
+const STRENGTH_KEYS = ["", "strengthWeak", "strengthFair", "strengthGood", "strengthStrong"];
 /* The gateway's user model validates `max=20` on the username, so anything
    longer comes back as a raw Go validation error. Catch it here instead. */
 const USERNAME_MAX = 20;
@@ -230,7 +233,7 @@ function Field({
 
 export function AuthModal() {
   const router = useRouter();
-  const t = useT();
+  const t = useTranslations("auth");
 
   const [mounted, setMounted] = useState(false);
   const [phase, setPhase] = useState<Phase>("closed");
@@ -260,7 +263,7 @@ export function AuthModal() {
   const doneTimer = useRef(0);
   const alive = useRef(true);
 
-  const copy = COPY[mode];
+  const copy = PANEL_KEYS[mode];
   const busy = status === "busy";
   const done = status === "done";
   const live = mounted && phase !== "closed";
@@ -291,8 +294,6 @@ export function AuthModal() {
     redirectRef.current =
       redirect ?? safeRedirect(new URLSearchParams(window.location.search).get("redirect_url"));
     lastFocus.current = document.activeElement as HTMLElement | null;
-    // The DOM i18n sweep runs at mount, before this dialog exists.
-    refreshTranslations();
   }, []);
 
   const requestClose = useCallback(() => {
@@ -337,7 +338,7 @@ export function AuthModal() {
     // A failed social callback lands here with a marker; reopen the dialog and
     // say why rather than returning silently to a signed-out home page.
     if (params.get("oauth_error")) {
-      setError(t("Không thể kết nối với Google. Vui lòng thử lại."));
+      setError(t("errGoogle"));
     }
     const url = new URL(window.location.href);
     url.searchParams.delete("auth");
@@ -452,15 +453,15 @@ export function AuthModal() {
     if (status !== "idle") return;
 
     if (!email.trim()) {
-      setError(t("Vui lòng nhập tên đăng nhập."));
+      setError(t("errUsernameRequired"));
       return;
     }
     if (email.trim().length > USERNAME_MAX) {
-      setError(t("Tên đăng nhập tối đa 20 ký tự."));
+      setError(t("errUsernameTooLong"));
       return;
     }
     if (mode === "signup" && password.length < 8) {
-      setError(t("Mật khẩu cần ít nhất 8 ký tự."));
+      setError(t("errPasswordTooShort"));
       return;
     }
 
@@ -481,8 +482,8 @@ export function AuthModal() {
       if (res?.error) {
         setError(
           mode === "signin"
-            ? t("Tên đăng nhập hoặc mật khẩu không đúng.")
-            : res.error.message || t("Không thể tạo tài khoản. Vui lòng thử lại.")
+            ? t("errBadCredentials")
+            : res.error.message || t("errSignupFailed")
         );
         setStatus("idle");
         return;
@@ -494,7 +495,7 @@ export function AuthModal() {
       setError(
         message && /^[\x20-\x7eÀ-ỹ\s.,!?'"()-]+$/.test(message)
           ? message
-          : t("Có lỗi xảy ra. Vui lòng thử lại.")
+          : t("errGeneric")
       );
       setStatus("idle");
     }
@@ -528,7 +529,7 @@ export function AuthModal() {
       setError(
         err instanceof Error && err.message
           ? err.message
-          : t("Không thể kết nối với Google. Vui lòng thử lại.")
+          : t("errGoogle")
       );
     }
   };
@@ -554,6 +555,7 @@ export function AuthModal() {
       role="dialog"
       aria-modal="true"
       aria-labelledby="am-title"
+      data-i18n-skip
     >
       <div className="am-scrim" onMouseDown={dismiss} />
 
@@ -567,12 +569,12 @@ export function AuthModal() {
               <b>VipAI</b>
               <small>VIPAI · ACCOUNT</small>
             </span>
-            <button className="am-x" type="button" onClick={requestClose} aria-label={t("Đóng")}>
+            <button className="am-x" type="button" onClick={requestClose} aria-label={t("close")}>
               <Icon name="ic-x" viewBox="0 0 24 24" width={13} height={13} />
             </button>
           </header>
 
-          <div className="am-tabs" role="group" aria-label={t("Tài khoản")}>
+          <div className="am-tabs" role="group" aria-label={t("tabsLabel")}>
             <button
               className="am-tab"
               type="button"
@@ -580,7 +582,7 @@ export function AuthModal() {
               disabled={busy}
               onClick={() => switchMode("signin")}
             >
-              {t("Đăng nhập")}
+              {t("tabSignin")}
             </button>
             <button
               className="am-tab"
@@ -589,7 +591,7 @@ export function AuthModal() {
               disabled={busy}
               onClick={() => switchMode("signup")}
             >
-              {t("Tạo tài khoản")}
+              {t("tabSignup")}
             </button>
             <span className="am-tab-ind" style={{ "--am-tab": mode === "signup" ? 1 : 0 } as CSSProperties} />
           </div>
@@ -632,16 +634,16 @@ export function AuthModal() {
                 disabled={status !== "idle"}
               >
                 <GoogleGlyph />
-                <span>{t("Tiếp tục với Google")}</span>
+                <span>{t("google")}</span>
               </button>
 
               <div className="am-alt-row am-row" style={row(4)}>
                 <span className="am-alt-line" aria-hidden="true" />
-                <span className="am-alt-txt">{t("hoặc")}</span>
+                <span className="am-alt-txt">{t("or")}</span>
                 <span className="am-alt-line" aria-hidden="true" />
               </div>
 
-              {field("am-username", t("Tên đăng nhập"), email, setEmail, {
+              {field("am-username", t("username"), email, setEmail, {
                 type: "text",
                 autoComplete: "username",
                 icon: <UserGlyph />,
@@ -657,7 +659,7 @@ export function AuthModal() {
                   ) : undefined,
               })}
 
-              {field("am-password", t("Mật khẩu"), password, setPassword, {
+              {field("am-password", t("password"), password, setPassword, {
                 type: reveal ? "text" : "password",
                 autoComplete: mode === "signin" ? "current-password" : "new-password",
                 icon: <LockGlyph />,
@@ -671,7 +673,7 @@ export function AuthModal() {
                     className="am-eye"
                     type="button"
                     onClick={() => setReveal((v) => !v)}
-                    aria-label={reveal ? t("Ẩn mật khẩu") : t("Hiện mật khẩu")}
+                    aria-label={reveal ? t("hidePassword") : t("showPassword")}
                     aria-pressed={reveal}
                   >
                     <span className="am-eye-in" key={reveal ? "on" : "off"}>
@@ -684,7 +686,7 @@ export function AuthModal() {
               {caps && (
                 <p className="am-caps" role="status">
                   <CapsGlyph />
-                  <span>{t("Caps Lock đang bật")}</span>
+                  <span>{t("capsLock")}</span>
                 </p>
               )}
 
@@ -696,9 +698,9 @@ export function AuthModal() {
                     href={TELEGRAM_URL}
                     target="_blank"
                     rel="noreferrer noopener"
-                    aria-label={t("Quên mật khẩu? Nhắn hỗ trợ trên Telegram.")}
+                    aria-label={t("forgotAria")}
                   >
-                    {t("Quên mật khẩu?")}
+                    {t("forgot")}
                   </a>
                 </div>
               )}
@@ -711,8 +713,8 @@ export function AuthModal() {
                     ))}
                   </div>
                   <div className="am-meter-cap">
-                    <span>{t("Độ mạnh mật khẩu")}</span>
-                    <b>{t(STRENGTH[strength])}</b>
+                    <span>{t("strengthLabel")}</span>
+                    <b>{strength > 0 ? t(STRENGTH_KEYS[strength]) : null}</b>
                   </div>
                 </div>
               )}
@@ -742,7 +744,7 @@ export function AuthModal() {
                 <Icon name="ic-openai" viewBox="0 0 24 24" width={15} height={15} />
                 <Icon name="ic-claude" viewBox="0 0 24 24" width={15} height={15} />
                 <Icon name="ic-gemini" viewBox="0 0 24 24" width={15} height={15} />
-                <span>{t("Một key cho mọi model")}</span>
+                <span>{t("footerProviders")}</span>
               </div>
               <div className="am-alt">
                 <span>{t(copy.foot)}</span>
@@ -767,8 +769,8 @@ export function AuthModal() {
                   </svg>
                 </b>
               </span>
-              <h4>{mode === "signin" ? t("Đăng nhập thành công") : t("Tạo tài khoản thành công")}</h4>
-              <p>{t("Đang chuyển tới bảng điều khiển…")}</p>
+              <h4>{mode === "signin" ? t("doneSignin") : t("doneSignup")}</h4>
+              <p>{t("doneRedirect")}</p>
             </div>
           </div>
         )}

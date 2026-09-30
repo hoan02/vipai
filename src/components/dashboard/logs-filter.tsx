@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Calendar, RotateCcw, Search } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 
@@ -23,10 +24,10 @@ export const EMPTY_LOG_FILTERS: LogFilterState = {
 
 /** Quick ranges offered as chips, in days back from today. */
 const RANGE_PRESETS = [
-  { label: "1 day", days: 1 },
-  { label: "7 days", days: 7 },
-  { label: "14 days", days: 14 },
-  { label: "29 days", days: 29 },
+  { key: "range1d", days: 1 },
+  { key: "range7d", days: 7 },
+  { key: "range14d", days: 14 },
+  { key: "range29d", days: 29 },
 ] as const;
 
 function toInput(date: Date): string {
@@ -57,6 +58,7 @@ export function LogsFilterBar({
   busy?: boolean;
   show?: { model?: boolean; group?: boolean; source?: boolean; sourceLabel?: string };
 }) {
+  const t = useTranslations("logs");
   const set = (patch: Partial<LogFilterState>) => onChange({ ...value, ...patch });
   const today = toInput(new Date());
 
@@ -64,7 +66,7 @@ export function LogsFilterBar({
     <div className="toolbar" style={{ marginTop: 18 }}>
       <span className="date-range">
         <DatePicker
-          label="From date"
+          label={t("fromDate")}
           value={value.from}
           onChange={(from) => set({ from })}
           max={value.to || undefined}
@@ -72,7 +74,7 @@ export function LogsFilterBar({
         />
         <span className="note">–</span>
         <DatePicker
-          label="To date"
+          label={t("toDate")}
           value={value.to}
           onChange={(to) => set({ to })}
           min={value.from || undefined}
@@ -80,7 +82,7 @@ export function LogsFilterBar({
         />
       </span>
 
-      <span className="an-range" role="group" aria-label="Quick range">
+      <span className="an-range" role="group" aria-label={t("quickRange")}>
         {RANGE_PRESETS.map((preset) => {
           const from = daysAgo(preset.days);
           const on = value.from === from && value.to === today;
@@ -96,7 +98,7 @@ export function LogsFilterBar({
                 onApply(next);
               }}
             >
-              {preset.label}
+              {t(preset.key)}
             </button>
           );
         })}
@@ -106,8 +108,8 @@ export function LogsFilterBar({
         <input
           className="field"
           style={{ minWidth: 150 }}
-          placeholder="Model"
-          aria-label="Model"
+          placeholder={t("model")}
+          aria-label={t("model")}
           value={value.model}
           onChange={(e) => set({ model: e.target.value })}
           onKeyDown={(e) => {
@@ -120,8 +122,8 @@ export function LogsFilterBar({
         <input
           className="field"
           style={{ minWidth: 130 }}
-          placeholder="Group"
-          aria-label="Group"
+          placeholder={t("group")}
+          aria-label={t("group")}
           value={value.group}
           onChange={(e) => set({ group: e.target.value })}
           onKeyDown={(e) => {
@@ -134,8 +136,8 @@ export function LogsFilterBar({
         <input
           className="field"
           style={{ minWidth: 150 }}
-          placeholder={show.sourceLabel ?? "API key"}
-          aria-label={show.sourceLabel ?? "API key"}
+          placeholder={show.sourceLabel ?? t("apiKey")}
+          aria-label={show.sourceLabel ?? t("apiKey")}
           value={value.source}
           onChange={(e) => set({ source: e.target.value })}
           onKeyDown={(e) => {
@@ -144,16 +146,16 @@ export function LogsFilterBar({
         />
       ) : null}
 
-        <button
-          className="btn btn-primary btn-sm"
-          type="button"
-          onClick={() => onApply(value)}
-          disabled={busy}
-        >
-          <Search size={14} aria-hidden="true" /> {busy ? "Loading…" : "Filter"}
-        </button>
+      <button
+        className="btn btn-primary btn-sm"
+        type="button"
+        onClick={() => onApply(value)}
+        disabled={busy}
+      >
+        <Search size={14} aria-hidden="true" /> {busy ? t("loading") : t("filter")}
+      </button>
       <button className="btn btn-ghost btn-sm" type="button" onClick={onReset} disabled={busy}>
-        <RotateCcw size={14} aria-hidden="true" /> Reset
+        <RotateCcw size={14} aria-hidden="true" /> {t("reset")}
       </button>
     </div>
   );

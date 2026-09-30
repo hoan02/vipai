@@ -1,8 +1,10 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import { useTranslations } from "next-intl";
 import { PageHead, Pill, Stat } from "@/components/dashboard/kit";
 import { LogsFilterBar } from "@/components/dashboard/logs-filter";
+import { LogError, LogPager } from "@/components/dashboard/log-pager";
 import { useLogPager } from "@/components/dashboard/use-log-page";
 import { useLocale } from "@/components/site/I18n";
 import { formatDateTime } from "@/lib/datetime";
@@ -11,6 +13,8 @@ import type { AuditLogPage } from "@/server/logs";
 /** The account's audit trail: authenticated actions taken with this account or its keys. */
 export function AuditLogsView({ initial }: { initial: AuditLogPage }) {
   const locale = useLocale();
+  const t = useTranslations("logsAudit");
+  const tc = useTranslations("logs");
   const { data, filters, setFilters, page, loading, error, apply, reset, goto } =
     useLogPager<AuditLogPage["items"][number]>("/api/usage-logs/audit", initial);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -21,15 +25,12 @@ export function AuditLogsView({ initial }: { initial: AuditLogPage }) {
 
   return (
     <>
-      <PageHead
-        title="Audit logs"
-        sub="Security-relevant actions on this account and its API keys, newest first."
-      />
+      <PageHead title={t("title")} sub={t("sub")} />
 
       <div className="stats" style={{ marginTop: 20 }}>
-        <Stat label="Events" value={data.total.toLocaleString()} />
-        <Stat label="Page" value={`${data.page + 1} / ${pageCount}`} />
-        <Stat label="Page size" value={String(data.pageSize)} />
+        <Stat label={t("statEvents")} value={data.total.toLocaleString()} />
+        <Stat label={tc("page")} value={`${data.page + 1} / ${pageCount}`} />
+        <Stat label={t("statPageSize")} value={String(data.pageSize)} />
       </div>
 
       <LogsFilterBar
@@ -38,33 +39,29 @@ export function AuditLogsView({ initial }: { initial: AuditLogPage }) {
         onApply={apply}
         onReset={reset}
         busy={loading}
-        show={{ source: true, sourceLabel: "Token ref" }}
+        show={{ source: true, sourceLabel: t("sourceLabel") }}
       />
 
-      {error ? (
-        <div className="panel" style={{ padding: 14, marginTop: 16, color: "var(--danger)" }} role="alert">
-          {error}
-        </div>
-      ) : null}
+      {error ? <LogError message={error} /> : null}
 
       <div className="panel" style={{ padding: 16, marginTop: 20 }}>
         <div className="twrap is-fixed">
           <table className="dtable compact">
             <thead>
               <tr>
-                <th>Time</th>
-                <th>Action</th>
-                <th>Category</th>
-                <th>Route</th>
-                <th className="r">Status</th>
-                <th>Result</th>
-                <th>IP</th>
+                <th>{tc("time")}</th>
+                <th>{tc("colAction")}</th>
+                <th>{t("colCategory")}</th>
+                <th>{t("colRoute")}</th>
+                <th className="r">{tc("status")}</th>
+                <th>{t("colResult")}</th>
+                <th>{t("colIp")}</th>
               </tr>
             </thead>
             <tbody>
               {data.items.length === 0 ? (
                 <tr className="empty-row">
-                  <td colSpan={7}>No audit events match these filters.</td>
+                  <td colSpan={7}>{t("empty")}</td>
                 </tr>
               ) : (
                 data.items.map((row) => (
@@ -85,7 +82,7 @@ export function AuditLogsView({ initial }: { initial: AuditLogPage }) {
                       <td className="r num">{row.status}</td>
                       <td>
                         <Pill tone={row.success ? "ok" : "off"}>
-                          {row.success ? "Success" : "Failed"}
+                          {row.success ? t("success") : t("failed")}
                         </Pill>
                       </td>
                       <td>{row.ip || "—"}</td>
@@ -96,13 +93,13 @@ export function AuditLogsView({ initial }: { initial: AuditLogPage }) {
                           <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                             {row.requestId ? (
                               <span className="note">
-                                Request id{" "}
+                                {tc("requestId")}{" "}
                                 <code style={{ fontFamily: "var(--font-mono)" }}>{row.requestId}</code>
                               </span>
                             ) : null}
                             {row.tokenRef ? (
                               <span className="note">
-                                Token{" "}
+                                {t("token")}{" "}
                                 <code style={{ fontFamily: "var(--font-mono)" }}>{row.tokenRef}</code>
                               </span>
                             ) : null}
@@ -118,35 +115,15 @@ export function AuditLogsView({ initial }: { initial: AuditLogPage }) {
           </table>
         </div>
 
-        <div className="dtable-foot">
-          <span className="note">
-            {first}–{last} / {data.total.toLocaleString()}
-            {loading ? " · loading…" : ""}
-          </span>
-          <span className="dtable-pager">
-            <button
-              className="pg"
-              type="button"
-              aria-label="Previous page"
-              disabled={page === 0 || loading}
-              onClick={() => goto(Math.max(0, page - 1))}
-            >
-              ‹
-            </button>
-            <span className="pg-n">
-              {page + 1}/{pageCount}
-            </span>
-            <button
-              className="pg"
-              type="button"
-              aria-label="Next page"
-              disabled={page >= pageCount - 1 || loading}
-              onClick={() => goto(page + 1)}
-            >
-              ›
-            </button>
-          </span>
-        </div>
+        <LogPager
+          first={first}
+          last={last}
+          total={data.total}
+          page={page}
+          pageCount={pageCount}
+          loading={loading}
+          onGoto={goto}
+        />
       </div>
     </>
   );

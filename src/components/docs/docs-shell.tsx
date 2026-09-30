@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import { ChevronRight, List, X } from "lucide-react";
 import { TELEGRAM_URL } from "@/lib/site";
 import { docByHref, docCrumbs, docNeighbours, type DocPage } from "@/lib/docs-manifest";

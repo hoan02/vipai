@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import {
   ArrowRight,
   BookOpen,
@@ -34,14 +35,14 @@ import {
 
 type Step = {
   key: string;
-  title: string;
-  description: string;
+  titleKey: string;
+  descriptionKey: string;
   href: string;
   icon: ReactNode;
   completed: boolean;
 };
 
-type QuickAction = { title: string; description: string; href: string; icon: ReactNode; adminOnly?: boolean };
+type QuickAction = { titleKey: string; descriptionKey: string; href: string; icon: ReactNode; adminOnly?: boolean };
 
 /** Masks a key for the preview, keeping the ends readable. */
 function formatDisplayKey(key: string): string {
@@ -79,6 +80,7 @@ function copyText(text: string) {
 }
 
 function StepItem({ step, index, isLast }: { step: Step; index: number; isLast: boolean }) {
+  const t = useTranslations("overview");
   return (
     <li className="ov-step">
       <span className={`ov-step-mark${step.completed ? " is-done" : ""}`} aria-hidden="true">
@@ -91,9 +93,9 @@ function StepItem({ step, index, isLast }: { step: Step; index: number; isLast: 
         </span>
         <span className="ov-step-text">
           <span className="ov-step-title">
-            <em>{index + 1}.</em> {step.title}
+            <em>{index + 1}.</em> {t(step.titleKey)}
           </span>
-          <span className="note">{step.description}</span>
+          <span className="note">{t(step.descriptionKey)}</span>
         </span>
         <ArrowRight size={15} className="ov-step-arrow" aria-hidden="true" />
       </Link>
@@ -102,6 +104,7 @@ function StepItem({ step, index, isLast }: { step: Step; index: number; isLast: 
 }
 
 function RequestPreview({ overview }: { overview: DashboardOverview }) {
+  const t = useTranslations("overview");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -111,13 +114,13 @@ function RequestPreview({ overview }: { overview: DashboardOverview }) {
   const preview = buildCurl(overview.endpoint, displayKey, model).split("\n");
 
   const signals = [
-    { label: "Route active", value: "Online", icon: <RadioTower size={13} /> },
+    { label: t("signalRoute"), value: t("signalRouteValue"), icon: <RadioTower size={13} /> },
     {
-      label: "Auth configured",
-      value: key ? "Secured" : "Needs API key",
+      label: t("signalAuth"),
+      value: key ? t("signalAuthValue") : t("signalAuthMissing"),
       icon: <ShieldCheck size={13} />,
     },
-    { label: "Model selected", value: overview.model ?? "—", icon: <Timer size={13} /> },
+    { label: t("signalModel"), value: overview.model ?? "—", icon: <Timer size={13} /> },
   ];
 
   const copyReal = async () => {
@@ -144,19 +147,19 @@ function RequestPreview({ overview }: { overview: DashboardOverview }) {
           <TerminalSquare size={15} />
         </span>
         <div className="ov-preview-t">
-          <b>First API request</b>
+          <b>{t("firstRequest")}</b>
           <small className="note">
-            {key ? key.name : "Create an API key to unlock the real request"}
+            {key ? key.name : t("createKeyToUnlock")}
           </small>
         </div>
         {key ? (
           <button className="btn btn-ghost btn-sm" type="button" disabled={busy} onClick={copyReal}>
             <Copy size={14} />
-            {busy ? "Loading…" : copied ? "Copied" : "Copy"}
+            {busy ? t("loading") : copied ? t("copied") : t("copy")}
           </button>
         ) : (
           <Link className="btn btn-ghost btn-sm" href="/dashboard/api-keys">
-            Create API key
+            {t("createKey")}
           </Link>
         )}
       </div>
@@ -190,28 +193,29 @@ function RequestPreview({ overview }: { overview: DashboardOverview }) {
 }
 
 function SetupGuide({ overview, onHide }: { overview: DashboardOverview; onHide: () => void }) {
+  const t = useTranslations("overview");
   const steps = useMemo<Step[]>(
     () => [
       {
         key: "key",
-        title: "Create API key",
-        description: "Create a key for your app or service",
+        titleKey: "stepKey",
+        descriptionKey: "stepKeyDesc",
         href: "/dashboard/api-keys",
         icon: <KeyRound size={14} />,
         completed: overview.keyCount > 0,
       },
       {
         key: "credit",
-        title: "Add credits",
-        description: "Keep enough balance before production traffic",
+        titleKey: "stepCredit",
+        descriptionKey: "stepCreditDesc",
         href: "/dashboard/wallet",
         icon: <CreditCard size={14} />,
         completed: overview.balanceUsd > 0 || overview.usedUsd > 0,
       },
       {
         key: "request",
-        title: "Send a request",
-        description: "Verify routing with Playground or your client",
+        titleKey: "stepRequest",
+        descriptionKey: "stepRequestDesc",
         href: "/dashboard/playground",
         icon: <TerminalSquare size={14} />,
         completed: overview.requestCount > 0,
@@ -222,26 +226,26 @@ function SetupGuide({ overview, onHide }: { overview: DashboardOverview; onHide:
 
   const actions: QuickAction[] = [
     {
-      title: "API Keys",
-      description: "Create a key for your app or service",
+      titleKey: "actionKeys",
+      descriptionKey: "actionKeysDesc",
       href: "/dashboard/api-keys",
       icon: <KeyRound size={15} />,
     },
     {
-      title: "Usage Logs",
-      description: "Inspect requests, errors, and billing details",
+      titleKey: "actionLogs",
+      descriptionKey: "actionLogsDesc",
       href: "/dashboard/usage-logs",
       icon: <FileText size={15} />,
     },
     {
-      title: "Wallet",
-      description: "Top up and review credit history",
+      titleKey: "actionWallet",
+      descriptionKey: "actionWalletDesc",
       href: "/dashboard/wallet",
       icon: <CreditCard size={15} />,
     },
     {
-      title: "API docs",
-      description: "Endpoints, SDKs, and protocol details",
+      titleKey: "actionDocs",
+      descriptionKey: "actionDocsDesc",
       href: "/docs",
       icon: <BookOpen size={15} />,
     },
@@ -253,17 +257,17 @@ function SetupGuide({ overview, onHide }: { overview: DashboardOverview; onHide:
         <div className="ov-setup-hd">
           <div>
             <span className="ov-eyebrow">
-              <ListChecks size={14} /> Get started
+              <ListChecks size={14} /> {t("getStarted")}
             </span>
-            <h2>Build on your API gateway in minutes</h2>
-            <p className="note">A focused home for keys, balance, routing and service health.</p>
+            <h2>{t("buildInMinutes")}</h2>
+            <p className="note">{t("setupNote")}</p>
           </div>
           <div className="ov-setup-btns">
             <button className="btn btn-ghost btn-sm" type="button" onClick={onHide}>
-              <ChevronUp size={15} /> Hide setup guide
+              <ChevronUp size={15} /> {t("hideGuide")}
             </button>
             <Link className="btn btn-primary btn-sm" href="/dashboard/api-keys">
-              <KeyRound size={15} /> Create API key
+              <KeyRound size={15} /> {t("createKey")}
             </Link>
           </div>
         </div>
@@ -279,17 +283,17 @@ function SetupGuide({ overview, onHide }: { overview: DashboardOverview; onHide:
       </section>
 
       <section className="panel ov-setup-side">
-        <span className="ov-eyebrow">Recommended actions</span>
-        <h3>Keep the platform ready</h3>
+        <span className="ov-eyebrow">{t("recommended")}</span>
+        <h3>{t("keepReady")}</h3>
         <div className="ov-actions">
           {actions.map((action) => (
-            <Link key={action.title} className="ov-action" href={action.href}>
+            <Link key={action.titleKey} className="ov-action" href={action.href}>
               <span className="ov-action-ico" aria-hidden="true">
                 {action.icon}
               </span>
               <span className="ov-action-text">
-                <b>{action.title}</b>
-                <small className="note">{action.description}</small>
+                <b>{t(action.titleKey)}</b>
+                <small className="note">{t(action.descriptionKey)}</small>
               </span>
             </Link>
           ))}
@@ -308,6 +312,7 @@ export function OverviewView({
 }) {
   const expanded = usePrefsStore((state) => state.setupGuideExpanded);
   const setSetupGuideExpanded = usePrefsStore((state) => state.setSetupGuideExpanded);
+  const t = useTranslations("overview");
 
   // Hydrate the persisted preference after mount so server and client agree.
   useEffect(() => {
@@ -330,8 +335,8 @@ export function OverviewView({
   return (
     <>
       <PageHead
-        title="Overview"
-        sub="Your keys, balance, routing and service health in one place."
+        title={t("title")}
+        sub={t("sub")}
         side={
           complete ? (
             <button
@@ -340,7 +345,7 @@ export function OverviewView({
               aria-expanded={open}
               onClick={() => setGuideOpen(!open)}
             >
-              Setup guide
+              {t("setupGuide")}
             </button>
           ) : undefined
         }
@@ -356,15 +361,15 @@ export function OverviewView({
             </span>
             <div className="ov-setup-bar-text">
               <div className="ov-setup-bar-title">
-                <b>Setup guide</b>
+                <b>{t("setupGuide")}</b>
                 <span className="ov-badge">
-                  Setup progress: {completed}/{steps.length}
+                  {t("setupProgress", { done: completed, total: steps.length })}
                 </span>
               </div>
-              <p className="note">Setup guide is collapsed. Expand it anytime.</p>
+              <p className="note">{t("setupCollapsed")}</p>
             </div>
             <button className="btn btn-ghost btn-sm" type="button" onClick={() => setGuideOpen(true)}>
-              <ChevronDown size={15} /> Show setup guide
+              <ChevronDown size={15} /> {t("showGuide")}
             </button>
           </section>
         )}
@@ -393,8 +398,8 @@ export function OverviewView({
                   <LayoutDashboard size={15} />
                 </span>
                 <span>
-                  <b>Admin</b>
-                  <small className="note"> Upstream cost, margin and revenue rollup.</small>
+                  <b>{t("adminTitle")}</b>
+                  <small className="note">{t("adminNote")}</small>
                 </span>
                 <ArrowRight size={15} aria-hidden="true" />
               </Link>

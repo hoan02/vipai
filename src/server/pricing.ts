@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { BACKEND_URL } from "./http";
 import { getModelMeta } from "./model-meta";
 import { vendorLabel, vendorMarks, vendorUnknown, type Model } from "@/lib/data";
@@ -57,11 +59,12 @@ function usd(value: number): string {
   return `$${value.toFixed(4).replace(/0+$/, "").replace(/\.$/, "")}`;
 }
 
-/** The discount against the provider's published price, as text and a number. */
-function discount(list: number | null | undefined, now: number): { text: string; pct: number } {
-  if (!list || list <= 0 || now <= 0) return { text: "", pct: 0 };
+/** The discount against the provider's published price, as a whole percent.
+ *  Only the number: the words around it are the UI's, so they can be localized. */
+function discountPct(list: number | null | undefined, now: number): number {
+  if (!list || list <= 0 || now <= 0) return 0;
   const pct = Math.round((1 - now / list) * 100);
-  return pct > 0 ? { text: `${pct}% off`, pct } : { text: "", pct: 0 };
+  return pct > 0 ? pct : 0;
 }
 
 export async function getPublicModels(): Promise<Model[]> {
@@ -98,7 +101,7 @@ export async function getPublicModels(): Promise<Model[]> {
     const input = row.model_ratio * USD_PER_RATIO_POINT;
     const output = input * (row.completion_ratio || 1);
     const cache = row.cache_ratio ? input * row.cache_ratio : null;
-    const disc = discount(info?.listIn, input);
+    const discPct = discountPct(info?.listIn, input);
 
     models.push({
       id: row.model_name,
@@ -112,8 +115,7 @@ export async function getPublicModels(): Promise<Model[]> {
       listOut: info?.listOut ? usd(info.listOut) : null,
       inNow: usd(input),
       outNow: usd(output),
-      disc: disc.text,
-      discPct: disc.pct,
+      discPct,
       endpoints: row.supported_endpoint_types ?? [],
       groups: row.enable_groups ?? [],
       featured: info?.featured,
@@ -129,3 +131,11 @@ export async function getPublicModels(): Promise<Model[]> {
       a.name.localeCompare(b.name),
   );
 }
+
+/**
+ * The same catalogue, memoised for the life of one request.
+ *
+ * A model page reads it in both `generateMetadata` and the page body; without
+ * this React would ask the gateway twice for a single render.
+ */
+export const getCatalogue = cache(getPublicModels);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import { Icon } from "@/lib/icons";
 import { brandMark, protocols } from "@/lib/data";
 import { TELEGRAM_URL } from "@/lib/site";
@@ -23,6 +24,7 @@ function copyText(text: string) {
 }
 
 function HeroBaseUrl() {
+  const t = useTranslations("hero");
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState(protocols[0]);
   const [copied, setCopied] = useState(false);
@@ -61,7 +63,7 @@ function HeroBaseUrl() {
         <span className="scheme">https://</span>api.vipai.site
         {current.path ? <span className="path">{current.path}</span> : null}
       </code>
-      <button className={`hb-copy${copied ? " copied" : ""}`} type="button" aria-label="Copy base URL" onClick={copy}>
+      <button className={`hb-copy${copied ? " copied" : ""}`} type="button" aria-label={t("copyBaseUrl")} onClick={copy}>
         <Icon name="ic-copy" className="ic-copy" />
         <Icon name="ic-check" className="ic-check" />
       </button>
@@ -89,17 +91,18 @@ function HeroBaseUrl() {
 }
 
 function RouteDiagram() {
+  const t = useTranslations("hero");
   return (
-      <div className="route-diagram" aria-label="Smart routing diagram">
+      <div className="route-diagram" aria-label={t("diagramLabel")}>
         <canvas className="route-canvas" aria-hidden="true" />
 
         <div className="rd-note" style={{ left: "6%", top: "2%" }}>
           <i aria-hidden="true" />
-          <span>MODEL PROVIDERS</span>
+          <span>{t("providers")}</span>
         </div>
         <div className="rd-note" style={{ right: "6%", top: "2%" }}>
           <i aria-hidden="true" />
-          <span>CODING AGENTS &amp; CLIENTS</span>
+          <span>{t("agents")}</span>
         </div>
 
       <div className="route-srcs">
@@ -134,7 +137,7 @@ function RouteDiagram() {
         <ul className="hub-caps">
           <li>
             <i style={{ "--c": "#fd924f" } as CSSProperties} />
-            <span>Smart Routing</span>
+            <span>{t("smartRouting")}</span>
           </li>
         </ul>
       </div>
@@ -161,14 +164,14 @@ function RouteDiagram() {
           <span className="nm">DeepSeek</span>
         </div>
       </div>
-      <div className="agents-cap">Works with 10+ coding agents and clients</div>
+      <div className="agents-cap">{t("agentsCaption")}</div>
     </div>
   );
 }
 
 const capPills = [
   {
-    label: "Smart Routing",
+    key: "smartRouting",
     path: (
       <>
         <polyline points="16 3 21 3 21 8" />
@@ -180,7 +183,7 @@ const capPills = [
     ),
   },
   {
-    label: "Prompt Caching",
+    key: "promptCaching",
     path: (
       <>
         <ellipse cx="12" cy="5.5" rx="7.5" ry="3" />
@@ -190,7 +193,7 @@ const capPills = [
     ),
   },
   {
-    label: "Auto Fallbacks",
+    key: "autoFallbacks",
     path: (
       <>
         <path d="M20.5 12a8.5 8.5 0 1 1-2.9-6.4" />
@@ -199,7 +202,7 @@ const capPills = [
     ),
   },
   {
-    label: "One Bill",
+    key: "oneBill",
     path: (
       <>
         <path d="M6.5 2.5h8l3.5 3.5v15.5l-2.6-1.8-2.6 1.8-2.6-1.8-3.7 1.8z" />
@@ -209,7 +212,7 @@ const capPills = [
     ),
   },
   {
-    label: "Spend Tracking",
+    key: "spendTracking",
     path: (
       <>
         <path d="M3.5 3.5v17h17" />
@@ -218,7 +221,7 @@ const capPills = [
     ),
   },
   {
-    label: "Never Downgraded",
+    key: "neverDowngraded",
     path: (
       <>
         <path d="M12 3.2 19 6v5.8c0 4.3-2.9 7.6-7 8.9-4.1-1.3-7-4.6-7-8.9V6z" />
@@ -229,15 +232,16 @@ const capPills = [
 ];
 
 function CapStrip() {
+  const t = useTranslations("hero");
   return (
-    <section className="capstrip" aria-label="Core capabilities and social proof">
+    <section className="capstrip" aria-label={t("capabilitiesLabel")}>
       <ul className="cap-pills">
         {capPills.map((p) => (
-          <li key={p.label}>
+          <li key={p.key}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               {p.path}
             </svg>
-            <span>{p.label}</span>
+            <span>{t(p.key)}</span>
           </li>
         ))}
       </ul>
@@ -256,7 +260,7 @@ function CapStrip() {
           </span>
         </span>
         <p>
-          Trusted by <b>6,000+</b> dev teams and indie builders
+          {t.rich("trusted", { n: t("trustedCount"), b: (chunks) => <b>{chunks}</b> })}
         </p>
       </div>
     </section>
@@ -264,8 +268,9 @@ function CapStrip() {
 }
 
 export function Hero({ maxOff }: { maxOff: number }) {
+  const t = useTranslations("hero");
   return (
-    <div className="hero-wrap" id="top">
+    <div className="hero-wrap" id="top" data-i18n-skip>
       <div className="art-bg" aria-hidden="true" />
       <canvas className="hero-ascii" aria-hidden="true" />
       <div className="hero-flow" aria-hidden="true">
@@ -278,13 +283,11 @@ export function Hero({ maxOff }: { maxOff: number }) {
         <header className="hero t-stagger" data-early-reveal="1">
           <div className="hero-eyebrow t-stagger-line">
             <span className="he-dot" aria-hidden="true" />
-            OpenAI-compatible · one key · one bill
+            {t("eyebrow")}
           </div>
           <h1 className="t-stagger-line t-stagger-line--2">
-            <span className="grad">Every frontier model</span> <br />
-            <span className="line2" data-i18n="one key, up to {n}% off list" data-i18n-n={String(maxOff)}>
-              one key, up to {maxOff}% off list
-            </span>
+            <span className="grad">{t("titleLead")}</span> <br />
+            <span className="line2">{t("titleTrail", { n: maxOff })}</span>
           </h1>
 
           <div className="cta t-stagger-line t-stagger-line--3">
@@ -292,7 +295,7 @@ export function Hero({ maxOff }: { maxOff: number }) {
               <span className="knob" aria-hidden="true">
                 <Icon name="ic-key" width={16} height={16} />
               </span>
-              Get free test tokens
+              {t("getTokens")}
               <span className="btn-fx" aria-hidden="true">
                 <span className="fx-star s1" />
                 <span className="fx-star s2" />
@@ -305,7 +308,7 @@ export function Hero({ maxOff }: { maxOff: number }) {
               target="_blank"
               rel="noreferrer noopener"
             >
-              <span>Chat on Telegram</span>
+              <span>{t("chatTelegram")}</span>
               <span className="btn-tag">@vipai</span>
               <span className="btn-fly" aria-hidden="true">
                 <span className="fly-trail" />

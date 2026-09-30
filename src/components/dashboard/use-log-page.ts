@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useTranslations } from "next-intl";
 import { dayEnd, dayStart } from "@/lib/analytics";
 import { EMPTY_LOG_FILTERS, type LogFilterState } from "./logs-filter";
 
@@ -39,6 +40,7 @@ export function toLogQuery(
  * waits on a client round-trip.
  */
 export function useLogPager<T>(endpoint: string, initial: LogPageShape<T>) {
+  const t = useTranslations("logs");
   const [data, setData] = useState<LogPageShape<T> & Record<string, unknown>>(
     initial as LogPageShape<T> & Record<string, unknown>,
   );
@@ -56,19 +58,19 @@ export function useLogPager<T>(endpoint: string, initial: LogPageShape<T>) {
         const response = await fetch(`${endpoint}?${query}`, { cache: "no-store" });
         if (!response.ok) {
           const payload = (await response.json().catch(() => null)) as { message?: string } | null;
-          setError(payload?.message || "Could not load the log.");
+          setError(payload?.message || t("errorLoad"));
           return;
         }
         const payload = (await response.json()) as LogPageShape<T> & Record<string, unknown>;
         setData(payload);
         setPage(payload.page ?? nextPage);
       } catch {
-        setError("Could not reach the server.");
+        setError(t("errorServer"));
       } finally {
         setLoading(false);
       }
     },
-    [endpoint, initial.pageSize],
+    [endpoint, initial.pageSize, t],
   );
 
   const apply = useCallback(

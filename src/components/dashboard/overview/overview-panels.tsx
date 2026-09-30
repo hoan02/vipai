@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import {
   Activity,
   ArrowRight,
@@ -17,7 +18,7 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { usd } from "@/lib/money";
 import { useLocale } from "@/components/site/I18n";
 import { formatDateTime } from "@/lib/datetime";
@@ -246,25 +247,28 @@ function GlanceCard({
   );
 }
 
-function creditHealth(balanceUsd: number, usage24hUsd: number): { tone: Tone; label: string } {
-  if (balanceUsd <= 0) return { tone: "bad", label: "Balance depleted" };
+/** Keys into the `overview` namespace; the words are chosen at the call site so
+ *  this stays a plain function. */
+function creditHealth(balanceUsd: number, usage24hUsd: number): { tone: Tone; labelKey: string } {
+  if (balanceUsd <= 0) return { tone: "bad", labelKey: "healthDepleted" };
   if (usage24hUsd > 0 && balanceUsd / usage24hUsd < 3) {
-    return { tone: "warn", label: "Low balance" };
+    return { tone: "warn", labelKey: "healthLow" };
   }
-  return { tone: "ok", label: "Healthy" };
+  return { tone: "ok", labelKey: "healthHealthy" };
 }
 
-function runwayLabel(balanceUsd: number, usage24hUsd: number): string {
-  if (balanceUsd <= 0) return "Balance depleted";
-  if (usage24hUsd <= 0) return "No recent usage";
+function runwayLabel(balanceUsd: number, usage24hUsd: number): { key: string; days?: number } {
+  if (balanceUsd <= 0) return { key: "healthDepleted" };
+  if (usage24hUsd <= 0) return { key: "runwayNoUsage" };
   const days = balanceUsd / usage24hUsd;
-  if (!Number.isFinite(days)) return "No recent usage";
-  if (days < 1) return "Less than 1 day left";
-  if (days > 999) return "999+ days";
-  return `~${Math.floor(days)} days`;
+  if (!Number.isFinite(days)) return { key: "runwayNoUsage" };
+  if (days < 1) return { key: "runwayLessThanDay" };
+  if (days > 999) return { key: "runwayMax" };
+  return { key: "runwayDays", days: Math.floor(days) };
 }
 
 export function SummaryCards({ overview }: { overview: DashboardOverview }) {
+  const t = useTranslations("overview");
   const { balanceUsd, usedUsd, requestCount, usage24hUsd, usage24hSeries } = overview;
   const health = creditHealth(balanceUsd, usage24hUsd);
   const runway = runwayLabel(balanceUsd, usage24hUsd);
@@ -273,59 +277,59 @@ export function SummaryCards({ overview }: { overview: DashboardOverview }) {
     <section className="panel ov-summary">
       <div className="ov-summary-main">
         <div className="ov-summary-hd">
-          <h3>Usage at a glance</h3>
-          <p className="note">Monitor balance, usage, and request volume</p>
+          <h3>{t("glanceTitle")}</h3>
+          <p className="note">{t("glanceSub")}</p>
         </div>
         <div className="ov-glances">
           <GlanceCard
             icon={<Flame size={14} />}
-            label="Last 24h usage"
+            label={t("glance24h")}
             value={usd(usage24hUsd)}
-            note="Consumed in the last 24 hours (USD)"
+            note={t("glance24hNote")}
             spark={usage24hSeries}
           />
           <GlanceCard
             icon={<TrendingUp size={14} />}
-            label="Historical Usage"
+            label={t("glanceHistorical")}
             value={usd(usedUsd)}
-            note="Total consumed (USD)"
+            note={t("glanceHistoricalNote")}
           />
           <GlanceCard
             icon={<Activity size={14} />}
-            label="Number of requests"
+            label={t("glanceRequests")}
             value={requestCount.toLocaleString()}
-            note="Total requests made"
+            note={t("glanceRequestsNote")}
           />
         </div>
       </div>
 
       <div className="ov-credit">
         <div className="ov-credit-hd">
-          <span className="note">Credit remaining</span>
+          <span className="note">{t("creditRemaining")}</span>
           <span className={`ov-health ov-${health.tone}`}>
             <i aria-hidden="true" />
-            {health.label}
+            {t(health.labelKey)}
           </span>
         </div>
         <div className="ov-credit-amt">{usd(balanceUsd)}</div>
         <div className="ov-credit-grid">
           <div>
             <span className="ov-credit-k">
-              <Flame size={12} /> Last 24h usage
+              <Flame size={12} /> {t("glance24h")}
             </span>
             <b>{usd(usage24hUsd)}</b>
           </div>
           <div>
             <span className="ov-credit-k">
-              <ShieldCheck size={12} /> Runway
+              <ShieldCheck size={12} /> {t("runway")}
             </span>
             <b className={health.tone === "bad" ? "ov-bad" : health.tone === "warn" ? "ov-warn" : undefined}>
-              {runway}
+              {t(runway.key, { days: runway.days ?? 0 })}
             </b>
           </div>
         </div>
         <Link className="btn btn-primary ov-wallet-btn" href="/dashboard/wallet">
-          Wallet
+          {t("actionWallet")}
           <ArrowRight size={15} />
         </Link>
       </div>
@@ -350,31 +354,40 @@ function MetricCell({ icon, label, value, tone = "muted" }: { icon: ReactNode; l
 }
 
 export function PerformancePanel({ performance }: { performance: OverviewPerformance }) {
+  const t = useTranslations("overview");
   const hasData = performance.models.length > 0 || performance.successRate !== null;
   const topModels = performance.models.slice(0, 6);
 
   return (
     <Panel
       icon={<HeartPulse size={16} />}
-      title="Performance health"
-      description="Performance metrics for the last 24 hours"
+      title={t("performanceTitle")}
+      description={t("performanceSub")}
       empty={!hasData}
-      emptyText="No performance data recorded in the last 24 hours."
+      emptyText={t("performanceEmpty")}
     >
       <div className="ov-metrics">
         <MetricCell
           icon={<HeartPulse size={13} />}
-          label="Success rate"
+          label={t("metricSuccess")}
           value={formatPercent(performance.successRate)}
           tone={successTone(performance.successRate)}
         />
-        <MetricCell icon={<Timer size={13} />} label="Average latency" value={formatLatency(performance.avgLatencyMs)} />
-        <MetricCell icon={<Gauge size={13} />} label="Throughput" value={formatThroughput(performance.avgTps)} />
+        <MetricCell
+          icon={<Timer size={13} />}
+          label={t("metricLatency")}
+          value={formatLatency(performance.avgLatencyMs)}
+        />
+        <MetricCell
+          icon={<Gauge size={13} />}
+          label={t("metricThroughput")}
+          value={formatThroughput(performance.avgTps)}
+        />
       </div>
 
       {topModels.length > 0 ? (
         <div className="ov-topmodels">
-          <span className="note">Top models by traffic</span>
+          <span className="note">{t("topModels")}</span>
           <div className="ov-topmodels-grid">
             {topModels.map((model) => (
               <div key={model.modelName} className="ov-topmodel">
@@ -401,6 +414,7 @@ export function PerformancePanel({ performance }: { performance: OverviewPerform
 type PingState = { testing: boolean; latency: number | null; error: boolean };
 
 export function ApiInfoPanel({ status }: { status: OverviewStatus }) {
+  const t = useTranslations("overview");
   const [ping, setPing] = useState<Record<string, PingState>>({});
   const items = status.apiInfo;
 
@@ -419,10 +433,10 @@ export function ApiInfoPanel({ status }: { status: OverviewStatus }) {
   return (
     <Panel
       icon={<Route size={16} />}
-      title="API Info"
-      description="Configured routes and latency checks"
+      title={t("apiInfoTitle")}
+      description={t("apiInfoSub")}
       empty={items.length === 0}
-      emptyText="No API routes configured"
+      emptyText={t("apiInfoEmpty")}
       scroll
     >
       <ul className="ov-list">
@@ -439,16 +453,16 @@ export function ApiInfoPanel({ status }: { status: OverviewStatus }) {
                 <span className="ov-list-url">{item.url}</span>
               </div>
               <div className="ov-list-actions">
-                {state?.testing ? <span className="ov-badge ov-warn">Testing…</span> : null}
+                {state?.testing ? <span className="ov-badge ov-warn">{t("testing")}</span> : null}
                 {state && !state.testing && state.latency !== null ? (
                   <span className={`ov-badge ov-${latencyTone(state.latency)}`}>{state.latency}ms</span>
                 ) : null}
-                {state?.error ? <span className="ov-badge">N/A</span> : null}
+                {state?.error ? <span className="ov-badge">{t("notAvailable")}</span> : null}
                 <button
                   className="ov-iconbtn"
                   type="button"
-                  title="Test latency"
-                  aria-label="Test latency"
+                  title={t("testLatency")}
+                  aria-label={t("testLatency")}
                   disabled={state?.testing}
                   onClick={() => void test(item.url)}
                 >
@@ -457,8 +471,8 @@ export function ApiInfoPanel({ status }: { status: OverviewStatus }) {
                 <button
                   className="ov-iconbtn"
                   type="button"
-                  title="Copy URL"
-                  aria-label="Copy URL"
+                  title={t("copyUrl")}
+                  aria-label={t("copyUrl")}
                   onClick={() => copyText(item.url)}
                 >
                   <Copy size={14} />
@@ -468,8 +482,8 @@ export function ApiInfoPanel({ status }: { status: OverviewStatus }) {
                   href={item.url}
                   target="_blank"
                   rel="noreferrer"
-                  title="Open in new tab"
-                  aria-label="Open in new tab"
+                  title={t("openNewTab")}
+                  aria-label={t("openNewTab")}
                 >
                   <ExternalLink size={14} />
                 </a>
@@ -487,6 +501,7 @@ export function ApiInfoPanel({ status }: { status: OverviewStatus }) {
  * ------------------------------------------------------------------------ */
 
 function AnnouncementDialog({ item, onClose }: { item: GatewayAnnouncement; onClose: () => void }) {
+  const t = useTranslations("overview");
   const locale = useLocale();
   const [copied, setCopied] = useState(false);
   return (
@@ -494,19 +509,21 @@ function AnnouncementDialog({ item, onClose }: { item: GatewayAnnouncement; onCl
       className="ov-modal-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label="Announcement details"
+      aria-label={t("annDetails")}
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
       <div className="ov-modal">
         <header className="ov-modal-hd">
-          <b>Announcement details</b>
-          <button className="ov-iconbtn" type="button" aria-label="Close" onClick={onClose}>
+          <b>{t("annDetails")}</b>
+          <button className="ov-iconbtn" type="button" aria-label={t("close")} onClick={onClose}>
             ✕
           </button>
         </header>
-        {item.publishDate ? <p className="note">Published: {formatDateTime(item.publishDate, locale)}</p> : null}
+        {item.publishDate ? (
+          <p className="note">{t("published", { date: formatDateTime(item.publishDate, locale) })}</p>
+        ) : null}
         <div className="ov-modal-bd">
           <p className="ov-modal-content">{item.content}</p>
           {item.extra ? <p className="note ov-modal-content">{item.extra}</p> : null}
@@ -521,10 +538,10 @@ function AnnouncementDialog({ item, onClose }: { item: GatewayAnnouncement; onCl
               window.setTimeout(() => setCopied(false), 1400);
             }}
           >
-            {copied ? "Copied" : "Copy"}
+            {copied ? t("copied") : t("copy")}
           </button>
           <button className="btn btn-primary btn-sm" type="button" onClick={onClose}>
-            Close
+            {t("close")}
           </button>
         </div>
       </div>
@@ -533,6 +550,7 @@ function AnnouncementDialog({ item, onClose }: { item: GatewayAnnouncement; onCl
 }
 
 export function AnnouncementsPanel({ status }: { status: OverviewStatus }) {
+  const t = useTranslations("overview");
   const locale = useLocale();
   const [selected, setSelected] = useState<GatewayAnnouncement | null>(null);
   const readKeys = useNotificationStore((state) => state.readAnnouncementKeys);
@@ -556,11 +574,11 @@ export function AnnouncementsPanel({ status }: { status: OverviewStatus }) {
     <>
       <Panel
         icon={<Megaphone size={16} />}
-        title="Announcements"
+        title={t("announcementsTitle")}
         description={
           unreadCount > 0
-            ? `Latest platform updates and notices · ${unreadCount} new`
-            : "Latest platform updates and notices"
+            ? t("announcementsSubNew", { count: unreadCount })
+            : t("announcementsSub")
         }
         actions={
           unreadCount > 0 ? (
@@ -569,12 +587,12 @@ export function AnnouncementsPanel({ status }: { status: OverviewStatus }) {
               type="button"
               onClick={() => markRead(items.map(announcementKey))}
             >
-              Mark all read
+              {t("markAllRead")}
             </button>
           ) : undefined
         }
         empty={items.length === 0}
-        emptyText="No announcements at this time"
+        emptyText={t("announcementsEmpty")}
         scroll
       >
         <ul className="ov-ann-list">
@@ -591,7 +609,7 @@ export function AnnouncementsPanel({ status }: { status: OverviewStatus }) {
                   <span className="ov-ann-main">
                     <span className="ov-ann-text">{preview(item.content)}</span>
                     <span className="ov-ann-meta">
-                      {isUnread ? <span className="ov-ann-new">New</span> : null}
+                      {isUnread ? <span className="ov-ann-new">{t("newBadge")}</span> : null}
                       {item.publishDate ? (
                         <time className="note">{formatDateTime(item.publishDate, locale)}</time>
                       ) : null}
@@ -613,15 +631,16 @@ export function AnnouncementsPanel({ status }: { status: OverviewStatus }) {
  * ------------------------------------------------------------------------ */
 
 export function FaqPanel({ status }: { status: OverviewStatus }) {
+  const t = useTranslations("overview");
   const items = status.faq;
 
   return (
     <Panel
       icon={<HelpCircle size={16} />}
-      title="FAQ"
-      description="Answers for common access and billing questions"
+      title={t("faqTitle")}
+      description={t("faqSub")}
       empty={items.length === 0}
-      emptyText="No FAQ entries available"
+      emptyText={t("faqEmpty")}
       scroll
     >
       <div className="ov-faq">
@@ -641,13 +660,14 @@ export function FaqPanel({ status }: { status: OverviewStatus }) {
  * ------------------------------------------------------------------------ */
 
 export function UptimePanel({ uptime }: { uptime: GatewayUptimeGroup[] }) {
+  const t = useTranslations("overview");
   return (
     <Panel
       icon={<Activity size={16} />}
-      title="Uptime"
-      description="Grouped monitor status from Uptime Kuma"
+      title={t("uptimeTitle")}
+      description={t("uptimeSub")}
       empty={uptime.length === 0}
-      emptyText="No uptime monitoring configured"
+      emptyText={t("uptimeEmpty")}
       scroll
     >
       <div className="ov-uptime">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { Bell, Check, Copy, Gift } from "lucide-react";
@@ -40,14 +41,27 @@ export type WalletAffiliate = {
   quota: number;
 };
 
-function durationLabel(plan: SubscriptionPlan): string {
+/** A `t` narrowed to what this file hands around; see `lib/faq.ts`. */
+type WalletTranslate = (key: string, values?: Record<string, string | number>) => string;
+
+/**
+ * The plan's length, in words.
+ *
+ * The gateway reports a machine unit ("day", "month", "year", "custom"), so the
+ * wording — and the plural — comes from the catalogue rather than being
+ * concatenated here, which is what made it English-only before.
+ */
+function durationLabel(plan: SubscriptionPlan, t: WalletTranslate): string {
   if (plan.durationUnit === "custom") {
     const days = Math.round(plan.customSeconds / 86_400);
-    return days > 0 ? `${days} days` : "custom";
+    return days > 0 ? t("durationDays", { days }) : t("durationCustom");
   }
-  const unit = plan.durationUnit;
   const value = plan.durationValue;
-  return `${value} ${unit}${value === 1 ? "" : "s"}`;
+  if (plan.durationUnit === "day") return t("durationDays", { days: value });
+  if (plan.durationUnit === "month") return t("durationMonths", { value });
+  if (plan.durationUnit === "year") return t("durationYears", { value });
+  // An unknown unit is shown as reported rather than hidden.
+  return `${value} ${plan.durationUnit}`;
 }
 
 function copyText(text: string) {
@@ -90,19 +104,17 @@ function submitPaymentForm(url: string, params: Record<string, unknown>) {
 /* ---------- Balance card (moved here from the retired Billing page) ---------- */
 
 function BalanceCard({ balance }: { balance: number }) {
+  const t = useTranslations("wallet");
   const [notified, setNotified] = useState(false);
   return (
     <div className="bal">
       <div className="bal-row">
         <span className="bal-amt">{usd(balance)}</span>
         <button className="btn btn-primary btn-sm" type="button" data-topup>
-          Top up
+          {t("topUp")}
         </button>
       </div>
-      <p className="bal-note">
-        Credits are added at face value in USD. Model discounts are applied automatically when
-        credits are used.
-      </p>
+      <p className="bal-note">{t("balanceNote")}</p>
       <button
         className="bal-alert"
         type="button"
@@ -111,7 +123,7 @@ function BalanceCard({ balance }: { balance: number }) {
           window.setTimeout(() => setNotified(false), 1800);
         }}
       >
-        <Bell size={15} /> {notified ? "Balance alerts are not available yet" : "Set balance alert"}
+        <Bell size={15} /> {notified ? t("alertsUnavailable") : t("setAlert")}
       </button>
     </div>
   );
@@ -120,6 +132,7 @@ function BalanceCard({ balance }: { balance: number }) {
 /* ---------- Recharge ---------- */
 
 function RechargePanel({ info, balance }: { info: WalletInfo; balance: number }) {
+  const t = useTranslations("wallet");
   const router = useRouter();
   const options = info.amountOptions.length > 0 ? info.amountOptions : [10, 20, 50, 100];
   const [amount, setAmount] = useState(options[0]);
@@ -132,11 +145,11 @@ function RechargePanel({ info, balance }: { info: WalletInfo; balance: number })
 
   const pay = async () => {
     if (!method) {
-      toast.error("Choose a payment method.");
+      toast.error(t("errChooseMethod"));
       return;
     }
     if (!Number.isFinite(effective) || effective < info.minTopup) {
-      toast.error(`The minimum top-up is ${usd(info.minTopup)}.`);
+      toast.error(t("errMinTopup", { amount: usd(info.minTopup) }));
       return;
     }
     setBusy(true);
@@ -151,7 +164,7 @@ function RechargePanel({ info, balance }: { info: WalletInfo; balance: number })
         | { url?: string; params?: Record<string, unknown>; message?: string }
         | null;
       if (!response.ok || !payload?.url) {
-        toast.error(payload?.message || "Could not start the payment.");
+        toast.error(payload?.message || t("errStartPayment"));
         return;
       }
       if (payload.params && Object.keys(payload.params).length > 0) {
@@ -161,27 +174,23 @@ function RechargePanel({ info, balance }: { info: WalletInfo; balance: number })
         window.open(payload.url, "_blank", "noopener");
         setPayUrl(payload.url);
       }
-      toast.success("Payment opened in a new tab. Your balance updates once it completes.");
+      toast.success(t("paymentOpened"));
       router.refresh();
     } catch {
-      toast.error("Could not reach the server.");
+      toast.error(t("errServer"));
     } finally {
       setBusy(false);
     }
   };
 
   if (!info.enableOnlineTopup || info.payMethods.length === 0) {
-    return (
-      <p className="note">
-        Online top-up is not configured on this instance. Use a credit code below, or ask support.
-      </p>
-    );
+    return <p className="note">{t("onlineTopupOff")}</p>;
   }
 
   return (
     <>
       <p className="note" style={{ marginBottom: 12 }}>
-        Current balance {usd(balance)} · minimum {usd(info.minTopup)}.
+        {t("currentBalance", { balance: usd(balance), minimum: usd(info.minTopup) })}
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
         {options.map((option) => (
@@ -201,8 +210,8 @@ function RechargePanel({ info, balance }: { info: WalletInfo; balance: number })
         <input
           className="field"
           style={{ width: 130 }}
-          placeholder="Other amount"
-          aria-label="Custom amount"
+          placeholder={t("otherAmount")}
+          aria-label={t("customAmount")}
           inputMode="decimal"
           value={custom}
           onChange={(e) => setCustom(e.target.value)}
@@ -210,13 +219,13 @@ function RechargePanel({ info, balance }: { info: WalletInfo; balance: number })
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
         <Select
-          label="Payment method"
+          label={t("paymentMethod")}
           value={method}
           onChange={setMethod}
           options={info.payMethods.map((m) => ({ value: m.type, label: m.name }))}
         />
         <button className="btn btn-primary btn-sm" type="button" onClick={pay} disabled={busy}>
-          {busy ? "Starting…" : `Pay ${usd(Number.isFinite(effective) ? effective : 0)}`}
+          {busy ? t("starting") : t("pay", { amount: usd(Number.isFinite(effective) ? effective : 0) })}
         </button>
       </div>
       {payUrl ? (
@@ -232,7 +241,7 @@ function RechargePanel({ info, balance }: { info: WalletInfo; balance: number })
             />
           </span>
           <p className="note" style={{ maxWidth: 240 }}>
-            Or scan with your phone to finish the payment there.
+            {t("scanToFinish")}
           </p>
         </div>
       ) : null}
@@ -243,6 +252,7 @@ function RechargePanel({ info, balance }: { info: WalletInfo; balance: number })
 /* ---------- Redeem ---------- */
 
 function RedeemPanel({ enabled }: { enabled: boolean }) {
+  const t = useTranslations("wallet");
   const router = useRouter();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -250,7 +260,7 @@ function RedeemPanel({ enabled }: { enabled: boolean }) {
   const redeem = async () => {
     const key = code.trim();
     if (!key) {
-      toast.error("Enter a credit code.");
+      toast.error(t("errEnterCode"));
       return;
     }
     setBusy(true);
@@ -264,25 +274,21 @@ function RedeemPanel({ enabled }: { enabled: boolean }) {
         | { creditedUsd?: number; message?: string }
         | null;
       if (!response.ok) {
-        toast.error(payload?.message || "That code could not be redeemed.");
+        toast.error(payload?.message || t("errRedeem"));
         return;
       }
-      toast.success(`Code redeemed — ${usd(payload?.creditedUsd ?? 0)} added.`);
+      toast.success(t("codeRedeemed", { amount: usd(payload?.creditedUsd ?? 0) }));
       setCode("");
       router.refresh();
     } catch {
-      toast.error("Could not reach the server.");
+      toast.error(t("errServer"));
     } finally {
       setBusy(false);
     }
   };
 
   if (!enabled) {
-    return (
-      <p className="note">
-        Credit codes are disabled on this instance. Ask on Telegram for a top-up.
-      </p>
-    );
+    return <p className="note">{t("redeemOff")}</p>;
   }
 
   return (
@@ -292,8 +298,8 @@ function RedeemPanel({ enabled }: { enabled: boolean }) {
           id="redeemCode"
           className="field"
           style={{ flex: "1 1 260px", fontFamily: "var(--font-mono)" }}
-          placeholder="Paste the code from your purchase"
-          aria-label="Credit code"
+          placeholder={t("codePlaceholder")}
+          aria-label={t("creditCode")}
           value={code}
           onChange={(e) => setCode(e.target.value)}
           onKeyDown={(e) => {
@@ -301,7 +307,7 @@ function RedeemPanel({ enabled }: { enabled: boolean }) {
           }}
         />
         <button className="btn btn-primary btn-sm" type="button" onClick={redeem} disabled={busy}>
-          {busy ? "Redeeming…" : "Redeem"}
+          {busy ? t("redeeming") : t("redeem")}
         </button>
       </div>
     </>
@@ -317,6 +323,7 @@ function SubscriptionPanel({
   plans: SubscriptionPlan[];
   subscription: SubscriptionSelf;
 }) {
+  const t = useTranslations("wallet");
   const router = useRouter();
   const locale = useLocale();
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -331,13 +338,13 @@ function SubscriptionPanel({
       });
       const payload = (await response.json().catch(() => null)) as { message?: string } | null;
       if (!response.ok) {
-        toast.error(payload?.message || "Could not buy the plan.");
+        toast.error(payload?.message || t("errBuyPlan"));
         return;
       }
-      toast.success(`${plan.title} is now active.`);
+      toast.success(t("planActive", { plan: plan.title }));
       router.refresh();
     } catch {
-      toast.error("Could not reach the server.");
+      toast.error(t("errServer"));
     } finally {
       setBusyId(null);
     }
@@ -347,7 +354,7 @@ function SubscriptionPanel({
     <>
       {subscription.active.length > 0 ? (
         <div className="panel" style={{ padding: 16, marginBottom: 14 }}>
-          <b style={{ fontSize: 14.5 }}>Active subscriptions</b>
+          <b style={{ fontSize: 14.5 }}>{t("activeSubs")}</b>
           <ul style={{ listStyle: "none", margin: "10px 0 0", padding: 0, display: "grid", gap: 8 }}>
             {subscription.active.map((sub) => {
               const plan = plans.find((p) => p.id === sub.planId);
@@ -357,12 +364,15 @@ function SubscriptionPanel({
                   style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}
                 >
                   <span>
-                    <b>{plan?.title ?? `Plan #${sub.planId}`}</b>{" "}
+                    <b>{plan?.title ?? t("planFallback", { id: sub.planId })}</b>{" "}
                     <Pill tone={sub.status === "active" ? "ok" : "off"}>{sub.status}</Pill>
                   </span>
                   <span className="note">
-                    {sub.amountUsed.toLocaleString()} / {sub.amountTotal.toLocaleString()} used · until{" "}
-                    {formatDate(sub.endTime * 1000, locale)}
+                    {t("usedUntil", {
+                      used: sub.amountUsed.toLocaleString(),
+                      total: sub.amountTotal.toLocaleString(),
+                      date: formatDate(sub.endTime * 1000, locale),
+                    })}
                   </span>
                 </li>
               );
@@ -372,7 +382,7 @@ function SubscriptionPanel({
       ) : null}
 
       {plans.length === 0 ? (
-        <p className="note">No subscription plans are available on this instance.</p>
+        <p className="note">{t("noPlans")}</p>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 14 }}>
           {plans.map((plan) => (
@@ -384,20 +394,26 @@ function SubscriptionPanel({
                 </span>
               </div>
               {plan.subtitle ? <span className="note">{plan.subtitle}</span> : null}
-              <span className="note">Duration: {durationLabel(plan)}</span>
+              <span className="note">{t("duration", { duration: durationLabel(plan, t) })}</span>
               <span className="note">
-                {plan.totalAmount > 0 ? `${plan.totalAmount.toLocaleString()} quota included` : "Unlimited quota"}
-                {plan.quotaResetPeriod !== "never" ? ` · resets ${plan.quotaResetPeriod}` : ""}
+                {plan.totalAmount > 0
+                  ? t("quotaIncluded", { amount: plan.totalAmount.toLocaleString() })
+                  : t("unlimitedQuota")}
+                {plan.quotaResetPeriod !== "never" ? t("resets", { period: plan.quotaResetPeriod }) : ""}
               </span>
               <button
                 className="btn btn-primary btn-sm"
                 type="button"
                 style={{ marginTop: "auto", alignSelf: "flex-start" }}
                 disabled={!plan.allowBalancePay || busyId === plan.id}
-                title={plan.allowBalancePay ? undefined : "Pay this plan from the payment page"}
+                title={plan.allowBalancePay ? undefined : t("payFromPage")}
                 onClick={() => buy(plan)}
               >
-                {busyId === plan.id ? "Buying…" : plan.allowBalancePay ? "Buy with balance" : "Pay online"}
+                {busyId === plan.id
+                  ? t("buying")
+                  : plan.allowBalancePay
+                    ? t("buyWithBalance")
+                    : t("payOnline")}
               </button>
             </div>
           ))}
@@ -410,6 +426,7 @@ function SubscriptionPanel({
 /* ---------- Affiliate ---------- */
 
 function AffiliatePanel({ affiliate }: { affiliate: WalletAffiliate }) {
+  const t = useTranslations("wallet");
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -427,13 +444,13 @@ function AffiliatePanel({ affiliate }: { affiliate: WalletAffiliate }) {
       });
       const payload = (await response.json().catch(() => null)) as { message?: string } | null;
       if (!response.ok) {
-        toast.error(payload?.message || "Could not transfer the earnings.");
+        toast.error(payload?.message || t("errTransfer"));
         return;
       }
-      toast.success("Earnings moved to your balance.");
+      toast.success(t("earningsMoved"));
       router.refresh();
     } catch {
-      toast.error("Could not reach the server.");
+      toast.error(t("errServer"));
     } finally {
       setBusy(false);
     }
@@ -442,9 +459,9 @@ function AffiliatePanel({ affiliate }: { affiliate: WalletAffiliate }) {
   return (
     <>
       <div className="stats" style={{ marginBottom: 14 }}>
-        <Stat label="Referrals" value={affiliate.count.toLocaleString()} />
-        <Stat label="Earned" value={usd(affiliate.earnedUsd)} hint="unclaimed" />
-        <Stat label="Code" value={affiliate.code || "—"} />
+        <Stat label={t("statReferrals")} value={affiliate.count.toLocaleString()} />
+        <Stat label={t("statEarned")} value={usd(affiliate.earnedUsd)} hint={t("unclaimed")} />
+        <Stat label={t("statCode")} value={affiliate.code || "—"} />
       </div>
 
       {affiliate.code ? (
@@ -454,7 +471,7 @@ function AffiliatePanel({ affiliate }: { affiliate: WalletAffiliate }) {
             <button
               className={`conn-copy${copied ? " copied" : ""}`}
               type="button"
-              aria-label="Copy referral link"
+              aria-label={t("copyReferral")}
               onClick={() => {
                 copyText(link);
                 setCopied(true);
@@ -471,11 +488,11 @@ function AffiliatePanel({ affiliate }: { affiliate: WalletAffiliate }) {
             onClick={transfer}
           >
             <Gift size={14} aria-hidden="true" />
-            {busy ? "Transferring…" : "Transfer to balance"}
+            {busy ? t("transferring") : t("transferToBalance")}
           </button>
         </>
       ) : (
-        <p className="note">Your referral code is not available yet.</p>
+        <p className="note">{t("noReferralCode")}</p>
       )}
     </>
   );
@@ -503,47 +520,49 @@ export function WalletView({
   affiliate: WalletAffiliate;
 }) {
   const locale = useLocale();
+  const t = useTranslations("wallet");
+  const td = useTranslations("dash");
 
   const columns: Column<WalletTopUp>[] = [
     {
       id: "createdAt",
-      header: "Date",
+      header: t("colDate"),
       accessorFn: (r) => r.createdAt,
       cell: (info) => formatDateTime(info.getValue(), locale),
     },
     {
       id: "amountUsd",
-      header: "Credited",
+      header: t("colCredited"),
       meta: { align: "right" },
       accessorFn: (r) => r.amountUsd,
       cell: (info) => <span className="num">{usd(info.getValue())}</span>,
     },
     {
       id: "paidUsd",
-      header: "Paid",
+      header: t("colPaid"),
       meta: { align: "right" },
       accessorFn: (r) => r.paidUsd,
       cell: (info) => <span className="num">{usd(info.getValue())}</span>,
     },
     {
       id: "paymentMethod",
-      header: "Method",
-      accessorFn: (r) => r.paymentMethod || "code",
-      cell: (info) => info.getValue() || "code",
+      header: t("colMethod"),
+      accessorFn: (r) => r.paymentMethod || t("methodCode"),
+      cell: (info) => info.getValue() || t("methodCode"),
     },
     {
       id: "status",
-      header: "Status",
+      header: td("status"),
       accessorFn: (r) => r.status,
       cell: (info) => (
         <Pill tone={info.getValue() === "success" ? "ok" : "off"}>
-          {info.getValue() || "pending"}
+          {info.getValue() || t("statusPending")}
         </Pill>
       ),
     },
     {
       id: "tradeNo",
-      header: "Reference",
+      header: t("colReference"),
       accessorFn: (r) => r.tradeNo,
       cell: (info) =>
         info.getValue() ? (
@@ -556,43 +575,36 @@ export function WalletView({
 
   return (
     <>
-      <PageHead
-        title="Wallet"
-        sub="Balance, top-ups, subscriptions and referrals — the money side of your account."
-      />
+      <PageHead title={t("title")} sub={t("sub")} />
 
       <div className="stack-16" style={{ marginTop: 20 }}>
         <BalanceCard balance={balanceUsd} />
 
         <div className="stats">
-          <Stat label="Balance" value={usd(balanceUsd)} hint="unspent credit" />
-          <Stat label="Spent" value={usd(usedUsd)} hint="lifetime, at list price" />
-          <Stat label="Requests" value={requestCount.toLocaleString()} />
+          <Stat label={t("statBalance")} value={usd(balanceUsd)} hint={t("statBalanceHint")} />
+          <Stat label={t("statSpent")} value={usd(usedUsd)} hint={t("statSpentHint")} />
+          <Stat label={t("statRequests")} value={requestCount.toLocaleString()} />
         </div>
       </div>
 
-      <SectionTitle hint="Credits never expire">Add credit</SectionTitle>
+      <SectionTitle hint={t("addCreditHint")}>{t("addCredit")}</SectionTitle>
       <div className="panel" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 18 }}>
         <RechargePanel info={info} balance={balanceUsd} />
         <div style={{ borderTop: "1px dashed var(--d-dash)", paddingTop: 16 }}>
-          <b style={{ fontSize: 14.5, display: "block", marginBottom: 10 }}>Redeem a credit code</b>
+          <b style={{ fontSize: 14.5, display: "block", marginBottom: 10 }}>{t("redeemTitle")}</b>
           <RedeemPanel enabled={info.enableRedemption} />
         </div>
       </div>
 
-      <SectionTitle hint={`${plans.length} plan${plans.length === 1 ? "" : "s"}`}>
-        Subscriptions
-      </SectionTitle>
+      <SectionTitle hint={t("planCount", { count: plans.length })}>{t("subscriptions")}</SectionTitle>
       <SubscriptionPanel plans={plans} subscription={subscription} />
 
-      <SectionTitle hint="Share your link, earn credit">Referrals</SectionTitle>
+      <SectionTitle hint={t("referralsHint")}>{t("referrals")}</SectionTitle>
       <div className="panel" style={{ padding: 18 }}>
         <AffiliatePanel affiliate={affiliate} />
       </div>
 
-      <SectionTitle hint={`${topups.length} entr${topups.length === 1 ? "y" : "ies"}`}>
-        Purchase history
-      </SectionTitle>
+      <SectionTitle hint={t("topupCount", { count: topups.length })}>{t("purchaseHistory")}</SectionTitle>
       <div className="panel" style={{ padding: 16 }}>
         <DataTable
           columns={columns}
@@ -601,7 +613,7 @@ export function WalletView({
           searchable={false}
           pageSize={10}
           fixedHeight
-          empty="No purchases yet. Credits redeemed with a code appear here."
+          empty={t("emptyPurchases")}
         />
       </div>
     </>

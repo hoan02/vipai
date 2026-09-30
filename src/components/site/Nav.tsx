@@ -1,35 +1,41 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import type { Locale } from "@/i18n/routing";
 import { useSession } from "@/lib/auth-client";
 import { openAuthModal } from "@/lib/auth-modal";
 import { UserButton } from "@/components/UserButton";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Icon } from "@/lib/icons";
 import { brandMark, languages } from "@/lib/data";
-import { setLocale } from "@/components/site/I18n";
 
-const links = [
-  { href: "/", label: "Home", active: true },
-  { href: "/#pricing", label: "Pricing" },
-  { href: "/download", label: "Connect Codex" },
-  { href: "/docs", label: "API docs" },
-  { href: "/dashboard", label: "Dashboard" },
+/** `key` indexes the `nav` namespace in `messages/`; the label is never typed
+ *  here, so the two locales cannot drift. */
+type NavLink = { href: string; key: string; active?: boolean };
+
+const links: NavLink[] = [
+  { href: "/", key: "home", active: true },
+  { href: "/pricing", key: "pricing" },
+  { href: "/models", key: "models" },
+  { href: "/download", key: "codex" },
+  { href: "/docs", key: "docs" },
+  { href: "/dashboard", key: "dashboard" },
 ];
 
 export function Nav() {
   const { data: session, isPending } = useSession();
+  const t = useTranslations("nav");
+  // The URL is the locale. Nothing here reads or writes localStorage: switching
+  // language navigates to the other locale's path, which is what makes the
+  // choice crawlable and shareable.
+  const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-  const [lang, setLang] = useState("vi");
   const wrapRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const stored = (localStorage.getItem("vipai.locale") as "en" | "vi") || "vi";
-    setLang(stored);
-    document.documentElement.lang = stored;
-  }, []);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -42,12 +48,12 @@ export function Nav() {
   const close = () => setMenuOpen(false);
 
   return (
-    <nav className="nav-pill" aria-label="Primary">
+    <nav className="nav-pill" aria-label={t("primary")} data-i18n-skip>
       <div className="nav-in">
-        <a className="brand" href="/">
+        <Link className="brand" href="/">
           <Icon name={brandMark} className="logo" width={32} height={22} />
           <span className="brand-name">VipAI</span>
-        </a>
+        </Link>
 
         <div className={`nav-scrim${menuOpen ? " open" : ""}`} onClick={close} />
         <div className={`links${menuOpen ? " open" : ""}`} id="navLinks">
@@ -58,15 +64,15 @@ export function Nav() {
               <span className="nav-user-tx">
                 <span className="nav-user-id">{session?.user?.email || "VipAI"}</span>
                 <span className="nav-user-sub">
-                  {session?.user ? "Signed in" : "Not signed in"}
+                  {session?.user ? t("signedIn") : t("notSignedIn")}
                 </span>
               </span>
             </span>
           </div>
           {links.map((l) => (
-            <a key={l.label} href={l.href} className={l.active ? "is-active" : undefined} onClick={close}>
-              {l.label}
-            </a>
+            <Link key={l.href} href={l.href} className={l.active ? "is-active" : undefined} onClick={close}>
+              {t(l.key)}
+            </Link>
           ))}
         </div>
 
@@ -78,7 +84,7 @@ export function Nav() {
               type="button"
               aria-haspopup="listbox"
               aria-expanded={langOpen}
-              aria-label="Language"
+              aria-label={t("language")}
               onClick={(e) => {
                 e.stopPropagation();
                 setLangOpen((v) => !v);
@@ -90,20 +96,21 @@ export function Nav() {
                 <path d="M2 12h20" />
               </svg>
             </button>
-            <div className={`lang-menu${langOpen ? " open" : ""}`} role="listbox" aria-label="Language">
+            <div className={`lang-menu${langOpen ? " open" : ""}`} role="listbox" aria-label={t("language")}>
               {languages.map((l) => (
                 <button
                   key={l.id}
                   className="lang-opt"
                   type="button"
                   role="option"
-                  aria-selected={lang === l.id}
+                  aria-selected={locale === l.id}
                   onClick={() => {
-                    setLang(l.id);
-                    setLocale(l.id as "en" | "vi");
                     setLangOpen(false);
+                    if (l.id !== locale) router.replace(pathname, { locale: l.id as Locale });
                   }}
                 >
+                  {/* Endonyms: a language is offered in its own language, so
+                      these labels are deliberately not translated. */}
                   {l.label}
                   <Icon name="ic-check" className="ck" />
                 </button>
@@ -116,13 +123,13 @@ export function Nav() {
               type="button"
               onClick={() => openAuthModal("signin")}
             >
-              Get API key
+              {t("getApiKey")}
             </button>
           )}
           {!isPending && session?.user && (
             <>
               <Link className="login-btn" href="/dashboard">
-                Dashboard
+                {t("dashboard")}
               </Link>
               <UserButton />
             </>
@@ -130,7 +137,7 @@ export function Nav() {
           <button
             className="nav-burger"
             type="button"
-            aria-label="Menu"
+            aria-label={t("menu")}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
           >

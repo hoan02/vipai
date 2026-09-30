@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Icon } from "@/lib/icons";
 import { topupAmounts } from "@/lib/data";
 import { getSession } from "@/lib/auth-client";
 import { openAuthModal } from "@/lib/auth-modal";
 
 export function TopUpModal() {
+  const t = useTranslations("topup");
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(50);
   const [custom, setCustom] = useState("50");
@@ -63,30 +65,31 @@ export function TopUpModal() {
       onClick={(e) => {
         if (e.target === e.currentTarget) setOpen(false);
       }}
+      data-i18n-skip
     >
       <div className="tu">
         <div className="tu-hd">
-          <h3 id="tuTitle">Top up</h3>
-          <button className="tu-x" type="button" aria-label="Close" onClick={() => setOpen(false)}>
+          <h3 id="tuTitle">{t("title")}</h3>
+          <button className="tu-x" type="button" aria-label={t("close")} onClick={() => setOpen(false)}>
             <Icon name="ic-x" width={16} height={16} />
           </button>
         </div>
-        <p className="tu-note">Discounts may vary with upstream costs; see the live price catalog for current rates.</p>
+        <p className="tu-note">{t("note")}</p>
         <div className="tu-grid">
-          {topupAmounts.map((t) => (
+          {topupAmounts.map((option) => (
             <button
-              key={t.amt}
-              className={`tu-amt${amount === t.amt ? " on" : ""}`}
+              key={option.amt}
+              className={`tu-amt${amount === option.amt ? " on" : ""}`}
               type="button"
-              onClick={() => pick(t.amt)}
+              onClick={() => pick(option.amt)}
             >
-              <b>${t.amt.toFixed(2)}</b>
-              <small>{t.label}</small>
+              <b>${option.amt.toFixed(2)}</b>
+              <small>{t(option.key)}</small>
             </button>
           ))}
         </div>
         <div className="tu-custom">
-          <label htmlFor="tuCustom">Or enter a custom amount (min $5)</label>
+          <label htmlFor="tuCustom">{t("customLabel")}</label>
           <input
             id="tuCustom"
             type="number"
@@ -100,7 +103,7 @@ export function TopUpModal() {
         </div>
         <div className="tu-est">
           <div>
-            <span>Approximately</span>
+            <span>{t("approximately")}</span>
             <span />
           </div>
           <div>
@@ -108,24 +111,24 @@ export function TopUpModal() {
             <b>${(amount * 4.348).toFixed(1)}</b>
           </div>
           <div>
-            <span>or OpenAI</span>
+            <span>{t("orOpenai")}</span>
             <b>${(amount * 10).toFixed(0)}</b>
           </div>
           <div>
-            <span>or Gemini</span>
+            <span>{t("orGemini")}</span>
             <b>${(amount * 4.348).toFixed(1)}</b>
           </div>
         </div>
-        <p className="tu-terms">By purchasing you agree to VipAI&apos;s Terms. Your USD balance stays in your account.</p>
+        <p className="tu-terms">{t("terms")}</p>
         <div className="tu-actions">
           <button className="btn btn-ghost" type="button" onClick={() => setOpen(false)}>
-            Cancel
+            {t("cancel")}
           </button>
           <button className="btn btn-primary" type="button">
-            Pay ${amount.toFixed(2)}
+            {t("pay", { amount: `$${amount.toFixed(2)}` })}
           </button>
         </div>
-        <p className="tu-stripe">Stripe checkout for all languages</p>
+        <p className="tu-stripe">{t("stripe")}</p>
       </div>
     </div>
   );

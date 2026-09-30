@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   AreaChart,
   BarChart3,
@@ -40,19 +41,18 @@ import {
   type TimeGranularity,
 } from "@/lib/analytics";
 
+/** Keys into the `models` namespace; the words are chosen where they render. */
 const GRANULARITY_OPTIONS = [
-  { value: "hour", label: "Hourly" },
-  { value: "day", label: "Daily" },
-  { value: "week", label: "Weekly" },
+  { value: "hour", key: "granularityHourly" },
+  { value: "day", key: "granularityDaily" },
+  { value: "week", key: "granularityWeekly" },
 ];
 
-const MODEL_TABS: Array<{ value: ModelChartTab; label: string }> = [
-  { value: "trend", label: "Call trend" },
-  { value: "proportion", label: "Call count distribution" },
-  { value: "top", label: "Call count ranking" },
+const MODEL_TABS: Array<{ value: ModelChartTab; key: string }> = [
+  { value: "trend", key: "tabTrend" },
+  { value: "proportion", key: "tabProportion" },
+  { value: "top", key: "tabTop" },
 ];
-
-const rangeLabel = (days: number) => (days === 1 ? "1 day" : `${days} days`);
 
 /**
  * The model-analytics dashboard.
@@ -65,6 +65,7 @@ const rangeLabel = (days: number) => (days === 1 ? "1 day" : `${days} days`);
  * identical until hydration finishes.
  */
 export function ModelsView({ initial }: { initial: QuotaAnalyticsInitial }) {
+  const t = useTranslations("models");
   const [prefs, setPrefs] = useState<ChartPreferences>(DEFAULT_PREFERENCES);
   const [granularity, setGranularity] = useState<TimeGranularity>(initial.granularity);
   const [range, setRange] = useState<AnalyticsRange>({ from: initial.from, to: initial.to });
@@ -91,17 +92,17 @@ export function ModelsView({ initial }: { initial: QuotaAnalyticsInitial }) {
       const response = await fetch(`/api/analytics?${query.toString()}`, { cache: "no-store" });
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { message?: string } | null;
-        setError(payload?.message || "Could not load the analytics.");
+        setError(payload?.message || t("errLoad"));
         return;
       }
       const payload = (await response.json()) as { items?: QuotaDataItem[] };
       setItems(payload.items ?? []);
     } catch {
-      setError("Could not reach the server.");
+      setError(t("errServer"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const persist = useCallback((next: ChartPreferences) => {
     setPrefs(next);
@@ -190,8 +191,8 @@ export function ModelsView({ initial }: { initial: QuotaAnalyticsInitial }) {
   return (
     <>
       <PageHead
-        title="Models"
-        sub="Token spend and call volume per model, for the window you pick."
+        title={t("title")}
+        sub={t("sub")}
         side={
           <button
             type="button"
@@ -200,13 +201,13 @@ export function ModelsView({ initial }: { initial: QuotaAnalyticsInitial }) {
             disabled={loading}
           >
             <RefreshCw size={14} aria-hidden="true" />
-            Refresh
+            {t("refresh")}
           </button>
         }
       />
 
       <div className="toolbar" style={{ marginTop: 18 }}>
-        <div className="an-range" role="group" aria-label="Time range">
+        <div className="an-range" role="group" aria-label={t("timeRange")}>
           {TIME_RANGE_PRESETS.map((days) => (
             <button
               key={days}
@@ -215,19 +216,19 @@ export function ModelsView({ initial }: { initial: QuotaAnalyticsInitial }) {
               aria-pressed={presetDays === days}
               onClick={() => applyRange(days)}
             >
-              {rangeLabel(days)}
+              {t("rangeDays", { days })}
             </button>
           ))}
         </div>
         <Select
-          label="Time granularity"
+          label={t("granularity")}
           value={granularity}
           onChange={applyGranularity}
-          options={GRANULARITY_OPTIONS}
+          options={GRANULARITY_OPTIONS.map((option) => ({ value: option.value, label: t(option.key) }))}
         />
         <span className="date-range">
           <DatePicker
-            label="From date"
+            label={t("fromDate")}
             value={fromDate}
             onChange={applyFrom}
             max={toDate}
@@ -235,7 +236,7 @@ export function ModelsView({ initial }: { initial: QuotaAnalyticsInitial }) {
           />
           <span className="note">–</span>
           <DatePicker
-            label="To date"
+            label={t("toDate")}
             value={toDate}
             onChange={applyTo}
             min={fromDate}
@@ -248,7 +249,7 @@ export function ModelsView({ initial }: { initial: QuotaAnalyticsInitial }) {
         <Stat
           label={
             <>
-              <Hash size={14} aria-hidden="true" /> Total count
+              <Hash size={14} aria-hidden="true" /> {t("statCount")}
             </>
           }
           value={formatInt(totals.count)}
@@ -256,7 +257,7 @@ export function ModelsView({ initial }: { initial: QuotaAnalyticsInitial }) {
         <Stat
           label={
             <>
-              <Coins size={14} aria-hidden="true" /> Total quota
+              <Coins size={14} aria-hidden="true" /> {t("statQuota")}
             </>
           }
           value={usd(totals.quota / QUOTA_PER_USD)}
@@ -264,7 +265,7 @@ export function ModelsView({ initial }: { initial: QuotaAnalyticsInitial }) {
         <Stat
           label={
             <>
-              <Layers size={14} aria-hidden="true" /> Total tokens
+              <Layers size={14} aria-hidden="true" /> {t("statTokens")}
             </>
           }
           value={formatInt(totals.tokens)}
@@ -272,20 +273,20 @@ export function ModelsView({ initial }: { initial: QuotaAnalyticsInitial }) {
         <Stat
           label={
             <>
-              <Timer size={14} aria-hidden="true" /> Average RPM
+              <Timer size={14} aria-hidden="true" /> {t("statRpm")}
             </>
           }
           value={rpm.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-          hint="Requests per minute"
+          hint={t("statRpmHint")}
         />
         <Stat
           label={
             <>
-              <Zap size={14} aria-hidden="true" /> Average TPM
+              <Zap size={14} aria-hidden="true" /> {t("statTpm")}
             </>
           }
           value={tpm.toLocaleString("en-US", { maximumFractionDigits: 2 })}
-          hint="Tokens per minute"
+          hint={t("statTpmHint")}
         />
       </div>
 
@@ -299,17 +300,17 @@ export function ModelsView({ initial }: { initial: QuotaAnalyticsInitial }) {
         <header className="an-head">
           <div className="t">
             <Coins size={16} aria-hidden="true" />
-            Quota distribution
-            <span className="sub">Total {usd(totals.quota / QUOTA_PER_USD)}</span>
+            {t("quotaDistribution")}
+            <span className="sub">{t("quotaTotal", { amount: usd(totals.quota / QUOTA_PER_USD) })}</span>
           </div>
-          <div className="an-tabs" role="group" aria-label="Chart type">
+          <div className="an-tabs" role="group" aria-label={t("chartType")}>
             <button
               type="button"
               className={chartType === "bar" ? "is-on" : undefined}
               aria-pressed={chartType === "bar"}
               onClick={() => chooseChartType("bar")}
             >
-              <BarChart3 size={14} aria-hidden="true" /> Bar
+              <BarChart3 size={14} aria-hidden="true" /> {t("chartBar")}
             </button>
             <button
               type="button"
@@ -317,7 +318,7 @@ export function ModelsView({ initial }: { initial: QuotaAnalyticsInitial }) {
               aria-pressed={chartType === "area"}
               onClick={() => chooseChartType("area")}
             >
-              <AreaChart size={14} aria-hidden="true" /> Area
+              <AreaChart size={14} aria-hidden="true" /> {t("chartArea")}
             </button>
           </div>
         </header>
@@ -337,10 +338,10 @@ export function ModelsView({ initial }: { initial: QuotaAnalyticsInitial }) {
         <header className="an-head">
           <div className="t">
             <PieChart size={16} aria-hidden="true" />
-            Model call analytics
-            <span className="sub">Total {formatInt(totals.count)} calls</span>
+            {t("callAnalytics")}
+            <span className="sub">{t("callTotal", { count: formatInt(totals.count) })}</span>
           </div>
-          <div className="an-tabs" role="group" aria-label="Chart">
+          <div className="an-tabs" role="group" aria-label={t("chart")}>
             {MODEL_TABS.map((option) => (
               <button
                 key={option.value}
@@ -349,7 +350,7 @@ export function ModelsView({ initial }: { initial: QuotaAnalyticsInitial }) {
                 aria-pressed={tab === option.value}
                 onClick={() => chooseTab(option.value)}
               >
-                {option.label}
+                {t(option.key)}
               </button>
             ))}
           </div>

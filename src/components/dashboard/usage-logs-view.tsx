@@ -1,8 +1,10 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import { useTranslations } from "next-intl";
 import { PageHead, Stat } from "@/components/dashboard/kit";
 import { LogsFilterBar } from "@/components/dashboard/logs-filter";
+import { LogError, LogPager } from "@/components/dashboard/log-pager";
 import { useLogPager } from "@/components/dashboard/use-log-page";
 import { useLocale } from "@/components/site/I18n";
 import { formatDateTime } from "@/lib/datetime";
@@ -18,6 +20,8 @@ import type { UsageLogPage } from "@/server/logs";
  */
 export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
   const locale = useLocale();
+  const t = useTranslations("logsUsage");
+  const tc = useTranslations("logs");
   const { data, filters, setFilters, page, loading, error, apply, reset, goto } =
     useLogPager<UsageLogPage["items"][number]>("/api/usage-logs", initial);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -28,19 +32,12 @@ export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
 
   return (
     <>
-      <PageHead
-        title="Usage logs"
-        sub="Every request this account has made, with the model, tokens and charge."
-      />
+      <PageHead title={t("title")} sub={t("sub")} />
 
       <div className="stats" style={{ marginTop: 20 }}>
-        <Stat label="Requests" value={data.total.toLocaleString()} />
-        <Stat
-          label="Spent (recent)"
-          value={usd(initial.stat.quotaUsd)}
-          hint="over the last window"
-        />
-        <Stat label="Rate" value={`${initial.stat.rpm} rpm · ${initial.stat.tpm} tpm`} />
+        <Stat label={t("statRequests")} value={data.total.toLocaleString()} />
+        <Stat label={t("statSpent")} value={usd(initial.stat.quotaUsd)} hint={t("statSpentHint")} />
+        <Stat label={t("statRate")} value={`${initial.stat.rpm} rpm · ${initial.stat.tpm} tpm`} />
       </div>
 
       <LogsFilterBar
@@ -52,31 +49,27 @@ export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
         show={{ model: true, group: true, source: true }}
       />
 
-      {error ? (
-        <div className="panel" style={{ padding: 14, marginTop: 16, color: "var(--danger)" }} role="alert">
-          {error}
-        </div>
-      ) : null}
+      {error ? <LogError message={error} /> : null}
 
       <div className="panel" style={{ padding: 16, marginTop: 20 }}>
         <div className="twrap is-fixed">
           <table className="dtable compact">
             <thead>
               <tr>
-                <th>Time</th>
-                <th>Model</th>
-                <th>Key</th>
-                <th>Group</th>
-                <th className="r">Tokens in</th>
-                <th className="r">Tokens out</th>
-                <th className="r">Cost</th>
-                <th className="r">Latency</th>
+                <th>{tc("time")}</th>
+                <th>{tc("model")}</th>
+                <th>{t("colKey")}</th>
+                <th>{tc("group")}</th>
+                <th className="r">{t("colTokensIn")}</th>
+                <th className="r">{t("colTokensOut")}</th>
+                <th className="r">{t("colCost")}</th>
+                <th className="r">{t("colLatency")}</th>
               </tr>
             </thead>
             <tbody>
               {data.items.length === 0 ? (
                 <tr className="empty-row">
-                  <td colSpan={8}>No requests match these filters.</td>
+                  <td colSpan={8}>{t("empty")}</td>
                 </tr>
               ) : (
                 data.items.map((row) => (
@@ -89,7 +82,7 @@ export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
                       <td>
                         <span className="cell-main">
                           <span>{row.model}</span>
-                          {row.stream ? <small>streamed</small> : null}
+                          {row.stream ? <small>{t("streamed")}</small> : null}
                         </span>
                       </td>
                       <td>{row.source}</td>
@@ -105,15 +98,17 @@ export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
                           <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                             {row.requestId ? (
                               <span className="note">
-                                Request id{" "}
+                                {tc("requestId")}{" "}
                                 <code style={{ fontFamily: "var(--font-mono)" }}>{row.requestId}</code>
                               </span>
                             ) : null}
                             <span className="note">
-                              Tokens {row.promptTokens.toLocaleString()} in,{" "}
-                              {row.completionTokens.toLocaleString()} out
+                              {t("tokensLine", {
+                                in: row.promptTokens.toLocaleString(),
+                                out: row.completionTokens.toLocaleString(),
+                              })}
                             </span>
-                            {row.ip ? <span className="note">From {row.ip}</span> : null}
+                            {row.ip ? <span className="note">{t("fromIp", { ip: row.ip })}</span> : null}
                           </div>
                         </td>
                       </tr>
@@ -125,35 +120,15 @@ export function UsageLogsView({ initial }: { initial: UsageLogPage }) {
           </table>
         </div>
 
-        <div className="dtable-foot">
-          <span className="note">
-            {first}–{last} / {data.total.toLocaleString()}
-            {loading ? " · loading…" : ""}
-          </span>
-          <span className="dtable-pager">
-            <button
-              className="pg"
-              type="button"
-              aria-label="Previous page"
-              disabled={page === 0 || loading}
-              onClick={() => goto(Math.max(0, page - 1))}
-            >
-              ‹
-            </button>
-            <span className="pg-n">
-              {page + 1}/{pageCount}
-            </span>
-            <button
-              className="pg"
-              type="button"
-              aria-label="Next page"
-              disabled={page >= pageCount - 1 || loading}
-              onClick={() => goto(page + 1)}
-            >
-              ›
-            </button>
-          </span>
-        </div>
+        <LogPager
+          first={first}
+          last={last}
+          total={data.total}
+          page={page}
+          pageCount={pageCount}
+          loading={loading}
+          onGoto={goto}
+        />
       </div>
     </>
   );

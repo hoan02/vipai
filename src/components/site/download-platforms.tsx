@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Apple, Check } from "lucide-react";
 
 function WindowsMark() {
@@ -11,45 +12,48 @@ function WindowsMark() {
   );
 }
 
+/** `metaKey`/`reqKey` index the `platforms` namespace; the OS names are
+ *  product names and stay as written. */
 const platforms = [
   {
     id: "macos",
     os: "macOS",
-    meta: "For Codex and Claude Code on Apple silicon and Intel Macs.",
-    req: "Requires macOS 13 Ventura or later",
+    metaKey: "macMeta",
+    reqKey: "macReq",
     icon: <Apple size={20} />,
   },
   {
     id: "windows",
     os: "Windows",
-    meta: "For Codex and Claude Code on Windows 10 and 11.",
-    req: "Requires Windows 10 (64-bit) or later",
+    metaKey: "winMeta",
+    reqKey: "winReq",
     icon: <WindowsMark />,
   },
 ] as const;
 
 export function DownloadPlatforms() {
+  const t = useTranslations("platforms");
   const [started, setStarted] = useState<string | null>(null);
 
   return (
-    <div className="dl-grid">
+    <div className="dl-grid" data-i18n-skip>
       {platforms.map((p) => (
         <div className="panel dl-card" key={p.id}>
           <div className="os">
             {p.icon}
             {p.os}
           </div>
-          <p className="meta">{p.meta}</p>
+          <p className="meta">{t(p.metaKey)}</p>
           <button className="btn btn-primary btn-lg" type="button" onClick={() => setStarted(p.id)}>
             {started === p.id ? (
               <>
-                <Check size={16} /> Download started
+                <Check size={16} /> {t("downloadStarted")}
               </>
             ) : (
-              `Download for ${p.os}`
+              t("downloadFor", { os: p.os })
             )}
           </button>
-          <span className="req">{p.req}</span>
+          <span className="req">{t(p.reqKey)}</span>
         </div>
       ))}
     </div>

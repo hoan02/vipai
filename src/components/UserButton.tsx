@@ -1,17 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, usePathname } from "@/i18n/navigation";
 import { useSession, signout } from "@/lib/auth-client";
 import { TELEGRAM_URL } from "@/lib/site";
-import { useT } from "@/components/site/I18n";
 import { LogOut, LayoutDashboard, Shield, ShieldCheck, UserRound, type LucideIcon } from "lucide-react";
 
-const items: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/dashboard/profile", label: "Profile", icon: UserRound },
-  { href: "/dashboard/security", label: "Security", icon: ShieldCheck },
+/** `key` indexes the `account` namespace in `messages/`. */
+const items: { href: string; key: string; icon: LucideIcon; exact?: boolean }[] = [
+  { href: "/dashboard", key: "dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/dashboard/profile", key: "profile", icon: UserRound },
+  { href: "/dashboard/security", key: "security", icon: ShieldCheck },
 ];
 
 function TelegramIcon({ size = 15 }: { size?: number }) {
@@ -24,7 +24,7 @@ function TelegramIcon({ size = 15 }: { size?: number }) {
 
 export function UserButton() {
   const { data: session, isPending } = useSession();
-  const t = useT();
+  const t = useTranslations("account");
   const pathname = usePathname() ?? "";
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -73,12 +73,12 @@ export function UserButton() {
   };
 
   return (
-    <div className="ub" ref={menuRef}>
+    <div className="ub" ref={menuRef} data-i18n-skip>
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className="ub-av"
-        aria-label="Account menu"
+        aria-label={t("menuLabel")}
         aria-haspopup="menu"
         aria-expanded={open}
       >
@@ -86,7 +86,7 @@ export function UserButton() {
       </button>
 
       {open && (
-        <div className="ub-menu" role="menu" aria-label="Account">
+        <div className="ub-menu" role="menu" aria-label={t("label")}>
           <div className="ub-head">
             <span className="ub-badge" aria-hidden="true">
               {initial}
@@ -98,7 +98,7 @@ export function UserButton() {
           </div>
 
           <div className="ub-list">
-            {items.map(({ href, label, icon: I, exact }) => (
+            {items.map(({ href, key, icon: I, exact }) => (
               <Link
                 key={href}
                 href={href}
@@ -107,7 +107,7 @@ export function UserButton() {
                 className={`ub-item${isOn(href, exact) ? " is-on" : ""}`}
               >
                 <I size={15} aria-hidden="true" />
-                <span>{label}</span>
+                <span>{t(key)}</span>
               </Link>
             ))}
             {isRoot ? (
@@ -118,7 +118,7 @@ export function UserButton() {
                 className={`ub-item${isOn("/admin") ? " is-on" : ""}`}
               >
                 <Shield size={15} aria-hidden="true" />
-                <span>Admin</span>
+                <span>{t("admin")}</span>
               </Link>
             ) : null}
             <a
@@ -130,14 +130,14 @@ export function UserButton() {
               className="ub-item"
             >
               <TelegramIcon />
-              <span>{t("Nhóm hỗ trợ")}</span>
+              <span>{t("support")}</span>
             </a>
           </div>
 
           <div className="ub-foot">
             <button type="button" role="menuitem" onClick={handleSignOut} className="ub-out">
               <LogOut size={15} aria-hidden="true" />
-              <span>Sign out</span>
+              <span>{t("signOut")}</span>
             </button>
           </div>
         </div>

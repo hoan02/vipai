@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useMemo, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { useSession } from "@/lib/auth-client";
 import { UserButton } from "@/components/UserButton";
 import {
@@ -27,7 +27,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { dashboardNavGroups, type NavIcon } from "@/lib/dashboard-data";
 import { isHrefVisible, parseSidebarModules } from "@/lib/sidebar-modules";
 import { TopUpModal } from "@/components/site/TopUpModal";
-import { setLocale, getLocale, type Locale } from "@/components/site/I18n";
+import { useLocale, type Locale } from "@/components/site/I18n";
 
 const navIcons: Record<NavIcon, typeof Gauge> = {
   gauge: Gauge,
@@ -53,11 +53,12 @@ const topTabs = [
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const path = usePathname() ?? "/dashboard";
-  const [lang, setLang] = useState<Locale>("vi");
-  useEffect(() => setLang(getLocale()), []);
+  const router = useRouter();
+  const t = useTranslations("dash");
+  // The URL is the locale; the picker navigates rather than writing a store.
+  const lang = useLocale();
   const chooseLang = (l: Locale) => {
-    setLang(l);
-    setLocale(l);
+    if (l !== lang) router.replace(path, { locale: l });
   };
 
   // Highlight exactly one link: the longest href that still matches the path.
@@ -100,17 +101,17 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           <Icon name={brandMark} width={29} height={20} />
           VipAI
         </Link>
-        <button className="dash-acct" type="button" aria-label="Switch organization">
+        <button className="dash-acct" type="button" aria-label={t("switchOrg")}>
           <span className="av" aria-hidden="true">
             {initial}
           </span>
           <span className="em">{display}</span>
           <ChevronsUpDown size={15} />
         </button>
-        <nav className="dash-nav" aria-label="Dashboard">
+        <nav className="dash-nav" aria-label={t("navLabel")}>
           {navGroups.map((group) => (
             <div className="dash-nav-group" key={group.id}>
-              <span className="dash-nav-title">{group.title}</span>
+              <span className="dash-nav-title">{t(group.titleKey)}</span>
               {group.items.map((item) => {
                 const I = navIcons[item.icon];
                 return (
@@ -120,7 +121,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                     className={item.href === activeHref ? "is-on" : undefined}
                   >
                     <I aria-hidden="true" />
-                    {item.label}
+                    {t(item.labelKey)}
                   </Link>
                 );
               })}

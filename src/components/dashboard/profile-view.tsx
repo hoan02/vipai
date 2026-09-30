@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { toast } from "sonner";
 import {
   Bell,
@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { PageHead, Pill, SectionTitle, Stat } from "@/components/dashboard/kit";
 import { Select } from "@/components/ui/select";
-import { setLocale, type Locale } from "@/components/site/I18n";
+import { useLocale, type Locale } from "@/components/site/I18n";
 import { refreshSession } from "@/lib/auth-client";
 import { usd } from "@/lib/money";
 import { SIDEBAR_SECTIONS, defaultSidebarModules, parseSidebarModules } from "@/lib/sidebar-modules";
@@ -694,6 +694,8 @@ export function ProfileView({
   sidebarModules: string | null;
 }) {
   const router = useRouter();
+  const path = usePathname() ?? "/dashboard/profile";
+  const locale = useLocale();
   const [profile, setProfile] = useState(initial);
 
   const [displayName, setDisplayName] = useState(initial.displayName);
@@ -723,7 +725,9 @@ export function ProfileView({
         return;
       }
       setProfile((p) => ({ ...p, displayName, username, language }));
-      setLocale(language);
+      // The saved preference is also the URL: navigate so the page the visitor
+      // is looking at is in the language they just picked.
+      if (language !== locale) router.replace(path, { locale: language });
       toast.success("Profile saved.");
       router.refresh();
     } catch {

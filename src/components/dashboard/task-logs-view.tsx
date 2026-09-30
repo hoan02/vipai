@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useTranslations } from "next-intl";
 import { PageHead, Pill, Stat } from "@/components/dashboard/kit";
 import {
   EMPTY_LOG_FILTERS,
   LogsFilterBar,
   type LogFilterState,
 } from "@/components/dashboard/logs-filter";
+import { LogError, LogPager } from "@/components/dashboard/log-pager";
 import { toLogQuery } from "@/components/dashboard/use-log-page";
 import { useLocale } from "@/components/site/I18n";
 import { formatDateTime } from "@/lib/datetime";
@@ -23,9 +25,9 @@ type TaskPage = {
   items: Array<TaskLogRow | DrawingLogRow>;
 };
 
-const SECTIONS: Array<{ value: Section; label: string }> = [
-  { value: "task", label: "All tasks" },
-  { value: "drawing", label: "Drawing" },
+const SECTIONS: Array<{ value: Section; key: string }> = [
+  { value: "task", key: "sectionAll" },
+  { value: "drawing", key: "sectionDrawing" },
 ];
 
 /**
@@ -36,6 +38,8 @@ const SECTIONS: Array<{ value: Section; label: string }> = [
  */
 export function TaskLogsView({ initial }: { initial: TaskPage }) {
   const locale = useLocale();
+  const t = useTranslations("logsTask");
+  const tc = useTranslations("logs");
   const [data, setData] = useState<TaskPage>(initial);
   const [section, setSection] = useState<Section>(initial.section);
   const [filters, setFilters] = useState<LogFilterState>(EMPTY_LOG_FILTERS);
@@ -52,7 +56,7 @@ export function TaskLogsView({ initial }: { initial: TaskPage }) {
         const response = await fetch(`/api/usage-logs/task?${query}`, { cache: "no-store" });
         if (!response.ok) {
           const payload = (await response.json().catch(() => null)) as { message?: string } | null;
-          setError(payload?.message || "Could not load the task log.");
+          setError(payload?.message || t("errorLoad"));
           return;
         }
         const payload = (await response.json()) as TaskPage;
@@ -60,12 +64,12 @@ export function TaskLogsView({ initial }: { initial: TaskPage }) {
         setSection(payload.section);
         setPage(payload.page);
       } catch {
-        setError("Could not reach the server.");
+        setError(tc("errorServer"));
       } finally {
         setLoading(false);
       }
     },
-    [data.pageSize],
+    [data.pageSize, t, tc],
   );
 
   const chooseSection = (next: Section) => {
@@ -96,18 +100,15 @@ export function TaskLogsView({ initial }: { initial: TaskPage }) {
 
   return (
     <>
-      <PageHead
-        title="Task logs"
-        sub="Asynchronous jobs this account submitted — video, music, drawing and more."
-      />
+      <PageHead title={t("title")} sub={t("sub")} />
 
       <div className="stats" style={{ marginTop: 20 }}>
-        <Stat label="Tasks" value={data.total.toLocaleString()} />
-        <Stat label="Page" value={`${data.page + 1} / ${pageCount}`} />
-        <Stat label="Viewing" value={section === "drawing" ? "Drawing" : "All tasks"} />
+        <Stat label={t("statTasks")} value={data.total.toLocaleString()} />
+        <Stat label={tc("page")} value={`${data.page + 1} / ${pageCount}`} />
+        <Stat label={t("statViewing")} value={t(section === "drawing" ? "sectionDrawing" : "sectionAll")} />
       </div>
 
-      <div className="an-tabs" role="tablist" aria-label="Task log kind" style={{ marginTop: 18 }}>
+      <div className="an-tabs" role="tablist" aria-label={t("tabsLabel")} style={{ marginTop: 18 }}>
         {SECTIONS.map((option) => (
           <button
             key={option.value}
@@ -117,7 +118,7 @@ export function TaskLogsView({ initial }: { initial: TaskPage }) {
             className={section === option.value ? "is-on" : undefined}
             onClick={() => chooseSection(option.value)}
           >
-            {option.label}
+            {t(option.key)}
           </button>
         ))}
       </div>
@@ -131,11 +132,7 @@ export function TaskLogsView({ initial }: { initial: TaskPage }) {
         show={{ model: false, group: true }}
       />
 
-      {error ? (
-        <div className="panel" style={{ padding: 14, marginTop: 16, color: "var(--danger)" }} role="alert">
-          {error}
-        </div>
-      ) : null}
+      {error ? <LogError message={error} /> : null}
 
       <div className="panel" style={{ padding: 16, marginTop: 20 }}>
         <div className="twrap is-fixed">
@@ -143,18 +140,18 @@ export function TaskLogsView({ initial }: { initial: TaskPage }) {
             <table className="dtable compact">
               <thead>
                 <tr>
-                  <th>Submit time</th>
-                  <th>Action</th>
-                  <th>Prompt</th>
-                  <th className="r">Quota</th>
-                  <th>Progress</th>
-                  <th>Status</th>
+                  <th>{t("colSubmitTime")}</th>
+                  <th>{tc("colAction")}</th>
+                  <th>{t("colPrompt")}</th>
+                  <th className="r">{t("colQuota")}</th>
+                  <th>{t("colProgress")}</th>
+                  <th>{tc("status")}</th>
                 </tr>
               </thead>
               <tbody>
                 {data.items.length === 0 ? (
                   <tr className="empty-row">
-                    <td colSpan={6}>No drawing tasks match these filters.</td>
+                    <td colSpan={6}>{t("emptyDrawing")}</td>
                   </tr>
                 ) : (
                   (data.items as DrawingLogRow[]).map((row) => (
@@ -174,7 +171,7 @@ export function TaskLogsView({ initial }: { initial: TaskPage }) {
                       <td>{row.progress || "—"}</td>
                       <td>
                         <Pill tone={row.status === "SUCCESS" ? "ok" : "off"}>
-                          {row.status || "unknown"}
+                          {row.status || t("unknown")}
                         </Pill>
                       </td>
                     </tr>
@@ -186,19 +183,19 @@ export function TaskLogsView({ initial }: { initial: TaskPage }) {
             <table className="dtable compact">
               <thead>
                 <tr>
-                  <th>Submit time</th>
-                  <th>Platform</th>
-                  <th>Action</th>
-                  <th>Task id</th>
-                  <th className="r">Quota</th>
-                  <th>Progress</th>
-                  <th>Status</th>
+                  <th>{t("colSubmitTime")}</th>
+                  <th>{t("colPlatform")}</th>
+                  <th>{tc("colAction")}</th>
+                  <th>{t("colTaskId")}</th>
+                  <th className="r">{t("colQuota")}</th>
+                  <th>{t("colProgress")}</th>
+                  <th>{tc("status")}</th>
                 </tr>
               </thead>
               <tbody>
                 {data.items.length === 0 ? (
                   <tr className="empty-row">
-                    <td colSpan={7}>No tasks match these filters.</td>
+                    <td colSpan={7}>{t("emptyTask")}</td>
                   </tr>
                 ) : (
                   (data.items as TaskLogRow[]).map((row) => (
@@ -216,7 +213,7 @@ export function TaskLogsView({ initial }: { initial: TaskPage }) {
                       <td>
                         <span className="cell-main">
                           <Pill tone={row.status === "SUCCESS" ? "ok" : "off"}>
-                            {row.status || "unknown"}
+                            {row.status || t("unknown")}
                           </Pill>
                           {row.failReason ? <small>{row.failReason}</small> : null}
                         </span>
@@ -229,35 +226,15 @@ export function TaskLogsView({ initial }: { initial: TaskPage }) {
           )}
         </div>
 
-        <div className="dtable-foot">
-          <span className="note">
-            {first}–{last} / {data.total.toLocaleString()}
-            {loading ? " · loading…" : ""}
-          </span>
-          <span className="dtable-pager">
-            <button
-              className="pg"
-              type="button"
-              aria-label="Previous page"
-              disabled={page === 0 || loading}
-              onClick={() => goto(Math.max(0, page - 1))}
-            >
-              ‹
-            </button>
-            <span className="pg-n">
-              {page + 1}/{pageCount}
-            </span>
-            <button
-              className="pg"
-              type="button"
-              aria-label="Next page"
-              disabled={page >= pageCount - 1 || loading}
-              onClick={() => goto(page + 1)}
-            >
-              ›
-            </button>
-          </span>
-        </div>
+        <LogPager
+          first={first}
+          last={last}
+          total={data.total}
+          page={page}
+          pageCount={pageCount}
+          loading={loading}
+          onGoto={goto}
+        />
       </div>
     </>
   );

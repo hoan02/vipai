@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { Command } from "cmdk";
 import {
   BarChart3,
@@ -63,27 +64,30 @@ const NAV_ICONS: Record<NavIcon, LucideIcon> = {
   shield: ShieldCheck,
 };
 
-type Destination = { label: string; href: string; icon: LucideIcon; keywords?: string };
+/** A palette row. Site/docs/admin rows carry a `key` into the `palette`
+ *  namespace; the dashboard rows still carry the `label` the sidebar itself
+ *  renders, and migrate with that tree. */
+type Destination = { href: string; icon: LucideIcon; keywords?: string; key?: string; label?: string };
 
 const SITE: Destination[] = [
-  { label: "Home", href: "/", icon: Home },
-  { label: "Pricing", href: "/#pricing", icon: Tag },
-  { label: "Connect Codex", href: "/download", icon: Download },
-  { label: "API docs", href: "/docs", icon: FileText },
+  { key: "destHome", href: "/", icon: Home },
+  { key: "destPricing", href: "/#pricing", icon: Tag },
+  { key: "destCodex", href: "/download", icon: Download },
+  { key: "destDocs", href: "/docs", icon: FileText },
 ];
 
 const DOCS: Destination[] = [
-  { label: "Quickstart — Claude Code", href: "/docs/quickstart/claude-code", icon: Rocket },
-  { label: "API integration", href: "/docs/api-integration", icon: Plug },
-  { label: "Models", href: "/docs/models", icon: Boxes },
-  { label: "Billing", href: "/docs/billing", icon: CreditCard },
-  { label: "Rate limits", href: "/docs/rate-limits", icon: Gauge },
+  { key: "destQuickstart", href: "/docs/quickstart/claude-code", icon: Rocket },
+  { key: "destApi", href: "/docs/api-integration", icon: Plug },
+  { key: "destModels", href: "/docs/models", icon: Boxes },
+  { key: "destBilling", href: "/docs/billing", icon: CreditCard },
+  { key: "destRateLimits", href: "/docs/rate-limits", icon: Gauge },
 ];
 
 const ADMIN: Destination[] = [
-  { label: "Admin overview", href: "/admin", icon: Shield },
-  { label: "Margin & pricing", href: "/admin/margin", icon: SlidersHorizontal },
-  { label: "Gateway stats", href: "/admin/stats", icon: TrendingUp },
+  { key: "destAdminOverview", href: "/admin", icon: Shield },
+  { key: "destAdminMargin", href: "/admin/margin", icon: SlidersHorizontal },
+  { key: "destAdminStats", href: "/admin/stats", icon: TrendingUp },
 ];
 
 function Group({ heading, children }: { heading: string; children: ReactNode }) {
@@ -96,6 +100,8 @@ function Group({ heading, children }: { heading: string; children: ReactNode }) 
 
 export function CommandPalette() {
   const router = useRouter();
+  const t = useTranslations("palette");
+  const td = useTranslations("dash");
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
 
@@ -122,13 +128,13 @@ export function CommandPalette() {
     () =>
       dashboardNavGroups.flatMap((group) =>
         group.items.map((item) => ({
-          label: item.label,
+          key: item.labelKey,
           href: item.href,
           icon: NAV_ICONS[item.icon],
-          keywords: `${group.title} ${item.href}`,
+          keywords: `${td(group.titleKey)} ${item.href}`,
         })),
       ),
-    [],
+    [td],
   );
 
   const go = (href: string) => {
@@ -146,16 +152,17 @@ export function CommandPalette() {
 
   const item = (destination: Destination) => {
     const I = destination.icon;
+    const label = destination.key ? t(destination.key) : (destination.label ?? "");
     return (
       <Command.Item
         key={destination.href}
-        value={destination.label}
+        value={label}
         keywords={[destination.href, destination.keywords ?? ""]}
         onSelect={() => go(destination.href)}
         className="cmd-item"
       >
         <I size={15} aria-hidden="true" />
-        <span>{destination.label}</span>
+        <span>{label}</span>
       </Command.Item>
     );
   };
@@ -164,28 +171,28 @@ export function CommandPalette() {
     <Command.Dialog
       open={open}
       onOpenChange={setOpen}
-      label="Command menu"
+      label={t("label")}
       overlayClassName="cmd-overlay"
       contentClassName="cmd-panel"
     >
-      <Command.Input className="cmd-input" placeholder="Search pages and actions…" />
+      <Command.Input className="cmd-input" placeholder={t("placeholder")} />
       <Command.List className="cmd-list">
-        <Command.Empty className="cmd-empty">Nothing matches that.</Command.Empty>
+        <Command.Empty className="cmd-empty">{t("empty")}</Command.Empty>
 
-        {signedIn ? <Group heading="Dashboard">{dashboard.map(item)}</Group> : null}
-        <Group heading="Docs">{DOCS.map(item)}</Group>
-        <Group heading="Site">{SITE.map(item)}</Group>
-        {role >= 100 ? <Group heading="Admin">{ADMIN.map(item)}</Group> : null}
+        {signedIn ? <Group heading={t("groupDashboard")}>{dashboard.map(item)}</Group> : null}
+        <Group heading={t("groupDocs")}>{DOCS.map(item)}</Group>
+        <Group heading={t("groupSite")}>{SITE.map(item)}</Group>
+        {role >= 100 ? <Group heading={t("groupAdmin")}>{ADMIN.map(item)}</Group> : null}
 
-        <Group heading="Account">
+        <Group heading={t("groupAccount")}>
           {signedIn ? (
-            <Command.Item value="Sign out" onSelect={() => void doSignOut()} className="cmd-item">
+            <Command.Item value={t("signOut")} onSelect={() => void doSignOut()} className="cmd-item">
               <LogOut size={15} aria-hidden="true" />
-              <span>Sign out</span>
+              <span>{t("signOut")}</span>
             </Command.Item>
           ) : (
             <Command.Item
-              value="Sign in"
+              value={t("signIn")}
               onSelect={() => {
                 setOpen(false);
                 openAuthModal("signin");
@@ -193,7 +200,7 @@ export function CommandPalette() {
               className="cmd-item"
             >
               <LogIn size={15} aria-hidden="true" />
-              <span>Sign in</span>
+              <span>{t("signIn")}</span>
             </Command.Item>
           )}
         </Group>

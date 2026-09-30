@@ -1,11 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useRef } from "react";
+import { useLocale as useIntlLocale } from "next-intl";
+import { usePathname } from "@/i18n/navigation";
 import { vi } from "@/lib/i18n-data";
 
-const STORAGE_KEY = "vipai.locale";
-export const LOCALE_EVENT = "vipai:locale";
+/**
+ * The DOM sweep, on its way out.
+ *
+ * It still rewrites rendered copy, but it no longer *owns* the locale: the
+ * locale comes from the URL via next-intl, so the sweep agrees with the page it
+ * is on instead of overriding it from `localStorage`. Nothing here writes
+ * `documentElement.lang` any more — the server sets that from the same URL.
+ *
+ * Phase 2 replaces the string-by-string lookups with `useTranslations` and
+ * deletes this file; until then it keeps the untranslated tree readable in
+ * Vietnamese.
+ */
+
 export type Locale = "en" | "vi";
 
 const en: Record<string, string> = Object.fromEntries(
@@ -18,20 +30,7 @@ const en: Record<string, string> = Object.fromEntries(
  * on every mode/status change, so its text has to come from state).
  */
 export function useLocale(): Locale {
-  const [locale, setLocaleState] = useState<Locale>("vi");
-
-  useEffect(() => {
-    setLocaleState(getLocale());
-    const onLocale = (ev: Event) => {
-      const next = (ev as CustomEvent<Locale>).detail;
-      if (next !== "en" && next !== "vi") return;
-      setLocaleState(next);
-    };
-    window.addEventListener(LOCALE_EVENT, onLocale);
-    return () => window.removeEventListener(LOCALE_EVENT, onLocale);
-  }, []);
-
-  return locale;
+  return useIntlLocale() === "vi" ? "vi" : "en";
 }
 
 /** Resolves copy authored in Vietnamese into the active locale. */
@@ -40,14 +39,14 @@ export function useT(): (viText: string) => string {
   return useCallback((viText: string) => (locale === "en" ? en[viText] ?? viText : viText), [locale]);
 }
 
-/**
- * Re-runs the DOM pass below. The DOM sweep only sees markup that is in the
- * document when it fires, so dialogs and other late-mounting surfaces ask for
- * one sweep of their own right after they open.
- */
+/** Fired to ask for another sweep. Dialogs and other late-mounting surfaces
+ *  call this right after they open, because the pass only sees markup that is
+ *  in the document when it runs. */
+const REFRESH_EVENT = "vipai:i18n-refresh";
+
 export function refreshTranslations() {
   if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent<Locale>(LOCALE_EVENT, { detail: getLocale() }));
+  window.dispatchEvent(new Event(REFRESH_EVENT));
 }
 
 // Inline chrome: leaf text nodes (nav links, buttons, pills, chips).
@@ -55,6 +54,17 @@ const INLINE_SELECTOR = "a,button,span,label,small,strong,b,em";
 // Block prose: matched by normalised textContent so inline <code>/<strong>
 // inside a paragraph does not break the lookup.
 const BLOCK_SELECTOR = "h1,h2,h3,h4,p,li,td,th,dt,dd,caption,figcaption,summary";
+
+/**
+ * A subtree that has been migrated to `useTranslations` opts out of the sweep.
+ *
+ * Both passes edit the DOM in place, which is only safe while React is not also
+ * rendering the same nodes. A migrated component *is* rendered by React, so the
+ * sweep must not touch it — otherwise the block pass, which rewrites
+ * `innerHTML`, can replace an anchor with a bare string. The guard disappears
+ * with this file once the last component is migrated.
+ */
+const SKIP_SELECTOR = "[data-i18n-skip]";
 
 const norm = (s: string) => (s || "").replace(/\s+/g, " ").trim();
 
@@ -71,33 +81,30 @@ function directTextNodes(el: Element): Text[] {
   return nodes;
 }
 
-export function getLocale(): Locale {
-  if (typeof window === "undefined") return "vi";
-  return localStorage.getItem(STORAGE_KEY) === "en" ? "en" : "vi";
-}
-
-export function setLocale(locale: Locale) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, locale);
-  window.dispatchEvent(new CustomEvent<Locale>(LOCALE_EVENT, { detail: locale }));
-}
-
 type InlineEntry = { el: Element; key: string; nodes: Text[]; n: string | null };
 type BlockEntry = { el: Element; key: string; html: string; n: string | null };
 
 export function I18n() {
+  const locale = useLocale();
   const pathname = usePathname();
   const applyRef = useRef<() => void>(() => {});
+  // The caches hold the original, untranslated text of each element, so they
+  // must survive a locale change: rebuilding them after the DOM has already
+  // been rewritten would capture the previous language as the "source".
+  const localeRef = useRef<Locale>(locale);
+  localeRef.current = locale;
 
   useEffect(() => {
-    let locale: Locale = getLocale();
     const inlineCache = new Map<Element, InlineEntry>();
     const blockCache = new Map<Element, BlockEntry>();
 
     const run = () => {
+      const active = localeRef.current;
+
       // 1) inline chrome pass
       const handled = new Set<Element>();
       document.querySelectorAll(INLINE_SELECTOR).forEach((el) => {
+        if (el.closest(SKIP_SELECTOR)) return;
         let entry = inlineCache.get(el);
         if (!entry) {
           const nodes = directTextNodes(el);
@@ -109,7 +116,7 @@ export function I18n() {
           entry = { el, key, nodes, n: el.getAttribute("data-i18n-n") };
           inlineCache.set(el, entry);
         }
-        const text = fill(locale === "vi" ? vi[entry.key] : entry.key, entry.n);
+        const text = fill(active === "vi" ? vi[entry.key] : entry.key, entry.n);
         entry.nodes[0].nodeValue = text;
         for (let i = 1; i < entry.nodes.length; i++) entry.nodes[i].nodeValue = "";
         handled.add(el);
@@ -122,7 +129,7 @@ export function I18n() {
 
       // 2) block prose pass (skip blocks already covered by the inline pass)
       document.querySelectorAll(BLOCK_SELECTOR).forEach((el) => {
-        if (handled.has(el)) return;
+        if (handled.has(el) || el.closest(SKIP_SELECTOR)) return;
         let entry = blockCache.get(el);
         if (!entry) {
           const currentText = norm(el.textContent || "");
@@ -133,30 +140,21 @@ export function I18n() {
           entry = { el, key, html: en[currentText] ? (en[currentText] || initialHtml) : initialHtml, n: el.getAttribute("data-i18n-n") };
           blockCache.set(el, entry);
         }
-        el.innerHTML = fill(locale === "vi" ? vi[entry.key] : entry.html, entry.n);
+        el.innerHTML = fill(active === "vi" ? vi[entry.key] : entry.html, entry.n);
       });
-
-      document.documentElement.lang = locale;
     };
+
     applyRef.current = run;
-
-    const onLocale = (ev: Event) => {
-      const next = (ev as CustomEvent<Locale>).detail;
-      if (next !== "en" && next !== "vi") return;
-      locale = next;
-      localStorage.setItem(STORAGE_KEY, next);
-      run();
-    };
-
     run();
-    window.addEventListener(LOCALE_EVENT, onLocale);
-    return () => window.removeEventListener(LOCALE_EVENT, onLocale);
+    window.addEventListener(REFRESH_EVENT, run);
+    return () => window.removeEventListener(REFRESH_EVENT, run);
   }, []);
 
-  // Re-apply after client-side navigation so new route content is covered.
+  // Re-apply after a locale switch or a client-side navigation so the new
+  // route's content is covered.
   useEffect(() => {
     applyRef.current();
-  }, [pathname]);
+  }, [locale, pathname]);
 
   return null;
 }

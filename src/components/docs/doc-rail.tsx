@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Icon } from "@/lib/icons";
 import { docByHref, docGroups, plannedGroups } from "@/lib/docs-manifest";

@@ -18,7 +18,9 @@ export type NavIcon =
   | "shield";
 
 export type NavItem = {
-  label: string;
+  /** Key into the `dash` namespace in `messages/`. A label is never written
+   *  here, so the sidebar and the command palette cannot drift. */
+  labelKey: string;
   href: string;
   icon: NavIcon;
   /** When true the item only matches its own path, never a child route. */
@@ -27,8 +29,8 @@ export type NavItem = {
 
 export type NavGroup = {
   id: string;
-  /** Section heading shown above the group's links. */
-  title: string;
+  /** Key for the section heading shown above the group's links. */
+  titleKey: string;
   items: NavItem[];
 };
 
@@ -42,41 +44,44 @@ export type NavGroup = {
 export const dashboardNavGroups: NavGroup[] = [
   {
     id: "chat",
-    title: "Chat",
+    titleKey: "groupChat",
     items: [
-      { label: "Playground", href: "/dashboard/playground", icon: "flask" },
-      { label: "Chat", href: "/dashboard/chat", icon: "chat" },
+      { labelKey: "itemPlayground", href: "/dashboard/playground", icon: "flask" },
+      { labelKey: "itemChat", href: "/dashboard/chat", icon: "chat" },
     ],
   },
   {
     id: "general",
-    title: "General",
+    titleKey: "groupGeneral",
     items: [
-      { label: "Overview", href: "/dashboard", icon: "gauge", exact: true },
-      { label: "Model analytics", href: "/dashboard/models", icon: "bars" },
-      { label: "API keys", href: "/dashboard/api-keys", icon: "key" },
-      { label: "Usage logs", href: "/dashboard/usage-logs", icon: "scroll", exact: true },
-      { label: "Audit logs", href: "/dashboard/usage-logs/audit", icon: "audit" },
-      { label: "Task logs", href: "/dashboard/usage-logs/task", icon: "tasks" },
+      { labelKey: "itemOverview", href: "/dashboard", icon: "gauge", exact: true },
+      { labelKey: "itemModelAnalytics", href: "/dashboard/models", icon: "bars" },
+      { labelKey: "itemApiKeys", href: "/dashboard/api-keys", icon: "key" },
+      { labelKey: "itemUsageLogs", href: "/dashboard/usage-logs", icon: "scroll", exact: true },
+      { labelKey: "itemAuditLogs", href: "/dashboard/usage-logs/audit", icon: "audit" },
+      { labelKey: "itemTaskLogs", href: "/dashboard/usage-logs/task", icon: "tasks" },
     ],
   },
   {
     id: "personal",
-    title: "Personal",
+    titleKey: "groupPersonal",
     items: [
-      { label: "Wallet", href: "/dashboard/wallet", icon: "credit" },
-      { label: "Profile", href: "/dashboard/profile", icon: "user" },
-      { label: "Security", href: "/dashboard/security", icon: "shield" },
+      { labelKey: "itemWallet", href: "/dashboard/wallet", icon: "credit" },
+      { labelKey: "itemProfile", href: "/dashboard/profile", icon: "user" },
+      { labelKey: "itemSecurity", href: "/dashboard/security", icon: "shield" },
     ],
   },
 ];
+
+export type ApiKeyStatus = "active" | "expired" | "disabled";
 
 export type ApiKey = {
   id: string;
   name: string;
   masked: string;
-  /** Ready to display: "Active", "Expired", "Quota used". */
-  statusText: string;
+  /** Machine-readable so the view, not the gateway mapping, chooses the words:
+   *  a display string built here would be English-only in every locale. */
+  status: ApiKeyStatus;
   /** ISO date the key was created; the view formats it per locale. */
   created: string;
   /** Total requests made with this key, when the backend reports it. */

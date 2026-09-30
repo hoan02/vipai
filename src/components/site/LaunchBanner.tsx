@@ -1,14 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { Icon } from "@/lib/icons";
 import { usePrefsStore } from "@/lib/prefs-store";
 
-type BannerMessage = { text: string; href: string; icon: ReactNode };
+/** `key` indexes the `banner` namespace in `messages/`. */
+type BannerMessage = { key: string; href: string; icon: ReactNode };
 
 const messages: BannerMessage[] = [
   {
-    text: "Free test tokens — try any model",
+    key: "freeTokens",
     href: "#telegram",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -17,7 +19,7 @@ const messages: BannerMessage[] = [
     ),
   },
   {
-    text: "Real models, never fake",
+    key: "realModels",
     href: "#faq",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -27,7 +29,7 @@ const messages: BannerMessage[] = [
     ),
   },
   {
-    text: "Fake found? Refund + 10× back",
+    key: "refund",
     href: "#faq",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -57,6 +59,7 @@ function isSameLocalDay(a: number, b: number): boolean {
 }
 
 export function LaunchBanner() {
+  const t = useTranslations("banner");
   const dismissedAt = usePrefsStore((state) => state.launchBannerDismissedAt);
   const dismissBanner = usePrefsStore((state) => state.dismissLaunchBanner);
   const bannerRef = useRef<HTMLDivElement | null>(null);
@@ -320,6 +323,7 @@ export function LaunchBanner() {
       ref={bannerRef}
       className={`launch-banner is-stars is-entering${exiting ? " is-exiting" : ""}`}
       id="launchBanner"
+      data-i18n-skip
     >
       <canvas className="lb-stars" aria-hidden="true" />
       <canvas className="lb-fuse" ref={fuseRef} aria-hidden="true" />
@@ -327,12 +331,12 @@ export function LaunchBanner() {
         <span className="launch-banner-text">
           {messages.map((m, i) => (
             <span
-              key={m.text}
+              key={m.key}
               className={`lb-msg${i === active ? " is-on" : ""}`}
               aria-hidden={i !== active}
             >
               {m.icon}
-              {m.text}
+              {t(m.key)}
             </span>
           ))}
         </span>
@@ -341,7 +345,7 @@ export function LaunchBanner() {
       <button
         type="button"
         className="launch-banner-close"
-        aria-label="Dismiss announcement"
+        aria-label={t("dismiss")}
         onClick={beginExit}
       >
         <Icon name="ic-x" width={15} height={15} />

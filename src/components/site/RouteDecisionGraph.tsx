@@ -1,24 +1,27 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
-type Node = { id: string; label: string; lane: number; x: number; y: number };
+/** Brand names are the same in every locale; the rest index the `routeGraph`
+ *  namespace. */
+type Node = { id: string; lane: number; x: number; y: number; label?: string; labelKey?: string };
 type Edge = { a: string; b: string };
 
 const BOX_W = 88;
 const BOX_H = 28;
-const LANES = ["Agent", "Classifier", "Policy", "Model"];
+const LANE_KEYS = ["laneAgent", "laneClassifier", "lanePolicy", "laneModel"];
 
 const NODES: Node[] = [
   { id: "a1", label: "Claude Code", lane: 0, x: 8, y: 38 },
   { id: "a2", label: "Codex", lane: 0, x: 8, y: 82 },
   { id: "a3", label: "CC Switch", lane: 0, x: 8, y: 126 },
   { id: "a4", label: "OpenClaw", lane: 0, x: 8, y: 170 },
-  { id: "c1", label: "Code · tools", lane: 1, x: 152, y: 86 },
-  { id: "c2", label: "Chat · context", lane: 1, x: 152, y: 116 },
-  { id: "p1", label: "Price", lane: 2, x: 296, y: 86 },
-  { id: "p2", label: "Quality", lane: 2, x: 296, y: 56 },
-  { id: "p3", label: "Latency", lane: 2, x: 296, y: 146 },
+  { id: "c1", labelKey: "codeTools", lane: 1, x: 152, y: 86 },
+  { id: "c2", labelKey: "chatContext", lane: 1, x: 152, y: 116 },
+  { id: "p1", labelKey: "price", lane: 2, x: 296, y: 86 },
+  { id: "p2", labelKey: "quality", lane: 2, x: 296, y: 56 },
+  { id: "p3", labelKey: "latency", lane: 2, x: 296, y: 146 },
   { id: "m1", label: "Claude", lane: 3, x: 440, y: 38 },
   { id: "m2", label: "GPT", lane: 3, x: 440, y: 82 },
   { id: "m3", label: "Gemini", lane: 3, x: 440, y: 126 },
@@ -66,6 +69,9 @@ function connectedTo(id: string) {
 }
 
 export function RouteDecisionGraph() {
+  const t = useTranslations("routeGraph");
+  /** Brand names stay as written; everything else comes from the catalogue. */
+  const nodeLabel = (n: Node) => (n.labelKey ? t(n.labelKey) : (n.label ?? ""));
   const [hovered, setHovered] = useState<string | null>(null);
   const [path, setPath] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
@@ -118,7 +124,7 @@ export function RouteDecisionGraph() {
 
   return (
     <div className="tier-graph" ref={wrapRef}>
-      <a className="tier-video" href="#telegram" aria-label="Watch the routing walkthrough">
+      <a className="tier-video" href="#telegram" aria-label={t("videoLabel")}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/assets/bg-curated.webp" alt="" width={960} height={540} loading="lazy" />
         <span className="tv-play" aria-hidden="true">
@@ -129,18 +135,18 @@ export function RouteDecisionGraph() {
           </span>
         </span>
         <span className="tv-cap">
-          <b>See routing in action</b>
-          <em>2 min walkthrough</em>
+          <b>{t("videoTitle")}</b>
+          <em>{t("videoDuration")}</em>
         </span>
       </a>
 
       <div className="rdg-head">
-        <span className="rdg-cap">Route decision · how a request picks a model</span>
+        <span className="rdg-cap">{t("caption")}</span>
         <button className="rdg-run" type="button" aria-busy={running} onClick={run}>
           <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
             <path d="M8 5.5v13l11-6.5z" />
           </svg>
-          <span>{running ? "Routing…" : path.length ? "Run again" : "Run routing"}</span>
+          <span>{running ? t("routing") : path.length ? t("runAgain") : t("run")}</span>
         </button>
       </div>
 
@@ -149,11 +155,11 @@ export function RouteDecisionGraph() {
           className="rdg-svg"
           viewBox="0 0 560 260"
           role="img"
-          aria-label="How VipAI routes a request from an agent to a model"
+          aria-label={t("graphLabel")}
         >
-          {LANES.map((lane, i) => (
-            <text key={lane} className="rdg-lane" x={8 + i * 144} y={14}>
-              {lane}
+          {LANE_KEYS.map((key, i) => (
+            <text key={key} className="rdg-lane" x={8 + i * 144} y={14}>
+              {t(key)}
             </text>
           ))}
 
@@ -176,7 +182,7 @@ export function RouteDecisionGraph() {
                 }${stepIdx >= 0 && path[stepIdx] === n.id ? " is-active" : ""}`}
                 tabIndex={0}
                 role="button"
-                aria-label={n.label}
+                aria-label={nodeLabel(n)}
                 onMouseEnter={() => !running && setHovered(n.id)}
                 onMouseLeave={() => !running && setHovered(null)}
                 onFocus={() => !running && setHovered(n.id)}
@@ -191,7 +197,7 @@ export function RouteDecisionGraph() {
               >
                 <rect className="rdg-box" x={n.x} y={n.y} width={BOX_W} height={BOX_H} rx={8} />
                 <text x={n.x + 12} y={n.y + 18}>
-                  {n.label}
+                  {nodeLabel(n)}
                 </text>
                 <rect className="rdg-hit" x={n.x} y={n.y} width={BOX_W} height={BOX_H} />
               </g>
@@ -201,9 +207,9 @@ export function RouteDecisionGraph() {
 
         <div className="rdg-rail">
           <ol>
-            {LANES.map((lane, i) => (
-              <li className="rdg-step" key={lane}>
-                <span className="rdg-k">{lane}</span>
+            {LANE_KEYS.map((key, i) => (
+              <li className="rdg-step" key={key}>
+                <span className="rdg-k">{t(key)}</span>
                 <span className="rdg-v">
                   {NODES.filter((n) => n.lane === i).map((n) => (
                     <button
@@ -214,7 +220,7 @@ export function RouteDecisionGraph() {
                       onMouseLeave={() => !running && setHovered(null)}
                       onClick={() => !running && setHovered(n.id)}
                     >
-                      {n.label}
+                      {nodeLabel(n)}
                     </button>
                   ))}
                 </span>

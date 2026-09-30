@@ -47,9 +47,9 @@ export type Model = {
   /** What VipAI charges per 1M tokens. */
   inNow: string;
   outNow: string;
-  /** "90% off", or "" when there is no list price to compare against. */
-  disc: string;
-  /** The discount as a positive whole percent, 0 when none. */
+  /** The discount as a positive whole percent, 0 when none. Formatted for the
+   *  reader by the UI — see `common.discountOff` — rather than stored as a
+   *  string, which would have made it English-only. */
   discPct: number;
   /** new-api endpoint types the model answers on. */
   endpoints: string[];
@@ -65,24 +65,62 @@ export function modelKey(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+/**
+ * A URL-safe slug for a model id: `kimi-k3[1M]` -> `kimi-k3-1m`.
+ *
+ * The id cannot be used raw in a path (it can carry brackets), and it must be
+ * reversible without guessing, so `/models/[slug]` resolves a model by matching
+ * this function against every id rather than decoding the URL.
+ */
+export function modelSlug(id: string): string {
+  return id
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** The model whose slug matches, or undefined. See `modelSlug`. */
+export function modelBySlug<T extends { id: string }>(models: T[], slug: string): T | undefined {
+  return models.find((m) => modelSlug(m.id) === slug);
+}
+
 /** Fired by the pricing table so the live section can select the same model. */
 export const PICK_MODEL_EVENT = "vipai:pick-model";
 export type PickModelDetail = { key: string; vendor: string };
 
-export const agents = [
-  { n: "Codex Desktop", req: "9817.1K requests", tok: "1170.1B", delta: "↗ 30.2%" },
-  { n: "Claude CLI", req: "1793.1K requests", tok: "268.2B", delta: "↗ 75.1%" },
-  { n: "VSCode", req: "863.8K requests", tok: "107.4B", delta: "↗ 45.4%" },
-  { n: "Claude Desktop", req: "517.5K requests", tok: "56.9B", delta: "↗ 104.3%" },
-  { n: "OpenClaw", req: "189.1K requests", tok: "19.9B", delta: "↗ 151.2%" },
+/**
+ * Leaderboard rows.
+ *
+ * Names are products and models, so they stay as written; the figures are raw,
+ * and the units around them ("requests", "success", "tokens") are translated at
+ * render. Embedding the unit in the string here would have made it translatable
+ * only by duplicating the number in every locale.
+ */
+export type RankRow = {
+  n: string;
+  tok: string;
+  delta: string;
+  /** Requests handled this week — agents only. */
+  requests?: string;
+  /** Time to first token, in ms, and success rate, in percent — models only. */
+  ttft?: string;
+  success?: string;
+};
+
+export const agents: RankRow[] = [
+  { n: "Codex Desktop", requests: "9817.1K", tok: "1170.1B", delta: "↗ 30.2%" },
+  { n: "Claude CLI", requests: "1793.1K", tok: "268.2B", delta: "↗ 75.1%" },
+  { n: "VSCode", requests: "863.8K", tok: "107.4B", delta: "↗ 45.4%" },
+  { n: "Claude Desktop", requests: "517.5K", tok: "56.9B", delta: "↗ 104.3%" },
+  { n: "OpenClaw", requests: "189.1K", tok: "19.9B", delta: "↗ 151.2%" },
 ];
 
-export const topModels = [
-  { n: "GPT-5.6 Sol", meta: "TTFT 1908ms · 99.46% success", tok: "1068.3B", delta: "↗ 31.8%" },
-  { n: "GPT-5.6 Terra", meta: "TTFT 2133ms · 98.56% success", tok: "251.6B", delta: "↗ 99.5%" },
-  { n: "GPT-5.5", meta: "TTFT 1562ms · 98.70% success", tok: "136.8B", delta: "↘ 19.3%" },
-  { n: "Claude Opus 4.8", meta: "TTFT 2371ms · 99.35% success", tok: "109.1B", delta: "↗ 122.6%" },
-  { n: "GPT-5.6 Luna", meta: "TTFT 2074ms · 98.93% success", tok: "97.7B", delta: "↗ 57.6%" },
+export const topModels: RankRow[] = [
+  { n: "GPT-5.6 Sol", ttft: "1908", success: "99.46", tok: "1068.3B", delta: "↗ 31.8%" },
+  { n: "GPT-5.6 Terra", ttft: "2133", success: "98.56", tok: "251.6B", delta: "↗ 99.5%" },
+  { n: "GPT-5.5", ttft: "1562", success: "98.70", tok: "136.8B", delta: "↘ 19.3%" },
+  { n: "Claude Opus 4.8", ttft: "2371", success: "99.35", tok: "109.1B", delta: "↗ 122.6%" },
+  { n: "GPT-5.6 Luna", ttft: "2074", success: "98.93", tok: "97.7B", delta: "↗ 57.6%" },
 ];
 
 export type CodeSnippet = { file: string; model: string; code: string };
@@ -241,45 +279,14 @@ export const languages = [
   { id: "vi", label: "Tiếng Việt" },
 ];
 
-export const faqs = [
-  {
-    q: "What is an LLM router?",
-    a: "A single API that sits between your tools and model providers. You call one endpoint with one key; the router sends each request to Claude, GPT, Gemini or others, meters usage, and gives you one bill.",
-  },
-  {
-    q: "Is VipAI OpenAI-compatible?",
-    a: "Yes — both formats. The OpenAI-compatible endpoint works with official OpenAI SDKs and Codex by changing the base URL. Claude Code connects through the Anthropic-compatible endpoint with two environment variables.",
-  },
-  {
-    q: "How can prices be up to {n}% off list?",
-    a: "Volume. We commit to enterprise-scale usage with vetted providers and pass the difference through. Discounts vary per model and move with upstream costs — the pricing table above is live.",
-  },
-  {
-    q: "Is my data used to train models?",
-    a: "No. Prompts and completions are processed only for routing, metering, billing, abuse prevention and support. They are never used for training and never sold.",
-  },
-  {
-    q: "Do credits expire?",
-    a: "No. Buy credits when you want, use them whenever. No subscription required.",
-  },
-  {
-    q: "Are these real models, or look-alike resellers?",
-    a: "Real models. Every call is proxied straight to the provider API — no simulation layer, no look-alike endpoints. Response shape, headers and SDK behaviour are checked per model, so your client gets the real thing. You also get the model you asked for: if a lane is offline the request fails loudly instead of silently swapping in something cheaper.",
-  },
-  {
-    q: "How can I verify the price I'm paying?",
-    a: "Each pricing row shows the provider's official list price next to ours, so the discount is something you can check yourself against the published rate card. Prices, discounts and the models in rotation are all visible on this page — nothing is hidden behind a sales call.",
-  },
-  {
-    q: "What if a request turns out not to be a real model?",
-    a: "Tell us on Telegram with the request ID. If we confirm the request was not served by the model you selected, you get a full refund plus 10× the charge credited back to your balance.",
-  },
-];
+/* The FAQ list moved to `src/lib/faq.ts` + `messages/<locale>.json`: its text is
+   content, so it lives with the other translations and feeds both the rendered
+   accordion and the FAQPage structured data. */
 
 export const topupAmounts = [
-  { amt: 10, label: "Starter" },
-  { amt: 20, label: "Basic" },
-  { amt: 50, label: "Popular" },
-  { amt: 200, label: "Pro" },
-];
+  { amt: 10, key: "amountStarter" },
+  { amt: 20, key: "amountBasic" },
+  { amt: 50, key: "amountPopular" },
+  { amt: 200, key: "amountPro" },
+] as const;
 

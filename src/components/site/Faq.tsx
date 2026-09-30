@@ -1,37 +1,44 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Icon } from "@/lib/icons";
-import { faqs } from "@/lib/data";
+import { faqItems } from "@/lib/faq";
 
 export function Faq({ maxOff }: { maxOff: number }) {
+  const t = useTranslations("faq");
   const [open, setOpen] = useState<number | null>(null);
+  const items = faqItems(t, maxOff);
 
   return (
-    <section className="section" id="faq" aria-label="Frequently asked questions" style={{ paddingTop: "clamp(30px,4vw,50px)" }}>
+    <section
+      className="section"
+      id="faq"
+      aria-label={t("label")}
+      style={{ paddingTop: "clamp(30px,4vw,50px)" }}
+      data-i18n-skip
+    >
       <div className="sec-head center">
-        <h2 className="sec-title">FAQ</h2>
+        <h2 className="sec-title">{t("title")}</h2>
       </div>
       <div className="faq-list">
-        {faqs.map((f, i) => {
+        {items.map((f, i) => {
           const isOpen = open === i;
           const delay = [0, 75, 100, 150, 200, 300][Math.min(i, 5)];
           return (
             <div
               className={`faq-item ai-reveal${isOpen ? " is-open" : ""}`}
               style={{ animationDelay: `${delay}ms` }}
-              key={f.q}
+              key={f.key}
             >
               <button
                 className="faq-q"
                 type="button"
-                data-i18n={f.q.includes("{n}") ? f.q : undefined}
-                data-i18n-n={f.q.includes("{n}") ? String(maxOff) : undefined}
                 aria-expanded={isOpen}
                 aria-controls={`faqA${i}`}
                 onClick={() => setOpen(isOpen ? null : i)}
               >
-                {f.q.replace("{n}", String(maxOff))}
+                {f.q}
                 <Icon name="ic-chevron" />
               </button>
               <div className="faq-a" id={`faqA${i}`} role="region" aria-hidden={!isOpen}>

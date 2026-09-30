@@ -1,3 +1,5 @@
+import createNextIntlPlugin from "next-intl/plugin";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -9,4 +11,8 @@ const nextConfig = {
   output: "standalone",
 };
 
-export default nextConfig;
+// Wires `src/i18n/request.ts` in as the message loader. Locale routing itself is
+// `src/i18n/routing.ts` plus the composition in `src/proxy.ts`.
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default withNextIntl(nextConfig);

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { PageHead, Stat } from "@/components/dashboard/kit";
 import { usd } from "@/lib/money";
 import type { AdminStats } from "@/server/admin";

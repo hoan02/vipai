@@ -30,7 +30,6 @@
    background would cover, visibly breaking the separator across exactly these
    two columns. */
 .pricing.show-all .price-table thead th.tr{
-  padding: 0 1px;
   color:var(--ink); font-weight:var(--fw-semibold);
   /* Bottom stop matches the band's own 45% top stop, so the two meet without a
      seam; the top is lighter so the block still deepens as it enters the body. */

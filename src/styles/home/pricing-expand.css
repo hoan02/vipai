@@ -19,9 +19,24 @@
   }
   .pricing.show-all .price-table thead th{
     position:sticky; top:calc(var(--nav-h) + var(--price-filters-h, 54px)); z-index:2;
-    background:color-mix(in srgb, var(--stage-bg) 92%, transparent);
-    backdrop-filter:blur(8px);
+    background:var(--stage-bg);
   }
+}
+
+/* The two VipAI column titles carry the tint the band starts with, so the
+   highlight reads as one block from the header down through the body instead
+   of beginning a row below the names it belongs to. The dotted rule is
+   re-stacked on top, because it normally lives on the <tr> — which a cell
+   background would cover, visibly breaking the separator across exactly these
+   two columns. */
+.pricing.show-all .price-table thead th.tr{
+  color:var(--ink); font-weight:var(--fw-semibold);
+  background-image:var(--dot-rule), linear-gradient(180deg,
+    color-mix(in srgb,#f97316 26%,transparent),
+    color-mix(in srgb,#f97316 13%,transparent));
+  background-position:0 100%, 0 0;
+  background-size:var(--dot-rule-size), auto;
+  background-repeat:repeat-x, no-repeat;
 }
 
 .price-toggle-row{ display:flex; justify-content:center; gap:12px; flex-wrap:wrap; margin-top:clamp(34px,5vh,52px); }

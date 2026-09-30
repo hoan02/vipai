@@ -29,3 +29,6 @@ next-env.d.ts
 
 # headless screenshots (scripts/screenshots.mjs)
 /.shots/
+
+# playwright mcp
+.playwright-mcp/

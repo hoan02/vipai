@@ -82,6 +82,20 @@ export function Pricing({ models }: { models: Model[] }) {
         tableRel.style.setProperty("--tr-band-left", `${Math.round(inRect.left - relRect.left)}px`);
         tableRel.style.setProperty("--tr-band-width", `${Math.round(outRect.right - inRect.left)}px`);
       }
+      // Top of the band is the bottom of the header row. Measured through
+      // offsetTop rather than getBoundingClientRect: the header is sticky, so
+      // its rect follows the scroll and would drag the band up over the
+      // column titles whenever the table is scrolled.
+      const thead = tableRel.querySelector("thead");
+      const table = tableRel.querySelector("table");
+      if (thead && table) {
+        const headerBottom = table.offsetTop + thead.offsetTop + thead.offsetHeight;
+        tableRel.style.setProperty("--tr-band-top", `${Math.round(headerBottom)}px`);
+        // Mirror for the lower edge. .table-rel is padded, so its own bottom
+        // sits below the last row; without this the wash overhangs the table.
+        const tableBottom = tableRel.clientHeight - (table.offsetTop + table.offsetHeight);
+        tableRel.style.setProperty("--tr-band-bottom", `${Math.round(Math.max(0, tableBottom))}px`);
+      }
     }
   }, []);
 

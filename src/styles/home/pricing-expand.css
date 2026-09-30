@@ -25,7 +25,19 @@
 }
 
 .price-toggle-row{ display:flex; justify-content:center; gap:12px; flex-wrap:wrap; margin-top:clamp(34px,5vh,52px); }
-.pt-logos{ display:inline-flex; align-items:center; margin-right:10px; }
+/* Revealing the full catalogue is this section's primary action, so the control
+   does not keep the filter-chip sizing it inherits from .lf-chip: it takes the
+   ghost-button read the rest of the page uses for secondary CTAs. */
+.pt-toggle{
+  height:48px; padding:0 22px; gap:12px;
+  font-size:15.5px; font-weight:var(--fw-semibold); color:var(--ink);
+  background:color-mix(in srgb, var(--surface) 72%, transparent);
+  border-color:color-mix(in srgb, var(--ink) 18%, transparent);
+  box-shadow:var(--elev-raised);
+  transition:background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.pt-toggle:hover{ background:var(--surface); border-color:color-mix(in srgb, var(--ink) 32%, transparent); }
+.pt-logos{ display:inline-flex; align-items:center; }
 .pt-logos .pl{
   width:26px; height:26px; border-radius:50%; flex:none; display:inline-grid; place-items:center;
   background:var(--surface); border:1px solid color-mix(in srgb,var(--ink) 12%,transparent); margin-left:-8px;

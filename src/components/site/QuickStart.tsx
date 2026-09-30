@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { Icon } from "@/lib/icons";
 import { codeSnippets, quickstartLangs, quickstartSubs, quickstartTabs } from "@/lib/data";
 
@@ -45,13 +46,14 @@ function copyText(text: string) {
 }
 
 const sideCards = [
-  { icon: "/assets/router.webp", title: "Full setup guides", sub: "Step-by-step for popular clients and SDKs" },
-  { icon: "/assets/key.webp", title: "Download VipAI for Codex", sub: "Download the VipAI desktop app, setup done for you (new users)" },
-  { icon: "/assets/shield-check.webp", title: "View API docs", sub: "Endpoints, SDKs, and protocol details" },
-  { icon: "/assets/ico-curated.webp", title: "OpenClaw / CC-Switch", sub: "Install guides for other clients and CLI tools" },
-];
+  { icon: "/assets/router.webp", titleKey: "guidesTitle", subKey: "guidesSub" },
+  { icon: "/assets/key.webp", titleKey: "codexTitle", subKey: "codexSub" },
+  { icon: "/assets/shield-check.webp", titleKey: "docsTitle", subKey: "docsSub" },
+  { icon: "/assets/ico-curated.webp", titleKey: "otherTitle", subKey: "otherSub" },
+] as const;
 
 export function QuickStart() {
+  const t = useTranslations("quickstart");
   const [tab, setTab] = useState("api");
   const [sub, setSub] = useState("claude-code");
   const [lang, setLang] = useState<string>("python");
@@ -72,9 +74,9 @@ export function QuickStart() {
   };
 
   return (
-    <section className="section" id="quickstart" aria-label="Quick start">
+    <section className="section" id="quickstart" aria-label="Quick start" data-i18n-skip>
       <div className="sec-head">
-        <h2 className="sec-title">Quick start</h2>
+        <h2 className="sec-title">{t("title")}</h2>
         <p className="sec-sub">
           Point your existing tools at VipAI. A one-line change — official SDKs, standard endpoints, nothing to
           relearn. Also works with Codex, Claude Desktop, OpenClaw, CC-Switch and any OpenAI-compatible client.
@@ -84,14 +86,14 @@ export function QuickStart() {
       <div className="qsx ai-reveal">
         <div className="qsx-side">
           {sideCards.map((c) => (
-            <a className="qsx-card ai-lift" href="#quickstart" key={c.title}>
+            <a className="qsx-card ai-lift" href="#quickstart" key={c.titleKey}>
               <span className="qsx-ico">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={c.icon} alt="" width={24} height={24} />
               </span>
               <span className="qsx-tx">
-                <b>{c.title}</b>
-                <span>{c.sub}</span>
+                <b>{t(c.titleKey)}</b>
+                <span>{t(c.subKey)}</span>
               </span>
               <span className="qsx-go">
                 <Icon name="ic-arrow" />
@@ -102,16 +104,16 @@ export function QuickStart() {
 
         <div className="qsx-main">
           <div className="qsx-tabs" role="tablist" aria-label="Quick start clients">
-            {quickstartTabs.map((t) => (
+            {quickstartTabs.map((tabItem) => (
               <button
-                key={t.id}
+                key={tabItem.id}
                 className="qsx-tab"
                 type="button"
                 role="tab"
-                aria-selected={tab === t.id}
-                onClick={() => setTab(t.id)}
+                aria-selected={tab === tabItem.id}
+                onClick={() => setTab(tabItem.id)}
               >
-                {t.label}
+                {tabItem.id === "other" ? t("tabOther") : tabItem.label}
               </button>
             ))}
           </div>
@@ -165,7 +167,7 @@ export function QuickStart() {
                   </span>
                   <button className={`qsx-copy${copied ? " copied" : ""}`} type="button" onClick={onCopy}>
                     <Icon name="ic-copy" />
-                    <span>{copied ? "Copied" : "Copy"}</span>
+                    <span>{copied ? t("copied") : t("copy")}</span>
                   </button>
                 </div>
                 <div className="qsx-body">
@@ -185,7 +187,7 @@ export function QuickStart() {
               <div className="qsx-app">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/assets/qs-app-shot.png"
+                  src="/assets/qs-app-shot.webp"
                   alt="VipAI desktop app onboarding screen"
                   width={1432}
                   height={1360}

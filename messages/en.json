@@ -282,7 +282,7 @@
     "ctaKey": "Get your API key",
     "ctaDocs": "Read the docs"
   },
-  "models": {
+  "catalogue": {
     "title": "Model catalogue",
     "lede": "Every model in rotation, grouped by the provider it comes from. Prices are per 1M tokens in USD and match what you are billed; <link>the pricing page</link> shows the provider's list price beside ours.",
     "empty": "The catalogue is momentarily unavailable — refresh in a minute.",
@@ -290,6 +290,31 @@
     "usingBody": "Point a client at the OpenAI-compatible endpoint with any id above, or use the protocol the family prefers — <docsModels>models &amp; routing</docsModels> has the matrix and <docsApi>the API reference</docsApi> has the request shapes.",
     "itemLine": "{in} in / {out} out per 1M tokens",
     "itemContext": "{ctx} context"
+  },
+  "quickstart": {
+    "title": "Quick start",
+    "guidesTitle": "Full setup guides",
+    "guidesSub": "Step-by-step for popular clients and SDKs",
+    "codexTitle": "Download VipAI for Codex",
+    "codexSub": "Download the VipAI desktop app, setup done for you (new users)",
+    "docsTitle": "View API docs",
+    "docsSub": "Endpoints, SDKs, and protocol details",
+    "otherTitle": "OpenClaw / CC-Switch",
+    "otherSub": "Install guides for other clients and CLI tools",
+    "tabOther": "Other",
+    "copy": "Copy",
+    "copied": "Copied"
+  },
+  "live": {
+    "badge": "Demo dataset",
+    "featured": "Featured",
+    "emptyTitle": "No models match",
+    "emptyBody": "Try another vendor or clear the search.",
+    "note": "48 hours · hourly · dashed = average"
+  },
+  "pricingPage": {
+    "title": "Pricing",
+    "rateLimits": "Rate limits"
   },
   "model": {
     "catalogue": "Model catalogue",

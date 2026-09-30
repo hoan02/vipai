@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { isLocale, routing } from "@/i18n/routing";
 import { PageShell } from "@/components/site/PageShell";
@@ -15,7 +15,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations("meta");
+  // Explicit locale keeps the route static; a bare `getTranslations()` reads the
+  // request locale, which opts the page into dynamic rendering.
+  const t = await getTranslations({
+    locale: isLocale(locale) ? locale : routing.defaultLocale,
+    namespace: "meta",
+  });
   return translatedPageMeta({
     locale: isLocale(locale) ? locale : routing.defaultLocale,
     path: "/download",
@@ -32,7 +37,9 @@ const STEP_KEYS = [
   ["step3Title", "step3Body"],
 ] as const;
 
-export default async function DownloadPage() {
+export default async function DownloadPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(isLocale(locale) ? locale : routing.defaultLocale);
   const t = await getTranslations("download");
 
   return (

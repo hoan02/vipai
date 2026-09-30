@@ -271,10 +271,17 @@ Three rules make a migration verifiable:
    would be convinced by the DOM sweep instead.
 
 Done so far: every component on the public site — `Nav`, `LaunchBanner`,
-`Footer`, `UserButton`, `Hero`, `Pricing`, `Faq`, all nine sections of
-`Sections.tsx`, `TelegramCta`, `AuthModal`, `TopUpModal`, `DownloadPlatforms`,
-`CommandPalette`, `RouteDecisionGraph` — plus the page prose of `/`, `/pricing`,
-`/models`, `/models/<id>`, `/download` and `/about`. 390 keys.
+`Footer`, `UserButton`, `Hero`, `Pricing`, `Faq`, `QuickStart`, `LiveDiscounts`,
+all nine sections of `Sections.tsx`, `TelegramCta`, `AuthModal`, `TopUpModal`,
+`DownloadPlatforms`, `CommandPalette`, `RouteDecisionGraph` — plus the page prose
+of `/`, `/pricing`, `/models`, `/models/<id>`, `/download` and `/about`. 730 keys.
+
+The public site is therefore fully migrated, and the DOM sweep no longer runs
+there. `I18n.tsx` keeps a `needsSweep` list — the dashboard tree, the admin tree
+and the legal drafts — and imports the 719-entry dictionary dynamically, so only
+those routes download it. It used to be a static import of a module the root
+layout mounts on every page, which put ~59KB of dictionary in the first-load
+script set of the marketing pages for a pass that rewrote nothing.
 
 The dashboard's foundation is in: `lib/dashboard-data.ts` carries `labelKey` /
 `titleKey` instead of labels, so the sidebar (`dashboard/shell.tsx`) and the
@@ -308,9 +315,9 @@ same `intl-messageformat` that formats them at runtime. A malformed plural is
 caught in CI rather than behind a login wall the build never renders.
 
 What is left: `chat-view`/`playground-view`, `profile-view`, `security-view`,
-the admin tree (whose `admin-shell.tsx` still holds `item.label`), the six
-documentation pages, and the two legal pages. Only then can `I18n.tsx` — and the
-719-entry dictionary behind it — be deleted.
+the admin tree (whose `admin-shell.tsx` still holds `item.label`), and the legal
+drafts' headings. Only then can `I18n.tsx` — and the 719-entry dictionary behind
+it — be deleted, and the last route stop loading it.
 
 A second thing the migration keeps finding, beyond missing translations: **the
 source language was not consistent.** The homepage was authored in English and

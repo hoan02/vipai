@@ -42,7 +42,7 @@
     linear-gradient(120deg, #f3a25c 0%, #fb7d3a 46%, #8d7ce0 100%);
 }
 .buy.buy-hook::before{
-  background:url("/assets/buy-hook-bg.jpg") center/cover no-repeat;
+  background:url("/assets/buy-hook-bg.webp") center/cover no-repeat;
   mix-blend-mode:soft-light;
   opacity:.9;
 }

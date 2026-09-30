@@ -282,7 +282,7 @@
     "ctaKey": "Lấy API key",
     "ctaDocs": "Đọc tài liệu"
   },
-  "models": {
+  "catalogue": {
     "title": "Danh mục model",
     "lede": "Mọi model đang chạy, nhóm theo nhà cung cấp. Giá tính trên 1M token bằng USD và đúng bằng mức bạn bị tính; <link>trang bảng giá</link> hiển thị giá niêm yết của nhà cung cấp đặt cạnh giá của chúng tôi.",
     "empty": "Danh mục tạm thời không khả dụng — thử lại sau một phút.",
@@ -290,6 +290,31 @@
     "usingBody": "Trỏ client tới endpoint tương thích OpenAI với bất kỳ id nào ở trên, hoặc dùng protocol mà họ model này ưu tiên — <docsModels>mô hình &amp; định tuyến</docsModels> có bảng ma trận và <docsApi>tài liệu API</docsApi> có dạng request.",
     "itemLine": "{in} input / {out} output mỗi 1M token",
     "itemContext": "ngữ cảnh {ctx}"
+  },
+  "quickstart": {
+    "title": "Bắt đầu nhanh",
+    "guidesTitle": "Hướng dẫn cài đặt đầy đủ",
+    "guidesSub": "Từng bước cho các client và SDK phổ biến",
+    "codexTitle": "Tải VipAI cho Codex",
+    "codexSub": "Tải app desktop VipAI, cài sẵn cho bạn (người dùng mới)",
+    "docsTitle": "Xem tài liệu API",
+    "docsSub": "Endpoint, SDK và chi tiết protocol",
+    "otherTitle": "OpenClaw / CC-Switch",
+    "otherSub": "Hướng dẫn cài cho client khác và công cụ CLI",
+    "tabOther": "Khác",
+    "copy": "Sao chép",
+    "copied": "Đã sao chép"
+  },
+  "live": {
+    "badge": "Dữ liệu minh hoạ",
+    "featured": "Nổi bật",
+    "emptyTitle": "Không có model nào khớp",
+    "emptyBody": "Thử provider khác hoặc xoá tìm kiếm.",
+    "note": "48 giờ · theo giờ · nét đứt = trung bình"
+  },
+  "pricingPage": {
+    "title": "Bảng giá",
+    "rateLimits": "Giới hạn tốc độ"
   },
   "model": {
     "catalogue": "Danh mục model",

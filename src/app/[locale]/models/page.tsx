@@ -9,7 +9,8 @@ import { translatedPageMeta } from "@/lib/seo";
 import { breadcrumbs, modelListSchema } from "@/lib/schema";
 import { modelSlug, type Model } from "@/lib/data";
 
-export const dynamic = "force-dynamic";
+/** Static, revalidated every 60s to match the pricing fetch (see `pricing/page.tsx`). */
+export const revalidate = 60;
 
 // Translated in both locales, so the canonical is this locale's URL and the two
 // are paired with hreflang.
@@ -19,7 +20,10 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations("meta");
+  const t = await getTranslations({
+    locale: isLocale(locale) ? locale : routing.defaultLocale,
+    namespace: "meta",
+  });
   return translatedPageMeta({
     locale: isLocale(locale) ? locale : routing.defaultLocale,
     path: "/models",
@@ -46,7 +50,7 @@ function byVendor(models: Model[]): Array<[string, Model[]]> {
  */
 export default async function ModelsIndexPage() {
   const models = await getPublicModels();
-  const t = await getTranslations("models");
+  const t = await getTranslations("catalogue");
   const tc = await getTranslations("common");
 
   return (

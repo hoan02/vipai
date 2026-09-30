@@ -43,7 +43,8 @@ const COMPLIMENTARY: Array<[string, string]> = [
   ["jev", "TypeSafe lane"],
 ];
 
-export const dynamic = "force-dynamic";
+/** Static, revalidated every 60s to match the pricing fetch (`pricing/page.tsx`). */
+export const revalidate = 60;
 
 export default async function ModelsPage() {
   const models = await getPublicModels();

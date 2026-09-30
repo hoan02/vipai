@@ -2,16 +2,15 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { Geist, JetBrains_Mono } from "next/font/google";
 import "../globals.css";
 import "../site-pages.css";
 import { I18n } from "@/components/site/I18n";
-import { AuthModal } from "@/components/site/AuthModal";
-import { CommandPalette } from "@/components/command-palette";
+import { AuthModal, CommandPalette, Toaster } from "@/components/site/overlays";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/toaster";
 import { isLocale, routing, type Locale } from "@/i18n/routing";
+import { clientMessages } from "@/i18n/client-messages";
 import { BASE_OPEN_GRAPH, OG_IMAGE, SITE_URL } from "@/lib/seo";
 
 const geist = Geist({
@@ -104,6 +103,11 @@ export default async function LocaleLayout({
   // rendered on demand instead of at build time.
   setRequestLocale(locale as Locale);
 
+  // Only the namespaces a Client Component actually reads cross the boundary;
+  // see `i18n/client-messages.ts`. Reading them here, after `setRequestLocale`,
+  // keeps the layout static.
+  const messages = clientMessages(await getMessages());
+
   return (
     // suppressHydrationWarning: next-themes sets data-theme on <html> before
     // React hydrates, so the server and client class/attribute lists differ by
@@ -114,7 +118,7 @@ export default async function LocaleLayout({
     // catalogue is migrated; it no longer has to correct `lang`.
     <html lang={locale} className={`${geist.variable} ${mono.variable}`} suppressHydrationWarning>
       <body>
-        <NextIntlClientProvider>
+        <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
             <I18n />
             {children}

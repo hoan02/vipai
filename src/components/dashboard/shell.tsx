@@ -26,7 +26,7 @@ import { openCommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { dashboardNavGroups, type NavIcon } from "@/lib/dashboard-data";
 import { isHrefVisible, parseSidebarModules } from "@/lib/sidebar-modules";
-import { TopUpModal } from "@/components/site/TopUpModal";
+import { TopUpModal } from "@/components/site/overlays";
 import { useLocale, type Locale } from "@/components/site/I18n";
 
 const navIcons: Record<NavIcon, typeof Gauge> = {

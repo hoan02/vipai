@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { isLocale, routing } from "@/i18n/routing";
 import { PageShell } from "@/components/site/PageShell";
@@ -16,7 +16,13 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations("meta");
+  // Passing the locale explicitly keeps this route static: `getTranslations()`
+  // with no argument reads it from the request, which opts the whole page into
+  // dynamic rendering (see the note in `pricing/page.tsx`).
+  const t = await getTranslations({
+    locale: isLocale(locale) ? locale : routing.defaultLocale,
+    namespace: "meta",
+  });
   return translatedPageMeta({
     locale: isLocale(locale) ? locale : routing.defaultLocale,
     path: "/about",
@@ -31,7 +37,9 @@ export async function generateMetadata({
  * elsewhere (the FAQ, the pricing table, the docs) — nothing is invented for
  * the page.
  */
-export default async function AboutPage() {
+export default async function AboutPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(isLocale(locale) ? locale : routing.defaultLocale);
   const t = await getTranslations("about");
 
   return (

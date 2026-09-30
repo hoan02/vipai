@@ -1,15 +1,20 @@
 /**
  * Checks the message catalogue before a build does.
  *
- * Two things go wrong quietly otherwise, and both surface as a 500 on one route
- * in one language rather than as a build failure:
+ * Three things go wrong quietly otherwise, and the first two surface as a 500 on
+ * one route in one language rather than as a build failure:
  *
  *  1. A locale is missing a key. `next-intl` throws when the key is looked up.
  *  2. An ICU message is malformed — an unclosed brace, a bad plural. It throws
  *     when the message is *formatted*, which can be behind a login wall the
  *     build never renders.
+ *  3. Two namespaces share a name. `JSON.parse` keeps only the last, so the
+ *     earlier one is dead: its keys are still compared (both locales carry the
+ *     same duplicate) but never render, and every lookup against it throws at
+ *     runtime. A `"models"` for the public catalogue used to be shadowed by the
+ *     dashboard's `"models"`, which is what this now catches.
  *
- * Compiling every message here turns both into a check that runs in CI.
+ * Compiling every message here turns all three into a check that runs in CI.
  *
  * Usage: node scripts/check-i18n.mjs
  */
@@ -43,12 +48,38 @@ if (files.length < 2) {
 
 const locales = files.map((name) => {
   const locale = name.replace(/\.json$/, "");
-  const json = JSON.parse(readFileSync(join(messagesDir, name), "utf8"));
-  return { locale, json, keys: new Set(flatten(json)) };
+  const raw = readFileSync(join(messagesDir, name), "utf8");
+  const json = JSON.parse(raw);
+  return { locale, raw, json, keys: new Set(flatten(json)) };
 });
+
+/**
+ * Top-level namespace names, in file order.
+ *
+ * Read from the raw text rather than the parsed object because `JSON.parse`
+ * keeps only the last of two identical keys: the duplicate is invisible in the
+ * object even though the earlier namespace is dead. Top-level keys sit at two
+ * spaces of indentation; nested keys are deeper.
+ */
+function namespaces(raw) {
+  return [...raw.matchAll(/^ {2}"([^"]+)":/gm)].map((match) => match[1]);
+}
 
 const [reference, ...rest] = locales;
 let failed = false;
+
+for (const { locale, raw } of locales) {
+  const seen = new Set();
+  const duplicates = new Set();
+  for (const name of namespaces(raw)) {
+    if (seen.has(name)) duplicates.add(name);
+    seen.add(name);
+  }
+  if (duplicates.size) {
+    failed = true;
+    console.error(`check-i18n: ${locale} declares a namespace more than once: ${[...duplicates].join(", ")}`);
+  }
+}
 
 for (const { locale, keys } of rest) {
   const missing = [...reference.keys].filter((key) => !keys.has(key));

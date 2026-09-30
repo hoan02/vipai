@@ -11,7 +11,16 @@ import { translatedPageMeta } from "@/lib/seo";
 import { breadcrumbs, faqSchema, modelListSchema } from "@/lib/schema";
 import { faqItems } from "@/lib/faq";
 
-export const dynamic = "force-dynamic";
+/**
+ * The catalogue is read with a 60s `revalidate` (see `server/pricing.ts`), so
+ * this route renders statically and is served from the edge; the gateway is hit
+ * at most once per minute rather than on every request.
+ *
+ * `force-dynamic` was here before, and it also forced every `fetch` in the route
+ * to `no-store` — so it silently defeated that revalidate and asked the gateway
+ * for the whole price list on every page view.
+ */
+export const revalidate = 60;
 
 // Translated in both locales, so the canonical is this locale's URL and the two
 // are paired with hreflang.
@@ -21,7 +30,13 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations("meta");
+  // The locale is passed explicitly so this stays static: a bare
+  // `getTranslations()` reads the request locale and opts the route into
+  // dynamic rendering.
+  const t = await getTranslations({
+    locale: isLocale(locale) ? locale : routing.defaultLocale,
+    namespace: "meta",
+  });
   return translatedPageMeta({
     locale: isLocale(locale) ? locale : routing.defaultLocale,
     path: "/pricing",
@@ -42,6 +57,9 @@ export default async function PricingPage({ params }: { params: Promise<{ locale
   const locale = isLocale(rawLocale) ? rawLocale : routing.defaultLocale;
   const models = await getPublicModels();
   const maxOff = models.reduce((max, m) => Math.max(max, m.discPct), 0);
+  // The page prose is translated here rather than by the DOM sweep, so the
+  // server sends the reader's language (see the note in `components/site/I18n.tsx`).
+  const t = await getTranslations("pricingPage");
   // The structured data speaks the same language as the page it describes.
   const faq = faqItems(await getTranslations("faq"), maxOff);
 
@@ -60,7 +78,7 @@ export default async function PricingPage({ params }: { params: Promise<{ locale
 
       <section className="section" style={{ paddingBottom: 0 }}>
         <div className="prose-page">
-          <h1>Pricing</h1>
+          <h1>{t("title")}</h1>
           <p className="lede">
             Every model VipAI routes, with the provider&rsquo;s published list price beside ours, so the
             discount is something you can check rather than take on trust. Billed per token in USD, no
@@ -93,7 +111,7 @@ export default async function PricingPage({ params }: { params: Promise<{ locale
             <li>
               <strong>Complimentary models</strong> — ids ending in <code>-free</code>, plus{" "}
               <code>jev</code> — run at a promotional discount with a personal daily allowance and a shared
-              platform capacity. <Link href="/docs/rate-limits">Rate limits</Link> has the numbers.
+              platform capacity. <Link href="/docs/rate-limits">{t("rateLimits")}</Link> has the numbers.
             </li>
             <li>
               <strong>No subscription.</strong> Buy credits when you want, spend them whenever; a balance

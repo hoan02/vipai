@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Icon } from "@/lib/icons";
 import { PICK_MODEL_EVENT, modelKey, type Model, type PickModelDetail } from "@/lib/data";
 
@@ -116,6 +117,7 @@ function historyFor(name: string, discount: number) {
 }
 
 export function LiveDiscounts({ models }: { models: Model[] }) {
+  const t = useTranslations("live");
   const [vendor, setVendor] = useState<string>("Featured");
   const [query, setQuery] = useState("");
   const [active, setActive] = useState<string | null>(null);
@@ -309,13 +311,13 @@ export function LiveDiscounts({ models }: { models: Model[] }) {
   const narrowIdx = narrow ? [0, 12, 24, 36] : [0, 6, 12, 18, 24, 30, 36, 42];
 
   return (
-    <section className="section" id="live" aria-label="Live discounts" style={{ paddingTop: 0 }}>
+    <section className="section" id="live" aria-label="Live discounts" style={{ paddingTop: 0 }} data-i18n-skip>
       <div className="sec-head">
         <h2 className="sec-title">
           Live discounts
           <span className="live-badge">
             <i aria-hidden="true" />
-            Demo dataset
+            {t("badge")}
           </span>
         </h2>
         <p className="sec-sub">
@@ -334,7 +336,7 @@ export function LiveDiscounts({ models }: { models: Model[] }) {
               aria-pressed={vendor === v}
               onClick={() => setVendor(v)}
             >
-              {v}
+              {v === "Featured" ? t("featured") : v}
             </button>
           ))}
         </div>
@@ -376,8 +378,8 @@ export function LiveDiscounts({ models }: { models: Model[] }) {
         </div>
         {rows.length === 0 ? (
           <p className="live-empty">
-            <b>No models match</b>
-            <span>Try another vendor or clear the search.</span>
+            <b>{t("emptyTitle")}</b>
+            <span>{t("emptyBody")}</span>
           </p>
         ) : null}
         <div className="live-chart">
@@ -520,7 +522,7 @@ export function LiveDiscounts({ models }: { models: Model[] }) {
                 ))
               : null}
           </div>
-          <p className="lc2-note">48 hours · hourly · dashed = average</p>
+          <p className="lc2-note">{t("note")}</p>
         </div>
       </div>
     </section>

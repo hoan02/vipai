@@ -15,7 +15,7 @@ import { Pricing } from "@/components/site/Pricing";
 import { QuickStart } from "@/components/site/QuickStart";
 import { LiveDiscounts } from "@/components/site/LiveDiscounts";
 import { Faq } from "@/components/site/Faq";
-import { TopUpModal } from "@/components/site/TopUpModal";
+import { TopUpModal } from "@/components/site/overlays";
 import { getPublicModels } from "@/server/pricing";
 import {
   StatBar,
@@ -29,8 +29,6 @@ import {
   Footer,
 } from "@/components/site/Sections";
 
-export const dynamic = "force-dynamic";
-
 // The homepage exists in both locales, so its canonical is its own URL and the
 // two are paired with hreflang. The title and description are the layout's
 // default, localized, which is why `translatedPageMeta` still receives them:
@@ -41,7 +39,17 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations("meta");
+  // The locale is passed explicitly so the route stays static. A bare
+  // `getTranslations()` reads the request locale, and that request read is what
+  // opts a whole page into dynamic rendering — which is why `dynamic =
+  // "force-dynamic"` used to be here, and why that also defeated the 60s
+  // `revalidate` on the pricing fetch (a `force-dynamic` route forces every
+  // `fetch` to `no-store`). The homepage is now prerendered and revalidated once
+  // a minute; see `server/pricing.ts`.
+  const t = await getTranslations({
+    locale: isLocale(locale) ? locale : routing.defaultLocale,
+    namespace: "meta",
+  });
   return translatedPageMeta({
     locale: isLocale(locale) ? locale : routing.defaultLocale,
     path: "/",

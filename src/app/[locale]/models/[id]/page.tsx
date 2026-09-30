@@ -10,11 +10,24 @@ import { DocCell, DocRow, DocTable, Pill } from "@/components/docs/doc-table";
 import { getCatalogue } from "@/server/pricing";
 import { translatedPageMeta } from "@/lib/seo";
 import { breadcrumbs, productSchema } from "@/lib/schema";
-import { modelBySlug, type Model } from "@/lib/data";
+import { modelBySlug, modelSlug, type Model } from "@/lib/data";
 
-export const dynamic = "force-dynamic";
+/** Static with a 60s revalidate, matching the pricing fetch (`pricing/page.tsx`). */
+export const revalidate = 60;
 
 type Params = { params: Promise<{ locale: string; id: string }> };
+
+/**
+ * Prerenders one page per model at build time, so a crawler or a first-time
+ * visitor gets HTML from the edge instead of waiting on an on-demand render.
+ * Slugs come from the same catalogue the page resolves against, so a model that
+ * is not listed here still works — it is simply rendered on first request and
+ * cached.
+ */
+export async function generateStaticParams() {
+  const models = await getCatalogue();
+  return models.map((model) => ({ id: modelSlug(model.id) }));
+}
 
 /**
  * Whose surface each `supported_endpoint_types` value maps to. The vocabulary
@@ -43,11 +56,17 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
   const model = await findModel(id);
   if (!model) {
-    const t = await getTranslations("meta");
+    const t = await getTranslations({
+      locale: isLocale(locale) ? locale : routing.defaultLocale,
+      namespace: "meta",
+    });
     return { title: t("modelNotFoundTitle"), robots: { index: false, follow: true } };
   }
 
-  const t = await getTranslations("meta");
+  const t = await getTranslations({
+    locale: isLocale(locale) ? locale : routing.defaultLocale,
+    namespace: "meta",
+  });
   const values = { name: model.name, in: model.inNow, out: model.outNow };
   const description =
     model.discPct > 0

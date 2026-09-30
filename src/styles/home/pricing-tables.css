@@ -30,10 +30,10 @@
   /* Warm at the top, cool at the bottom — the same orange->blue pairing the
      hero streaks and the hub pulse use, so the wash reads as the route. */
   background:linear-gradient(180deg,
-    color-mix(in srgb,#f97316 24%,transparent) 0%,
-    color-mix(in srgb,#f97316 7%,transparent) 42%,
-    color-mix(in srgb,#6d92dd 7%,transparent) 58%,
-    color-mix(in srgb,#6d92dd 23%,transparent) 100%);
+    color-mix(in srgb,#f97316 45%,transparent) 0%,
+    color-mix(in srgb,#f97316 15%,transparent) 42%,
+    color-mix(in srgb,#6d92dd 15%,transparent) 58%,
+    color-mix(in srgb,#6d92dd 45%,transparent) 100%);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.55);
   opacity:0; transform:translateY(16px) scale(.984);
   transition:opacity .75s ease, transform .75s cubic-bezier(.2,.72,.2,1);

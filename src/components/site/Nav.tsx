@@ -70,7 +70,16 @@ export function Nav() {
             </span>
           </div>
           {links.map((l) => (
-            <Link key={l.href} href={l.href} className={l.active ? "is-active" : undefined} onClick={close}>
+            <Link
+              key={l.href}
+              href={l.href}
+              // Signed out, `/dashboard` answers with a redirect to the auth
+              // dialog. Prefetching it would only cache that bounce, so leave it
+              // to the click. Once signed in it prefetches like any other link.
+              prefetch={l.href === "/dashboard" && !session?.user ? false : undefined}
+              className={l.active ? "is-active" : undefined}
+              onClick={close}
+            >
               {t(l.key)}
             </Link>
           ))}

@@ -14,8 +14,8 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { isLocale, localePath, routing } from "@/i18n/routing";
 import { signIn, signUp } from "@/lib/auth-client";
 import { Icon } from "@/lib/icons";
 import { brandMark } from "@/lib/data";
@@ -208,7 +208,11 @@ function Field({
 }: FieldProps) {
   return (
     <div className={`am-field${value ? " filled" : ""}${className ? ` ${className}` : ""}`} style={style}>
-      <span className="am-field-ic">{icon}</span>
+      {/* The icon is a second label for the same input so the 38px well on the
+          left focuses the field too, instead of being dead space. */}
+      <label className="am-field-ic" htmlFor={id}>
+        {icon}
+      </label>
       <label className="am-lab" htmlFor={id}>
         {label}
       </label>
@@ -232,8 +236,9 @@ function Field({
 /* ---------- dialog ---------- */
 
 export function AuthModal() {
-  const router = useRouter();
   const t = useTranslations("auth");
+  const requestedLocale = useLocale();
+  const locale = isLocale(requestedLocale) ? requestedLocale : routing.defaultLocale;
 
   const [mounted, setMounted] = useState(false);
   const [phase, setPhase] = useState<Phase>("closed");
@@ -423,20 +428,25 @@ export function AuthModal() {
     if (next > 0) setFormH(next);
   }, [live, mode, status, error, caps]);
 
-  /* Success: hold the check-draw for a beat, then hand off to the router —
-     the page the visitor was bounced from, or the dashboard by default. */
+  /* Success: hold the check-draw for a beat, then leave for the page the
+     visitor was bounced from, or the dashboard. This is a *hard* navigation on
+     purpose. A signed-out visitor's `/dashboard` link is prefetched by the nav,
+     and that prefetch is answered with a redirect to `/?auth=signin`; a soft
+     `router.push` replays that cached redirect, dropping the freshly signed-in
+     visitor back on the home page with the dialog reopened. A full load asks the
+     server again — now carrying the session cookie — and discards the stale
+     router cache. It is also what sign-out already does. */
   useEffect(() => {
     if (status !== "done") return;
     doneTimer.current = window.setTimeout(
       () => {
         setPhase("closed");
-        router.push(redirectRef.current ?? "/dashboard");
-        router.refresh();
+        window.location.assign(localePath(locale, redirectRef.current ?? "/dashboard"));
       },
       prefersReducedMotion() ? 120 : DONE_MS
     );
     return () => window.clearTimeout(doneTimer.current);
-  }, [status, router]);
+  }, [status, locale]);
 
   const switchMode = (next: AuthMode) => {
     if (next === mode) return;
@@ -605,18 +615,6 @@ export function AuthModal() {
               onSubmit={submit}
               noValidate
             >
-              {error && (
-                <p className="am-note err" role="alert">
-                  <span className="am-note-ic" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
-                      <circle cx="12" cy="12" r="8.6" />
-                      <path d="M12 7.8v4.6M12 16.1h.01" />
-                    </svg>
-                  </span>
-                  <span>{error}</span>
-                </p>
-              )}
-
               <h3 className="am-title am-row" id="am-title" style={row(1)}>
                 {t(copy.title)}
               </h3>
@@ -717,6 +715,21 @@ export function AuthModal() {
                     <b>{strength > 0 ? t(STRENGTH_KEYS[strength]) : null}</b>
                   </div>
                 </div>
+              )}
+
+              {/* The error sits with the fields it is about, right above the
+                  submit, rather than above the title where it would push the
+                  panel around and read as a page-level failure. */}
+              {error && (
+                <p className="am-note err" role="alert">
+                  <span className="am-note-ic" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
+                      <circle cx="12" cy="12" r="8.6" />
+                      <path d="M12 7.8v4.6M12 16.1h.01" />
+                    </svg>
+                  </span>
+                  <span>{error}</span>
+                </p>
               )}
 
               <button

@@ -9,7 +9,7 @@
 .sec-title{ font-size:clamp(30px,3.6vw,46px); font-weight:var(--fw-bold); letter-spacing:-.03em; line-height:1.12; }
 .sec-sub{ margin-top:14px; color:color-mix(in srgb, var(--ink) 62%, transparent); font-size:16px; max-width:66ch; }
 .sec-head.center{ text-align:center; }
-.sub-link{ display:inline-flex; align-items:center; gap:5px; margin-top:10px; font-weight:var(--fw-medium); font-size:15px; color:var(--amber-deep); text-decoration:none; border-bottom:1px solid color-mix(in srgb, var(--amber-deep) 30%, transparent); padding-bottom:1px; transition:border-color .18s ease, gap .18s var(--stagger-ease); }
+.sub-link{ display:inline-flex; align-items:center; gap:5px; margin-top:10px; margin-left: 4px; font-weight:var(--fw-medium); font-size:15px; color:var(--amber-deep); text-decoration:none; border-bottom:1px solid color-mix(in srgb, var(--amber-deep) 30%, transparent); padding-bottom:1px; transition:border-color .18s ease, gap .18s var(--stagger-ease); }
 .sub-link:hover{ border-color:var(--amber-deep); gap:8px; }
 .sub-link svg{ width:15px; height:15px; }
 

@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
+import { getMessages, getTranslations } from "next-intl/server";
 import { Geist, JetBrains_Mono } from "next/font/google";
 import "../globals.css";
 import "../site-pages.css";
 import { I18n } from "@/components/site/I18n";
 import { AuthModal, CommandPalette, Toaster } from "@/components/site/overlays";
 import { ThemeProvider } from "@/components/theme-provider";
-import { isLocale, routing, type Locale } from "@/i18n/routing";
+import { isLocale, routing } from "@/i18n/routing";
 import { clientMessages } from "@/i18n/client-messages";
 import { BASE_OPEN_GRAPH, OG_IMAGE, SITE_URL } from "@/lib/seo";
 
@@ -99,13 +99,12 @@ export default async function LocaleLayout({
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
 
-  // Required for static rendering: without it every page under this layout is
-  // rendered on demand instead of at build time.
-  setRequestLocale(locale as Locale);
+  // The locale is resolved in `i18n/request.ts` from this layout's root
+  // parameter, so the tree below stays statically rendered without each page
+  // having to opt in itself.
 
   // Only the namespaces a Client Component actually reads cross the boundary;
-  // see `i18n/client-messages.ts`. Reading them here, after `setRequestLocale`,
-  // keeps the layout static.
+  // see `i18n/client-messages.ts`.
   const messages = clientMessages(await getMessages());
 
   return (

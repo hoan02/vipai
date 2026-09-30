@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { isLocale, routing } from "@/i18n/routing";
 import { PageShell } from "@/components/site/PageShell";
@@ -37,9 +37,7 @@ const STEP_KEYS = [
   ["step3Title", "step3Body"],
 ] as const;
 
-export default async function DownloadPage({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await params;
-  setRequestLocale(isLocale(locale) ? locale : routing.defaultLocale);
+export default async function DownloadPage() {
   const t = await getTranslations("download");
 
   return (

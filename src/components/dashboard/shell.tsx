@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
+import { UserButton } from "@/components/UserButton";
 import {
   BarChart3,
   ChevronsUpDown,
@@ -15,14 +16,18 @@ import {
   ListTodo,
   MessageSquare,
   ScrollText,
+  Search,
   Shield,
   User,
 } from "lucide-react";
 import { Icon } from "@/lib/icons";
 import { brandMark } from "@/lib/data";
+import { openCommandPalette } from "@/components/command-palette";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { dashboardNavGroups, type NavIcon } from "@/lib/dashboard-data";
 import { isHrefVisible, parseSidebarModules } from "@/lib/sidebar-modules";
 import { TopUpModal } from "@/components/site/TopUpModal";
+import { setLocale, getLocale, type Locale } from "@/components/site/I18n";
 
 const navIcons: Record<NavIcon, typeof Gauge> = {
   gauge: Gauge,
@@ -38,8 +43,22 @@ const navIcons: Record<NavIcon, typeof Gauge> = {
   shield: Shield,
 };
 
+const topTabs = [
+  { label: "Home", href: "/" },
+  { label: "Pricing", href: "/#pricing" },
+  { label: "Connect Codex", href: "/download" },
+  { label: "API docs", href: "/docs" },
+  { label: "Dashboard", href: "/dashboard" },
+];
+
 export function DashboardShell({ children }: { children: ReactNode }) {
   const path = usePathname() ?? "/dashboard";
+  const [lang, setLang] = useState<Locale>("vi");
+  useEffect(() => setLang(getLocale()), []);
+  const chooseLang = (l: Locale) => {
+    setLang(l);
+    setLocale(l);
+  };
 
   // Highlight exactly one link: the longest href that still matches the path.
   // This keeps "Usage logs" quiet while "Audit logs" (/usage-logs/audit) is open.
@@ -111,6 +130,51 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="dash-body">
+        <header className="dash-top">
+          <div className="dash-top-in">
+            <nav className="dash-tabs" aria-label="Primary">
+              {topTabs.map((t) => (
+                <Link
+                  key={t.label}
+                  href={t.href}
+                  className={`dash-tab${t.href === "/dashboard" ? " is-on" : ""}`}
+                >
+                  {t.label}
+                </Link>
+              ))}
+            </nav>
+            <div className="dash-account">
+              <button
+                className="dash-search"
+                type="button"
+                onClick={openCommandPalette}
+                aria-label="Search pages and actions"
+              >
+                <Search size={15} aria-hidden="true" />
+                <span className="dash-search-tx">Search</span>
+                <kbd className="dash-search-kbd">⌘K</kbd>
+              </button>
+              <ThemeToggle className="dash-theme" />
+              <div className="dash-lang" role="group" aria-label="Language">
+                {(["en", "vi"] as const).map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    className={lang === l ? "is-on" : undefined}
+                    aria-pressed={lang === l}
+                    onClick={() => chooseLang(l)}
+                  >
+                    {l.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <span className="dash-user">
+                <UserButton />
+              </span>
+            </div>
+          </div>
+        </header>
+
         <div className="dash-scroll" key={path}>
           <main className="dash-main">{children}</main>
         </div>

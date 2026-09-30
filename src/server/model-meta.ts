@@ -35,6 +35,13 @@ let cache: Cache | null = null;
 const OK_TTL_MS = 5 * 60 * 1000;
 const RETRY_TTL_MS = 60 * 1000;
 
+/**
+ * The option read is cached in Next's data cache, so an uncached `no-store`
+ * fetch never reaches the prerendered homepage. It matches the pricing fetch's
+ * revalidate, so the whole page refreshes on one cadence.
+ */
+const META_REVALIDATE_SECONDS = 60;
+
 /** Parses the `vipai.meta` option: `{ "<model>": { name, ctx, featured, in, out } }`. */
 export function parseMeta(raw: string | undefined): Map<string, ModelMeta> {
   const map = new Map<string, ModelMeta>();
@@ -78,8 +85,9 @@ export function serializeMeta(metas: Map<string, ModelMeta>): string {
 }
 
 /**
- * The gateway's per-model metadata. Memoised in-process, since the page is
- * rendered on demand and every render would otherwise read the whole option map.
+ * The gateway's per-model metadata, memoised in-process so a render that reads
+ * it more than once asks the gateway once. The read itself is cached (see
+ * `META_REVALIDATE_SECONDS`), which is what keeps the homepage prerendered.
  */
 export async function getModelMeta(): Promise<Map<string, ModelMeta>> {
   const now = Date.now();
@@ -93,7 +101,7 @@ export async function getModelMeta(): Promise<Map<string, ModelMeta>> {
   }
 
   try {
-    const options = await getOptions(token);
+    const options = await getOptions(token, META_REVALIDATE_SECONDS);
     const value = parseMeta(options.get(META_OPTION));
     cache = { at: now, ttl: OK_TTL_MS, value };
     return value;

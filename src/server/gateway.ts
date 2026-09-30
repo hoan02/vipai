@@ -143,6 +143,24 @@ function subjectOf(accessToken: string): string | null {
 }
 
 /**
+ * Options for one gateway call. `revalidate` is the only field beyond the
+ * request shape; it is read by `rawCall`.
+ */
+type CallInit = RequestInit & {
+  token?: string;
+  cookie?: string;
+  /**
+   * Cache this read in Next's data cache for this many seconds.
+   *
+   * Omit it for anything tied to a signed-in request. A public read sets it,
+   * because a `cache: "no-store"` fetch during a prerendered render is exactly
+   * what throws "Page changed from static to dynamic at runtime" (see
+   * `getOptions`).
+   */
+  revalidate?: number;
+};
+
+/**
  * Performs one gateway call and normalises its result.
  *
  * Always sends the user id alongside the token: the management API resolves
@@ -151,9 +169,9 @@ function subjectOf(accessToken: string): string | null {
  */
 async function rawCall<T>(
   path: string,
-  init: RequestInit & { token?: string; cookie?: string } = {},
+  init: CallInit = {},
 ): Promise<Envelope<T> & RelayEnvelope & { url?: string }> {
-  const { token, cookie, ...rest } = init;
+  const { token, cookie, revalidate, ...rest } = init;
 
   const headers = new Headers(rest.headers);
   headers.set("accept", "application/json");
@@ -162,8 +180,15 @@ async function rawCall<T>(
   // Forward the caller's address so the gateway's per-IP rate limiter counts the
   // visitor, not this server. Every call leaves from one container IP otherwise,
   // so unrelated people would share a single bucket and trip it for each other.
-  const forwardedFor = await getForwardedFor();
-  if (forwardedFor) headers.set("x-forwarded-for", forwardedFor);
+  //
+  // A revalidated read is shared between visitors, so it carries no one
+  // caller's address. It also must not touch `headers()`: that is itself a
+  // request-time read, and calling it would opt a prerendered page into dynamic
+  // rendering just as a `no-store` fetch would.
+  if (revalidate === undefined) {
+    const forwardedFor = await getForwardedFor();
+    if (forwardedFor) headers.set("x-forwarded-for", forwardedFor);
+  }
 
   if (token) {
     headers.set("authorization", `Bearer ${token}`);
@@ -174,7 +199,15 @@ async function rawCall<T>(
 
   let response: Response;
   try {
-    response = await fetch(url(path), { ...rest, headers, cache: "no-store" });
+    response = await fetch(url(path), {
+      ...rest,
+      headers,
+      // A public read is cached so the page stays prerendered; everything else
+      // is per-request, which is the default this app has always used.
+      ...(revalidate === undefined
+        ? { cache: "no-store" as const }
+        : { cache: "force-cache" as const, next: { revalidate } }),
+    });
   } catch (cause) {
     throw new GatewayError(
       `Could not reach the gateway: ${(cause as Error).message}`,
@@ -222,7 +255,7 @@ async function rawCall<T>(
 
 async function call<T>(
   path: string,
-  init: RequestInit & { token?: string; cookie?: string } = {},
+  init: CallInit = {},
 ): Promise<T> {
   const body = await rawCall<T>(path, init);
   return (body.data ?? (body as unknown)) as T;
@@ -2243,10 +2276,21 @@ export async function updateChannel(
   });
 }
 
-/** The gateway's raw option map. Values of JSON options are JSON strings. */
-export async function getOptions(accessToken: string): Promise<Map<string, string>> {
+/**
+ * The gateway's raw option map. Values of JSON options are JSON strings.
+ *
+ * Pass `revalidate` for a public read that should be cached and shared: the
+ * homepage needs the `vipai.meta` option inside a prerendered render, and an
+ * uncached (`no-store`) fetch there turns the whole page dynamic. The admin
+ * screens omit it and always read the stored value.
+ */
+export async function getOptions(
+  accessToken: string,
+  revalidate?: number,
+): Promise<Map<string, string>> {
   const data = await call<Array<{ key: string; value: string }>>("/api/option/", {
     token: accessToken,
+    revalidate,
   });
   return new Map((data ?? []).map((option) => [option.key, option.value]));
 }

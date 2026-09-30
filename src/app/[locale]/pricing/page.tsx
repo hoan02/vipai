@@ -87,7 +87,7 @@ export default async function PricingPage({ params }: { params: Promise<{ locale
         </div>
       </section>
 
-      <Pricing models={models} liveHref={null} />
+      <Pricing models={models} liveHref={null} defaultExpanded />
 
       <Faq maxOff={maxOff} />
 

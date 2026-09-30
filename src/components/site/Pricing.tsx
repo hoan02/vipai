@@ -33,11 +33,23 @@ const COLLAPSE_MS = 440;
 const JUMP_AFTER_EXPAND_MS = 660;
 const JUMP_FLASH_MS = 1800;
 
-export function Pricing({ models, liveHref = "#live" }: { models: Model[]; liveHref?: string | null }) {
+export function Pricing({
+  models,
+  liveHref = "#live",
+  defaultExpanded = false,
+}: {
+  models: Model[];
+  liveHref?: string | null;
+  /** The dedicated /pricing URL has no truncated homepage card block above it,
+   *  so it opens with the full table already showing. The class is rendered
+   *  straight into the section (a constant for the life of the component) so it
+   *  is in the server HTML rather than appearing after a mount effect. */
+  defaultExpanded?: boolean;
+}) {
   const t = useTranslations("pricing");
   const tc = useTranslations("common");
   const [vendor, setVendor] = useState<string>(FEATURED);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [query, setQuery] = useState("");
   const [pendingJump, setPendingJump] = useState<string | null>(null);
   const [jumped, setJumped] = useState<string | null>(null);
@@ -298,7 +310,13 @@ export function Pricing({ models, liveHref = "#live" }: { models: Model[]; liveH
   }, []);
 
   return (
-    <section className="section pricing" id="pricing" aria-label={t("label")} ref={sectionRef} data-i18n-skip>
+    <section
+      className={defaultExpanded ? "section pricing show-all" : "section pricing"}
+      id="pricing"
+      aria-label={t("label")}
+      ref={sectionRef}
+      data-i18n-skip
+    >
       <div className="sec-head">
         <h2 className="sec-title">{maxOff > 0 ? t("titleDiscounted", { n: maxOff }) : t("title")}</h2>
         <p className="sec-sub">
@@ -312,63 +330,65 @@ export function Pricing({ models, liveHref = "#live" }: { models: Model[]; liveH
         </p>
       </div>
 
-      <div className="price-featured ai-reveal">
-        {featured.map((m) => (
-          <article
-            className="pf-card ai-lift"
-            key={m.id}
-            data-vendor={m.vendor}
-            data-model={m.name}
-            data-live-badge={m.name === liveBadge?.name ? "true" : undefined}
-            onClick={(e) => {
-              if ((e.target as HTMLElement).closest("button, a, input")) return;
-              jumpToModel(m);
-            }}
-          >
-            <header className="pf-hd">
-              <ModelMark model={m} size={22} />
-              <span className="pf-tx">
-                <b className="pf-name">{m.name}</b>
-                <small className="pf-sub">
-                  {m.ctx ? t("cardContext", { vendor: m.vendor, ctx: m.ctx }) : m.vendor}
-                </small>
-              </span>
-              {m.discPct > 0 ? (
-                <span
-                  className="pf-disc is-linkable"
-                  role="button"
-                  tabIndex={0}
-                  aria-label={t("discountHistoryLabel", { model: m.name })}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openInLive(m);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key !== "Enter" && e.key !== " ") return;
-                    e.preventDefault();
-                    e.stopPropagation();
-                    openInLive(m);
-                  }}
-                >
-                  {tc("discountOff", { pct: m.discPct })}
+      {featured.length > 0 ? (
+        <div className="price-featured ai-reveal">
+          {featured.map((m) => (
+            <article
+              className="pf-card ai-lift"
+              key={m.id}
+              data-vendor={m.vendor}
+              data-model={m.name}
+              data-live-badge={m.name === liveBadge?.name ? "true" : undefined}
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest("button, a, input")) return;
+                jumpToModel(m);
+              }}
+            >
+              <header className="pf-hd">
+                <ModelMark model={m} size={22} />
+                <span className="pf-tx">
+                  <b className="pf-name">{m.name}</b>
+                  <small className="pf-sub">
+                    {m.ctx ? t("cardContext", { vendor: m.vendor, ctx: m.ctx }) : m.vendor}
+                  </small>
                 </span>
-              ) : null}
-            </header>
-            <div className="pf-prices">
-              <div className="pf-col">
-                <span className="pf-cap">{t("inputPerMillion")}</span>
-                <span className="pf-off">{m.listIn}</span>
-                <b className="pf-now">{m.inNow}</b>
+                {m.discPct > 0 ? (
+                  <span
+                    className="pf-disc is-linkable"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={t("discountHistoryLabel", { model: m.name })}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openInLive(m);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter" && e.key !== " ") return;
+                      e.preventDefault();
+                      e.stopPropagation();
+                      openInLive(m);
+                    }}
+                  >
+                    {tc("discountOff", { pct: m.discPct })}
+                  </span>
+                ) : null}
+              </header>
+              <div className="pf-prices">
+                <div className="pf-col">
+                  <span className="pf-cap">{t("inputPerMillion")}</span>
+                  <span className="pf-off">{m.listIn}</span>
+                  <b className="pf-now">{m.inNow}</b>
+                </div>
+                <div className="pf-col">
+                  <span className="pf-cap">{t("outputPerMillion")}</span>
+                  <span className="pf-off">{m.listOut}</span>
+                  <b className="pf-now">{m.outNow}</b>
+                </div>
               </div>
-              <div className="pf-col">
-                <span className="pf-cap">{t("outputPerMillion")}</span>
-                <span className="pf-off">{m.listOut}</span>
-                <b className="pf-now">{m.outNow}</b>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
+            </article>
+          ))}
+        </div>
+      ) : null}
 
       <div className="price-all" id="priceAll" ref={allRef}>
         <div className="table-tools price-filters">

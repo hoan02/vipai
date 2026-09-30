@@ -21,7 +21,6 @@ const links: NavLink[] = [
   { href: "/models", key: "models" },
   { href: "/download", key: "codex" },
   { href: "/docs", key: "docs" },
-  { href: "/dashboard", key: "dashboard" },
 ];
 
 export function Nav() {
@@ -73,10 +72,6 @@ export function Nav() {
             <Link
               key={l.href}
               href={l.href}
-              // Signed out, `/dashboard` answers with a redirect to the auth
-              // dialog. Prefetching it would only cache that bounce, so leave it
-              // to the click. Once signed in it prefetches like any other link.
-              prefetch={l.href === "/dashboard" && !session?.user ? false : undefined}
               className={l.active ? "is-active" : undefined}
               onClick={close}
             >
